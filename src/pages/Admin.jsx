@@ -49,13 +49,8 @@ export default function Admin() {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      // Dùng query trực tiếp từ bảng profiles (không cần Edge Function)
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, role, status, is_locked, last_seen_at, last_login_at, created_at')
-        .order('full_name');
-      if (error) throw error;
-      setUsers(data || []);
+      const data = await callAdminApi('list_users');
+      setUsers(data.users || []);
     } catch (err) {
       console.error('Fetch users error:', err);
       toast.error('Lỗi tải danh sách: ' + (err.message || 'Không xác định'));

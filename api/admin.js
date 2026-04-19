@@ -25,6 +25,15 @@ export default async function handler(req, res) {
 
   try {
     switch (action) {
+      case 'list_users': {
+        const { data, error } = await supabaseAdmin
+          .from('profiles')
+          .select('id, full_name, email, role, status, is_locked, last_seen_at, last_login_at, created_at')
+          .order('full_name');
+        if (error) throw error;
+        return res.status(200).json({ success: true, users: data });
+      }
+
       case 'create_user': {
         const { data, error } = await supabaseAdmin.auth.admin.createUser({
           email: userData.email,

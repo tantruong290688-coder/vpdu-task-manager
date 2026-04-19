@@ -126,9 +126,10 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
         taskId = data.id;
         
         // Log creation
-        await supabase.from('task_updates').insert([{
+        const { error: updateError } = await supabase.from('task_updates').insert([{
           task_id: taskId, user_id: profile?.id, action: 'tạo mới'
-        }]).catch(() => {});
+        }]);
+        if (updateError) console.error('Lỗi task_updates:', updateError);
         
         await writeLog({
           actorId: profile?.id,

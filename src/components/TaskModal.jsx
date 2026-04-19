@@ -367,8 +367,6 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
           </form>
         </div>
 
-        </div>
-
         {/* Footer */}
         <div className="px-4 py-3 sm:py-4 md:px-8 md:py-5 border-t border-slate-200 dark:border-slate-800 shrink-0 bg-white dark:bg-[#111827] sm:rounded-b-[24px] flex justify-end gap-2 md:gap-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-4 md:pb-5">
           <button type="button" onClick={onClose} className="flex-1 sm:flex-none justify-center px-4 md:px-6 py-3 sm:py-2.5 font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors shadow-sm text-[14px]">Đóng</button>

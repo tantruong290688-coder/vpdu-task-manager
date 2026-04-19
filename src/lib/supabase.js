@@ -15,7 +15,7 @@ const getStorage = () => {
         removeItem: (key) => localStorage.removeItem(`${key}-${sessionKey}`),
       };
     }
-    return window.sessionStorage;
+    return window.localStorage; // ✅ Dùng localStorage thay vì sessionStorage để session tồn tại khi refresh
   } catch (e) {
     return undefined; // Fallback to default
   }

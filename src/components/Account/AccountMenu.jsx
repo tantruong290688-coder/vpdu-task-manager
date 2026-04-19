@@ -45,11 +45,11 @@ export default function AccountMenu() {
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-haspopup="menu"
-        className={`flex items-center gap-2 px-4 py-2 border rounded-full transition-colors bg-white shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500
+        className={`flex items-center gap-1.5 sm:gap-2 p-2 sm:px-4 sm:py-2 border rounded-full transition-colors bg-white shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500
           ${isOpen ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:bg-slate-50 text-slate-700'}`}
       >
         <UserCircle size={20} className={isOpen ? 'text-blue-600' : 'text-slate-600'} />
-        <span className="text-[14px] font-bold">Tài khoản</span>
+        <span className="hidden sm:inline text-[14px] font-bold">Tài khoản</span>
       </button>
 
       {isOpen && (

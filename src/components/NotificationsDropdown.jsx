@@ -144,7 +144,7 @@ export default function NotificationsDropdown() {
       {/* Bell Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all relative"
+        className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all relative"
         title="Thông báo"
       >
         <Bell size={18} className="fill-amber-600 dark:fill-amber-500" />
@@ -157,9 +157,11 @@ export default function NotificationsDropdown() {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute top-[calc(100%+8px)] right-0 w-[360px] sm:w-[420px] bg-white dark:bg-[#1e293b] rounded-2xl shadow-[0_16px_50px_rgba(0,0,0,0.15)] border border-slate-100 dark:border-slate-700/50 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+        <>
+          {/* Mobile Overlay */}
+          <div className="fixed inset-0 z-40 sm:hidden" onClick={() => setIsOpen(false)} />
           
-          {/* Header */}
+          <div className="fixed top-[65px] left-2 right-2 sm:absolute sm:top-[calc(100%+8px)] sm:right-0 sm:left-auto sm:w-[420px] bg-white dark:bg-[#1e293b] rounded-2xl shadow-[0_16px_50px_rgba(0,0,0,0.15)] border border-slate-100 dark:border-slate-700/50 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150 flex flex-col max-h-[85vh] sm:max-h-none">
           <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between bg-gradient-to-r from-slate-50 to-white dark:from-[#111827] dark:to-[#111827]">
             <div className="flex items-center gap-2">
               <h3 className="font-extrabold text-slate-800 dark:text-white text-[15px]">Thông báo</h3>
@@ -249,6 +251,7 @@ export default function NotificationsDropdown() {
             </button>
           </div>
         </div>
+        </>
       )}
     </div>
   );

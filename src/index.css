@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+/* ===== TAILWIND V4: Dark mode via class ===== */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ===== THEME TOKENS ===== */
+@theme {
+  --color-primary: #1e40af;
+  --color-secondary: #db2777;
+  --color-dark: #0f172a;
+  --color-light: #f8fafc;
+}
+
+/* ===== BASE ===== */
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #f1f5f9;
+}
+
+.dark body,
+.dark {
+  background-color: #0b1121;
+  color: #e2e8f0;
+}

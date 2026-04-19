@@ -204,19 +204,22 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/70 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-[#111827] rounded-2xl md:rounded-[24px] w-full max-w-5xl shadow-2xl relative my-2 sm:my-8 flex flex-col max-h-[95vh] sm:max-h-[90vh] border border-transparent dark:border-slate-800">
-        <div className="px-4 py-4 md:px-8 md:py-6 border-b border-slate-100 dark:border-slate-800 shrink-0 flex items-start sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-[18px] md:text-[20px] font-extrabold text-slate-800 dark:text-white leading-tight">{initialData ? 'Chi tiết / Cập nhật nhiệm vụ' : 'Tạo mới nhiệm vụ'}</h2>
-            <p className="text-[12px] md:text-[13px] font-medium text-slate-500 dark:text-slate-400 mt-1">{initialData ? 'Chỉnh sửa thông tin nhiệm vụ hiện tại.' : 'Nhập đủ thông tin để giao nhiệm vụ mới.'}</p>
+    <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/70 backdrop-blur-sm z-[100] flex sm:items-center justify-center sm:p-4">
+      <div className="bg-white dark:bg-[#111827] w-full sm:max-w-5xl shadow-2xl flex flex-col h-full sm:h-auto sm:max-h-[90vh] sm:rounded-[24px] border border-transparent dark:border-slate-800 relative animate-in slide-in-from-bottom-2 sm:slide-in-from-bottom-4 duration-200">
+        
+        {/* Header */}
+        <div className="px-4 py-4 md:px-8 md:py-6 pt-[calc(1rem+env(safe-area-inset-top))] sm:pt-4 md:pt-6 border-b border-slate-100 dark:border-slate-800 shrink-0 flex items-start sm:items-center justify-between gap-4 bg-white dark:bg-[#111827]">
+          <div className="min-w-0">
+            <h2 className="text-[17px] sm:text-[18px] md:text-[20px] font-extrabold text-slate-800 dark:text-white leading-tight break-words">{initialData ? 'Chi tiết / Cập nhật nhiệm vụ' : 'Tạo mới nhiệm vụ'}</h2>
+            <p className="text-[12px] md:text-[13px] font-medium text-slate-500 dark:text-slate-400 mt-1 truncate">{initialData ? 'Chỉnh sửa thông tin nhiệm vụ hiện tại.' : 'Nhập đủ thông tin để giao nhiệm vụ mới.'}</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 md:w-10 md:h-10 shrink-0 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors">
             <X size={18} />
           </button>
         </div>
 
-        <div className="p-4 md:p-8 overflow-y-auto">
+        {/* Body */}
+        <div className="flex-1 p-4 md:p-8 overflow-y-auto bg-slate-50 sm:bg-white dark:bg-[#0f172a] sm:dark:bg-[#111827]">
           <form id="taskForm" onSubmit={handleSubmit} className="space-y-5 md:space-y-6">
             
             {/* Row 1 */}
@@ -251,13 +254,13 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[13px] font-bold text-slate-800 dark:text-slate-200 mb-2">Người phối hợp</label>
-                  <div className="w-full h-[120px] overflow-y-auto px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl space-y-2">
+                  <label className="block text-[13px] sm:text-[14px] font-bold text-slate-800 dark:text-slate-200 mb-2">Người phối hợp</label>
+                  <div className="w-full h-[150px] sm:h-[120px] overflow-y-auto px-3 sm:px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl space-y-2">
                     {users.map(u => (
-                      <label key={u.id} className="flex items-center gap-3 cursor-pointer group">
+                      <label key={u.id} className="flex items-start gap-3 cursor-pointer group py-1">
                         <input type="checkbox" checked={collaborators.includes(u.id)} onChange={() => handleCollabChange(u.id)}
-                          className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer" />
-                        <span className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 group-hover:text-blue-600 transition-colors">{u.full_name}</span>
+                          className="w-5 h-5 sm:w-4 sm:h-4 mt-0.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer shrink-0" />
+                        <span className="text-[14px] sm:text-[13px] font-semibold text-slate-700 dark:text-slate-300 group-hover:text-blue-600 transition-colors flex-1 min-w-0 break-words leading-snug">{u.full_name}</span>
                       </label>
                     ))}
                   </div>
@@ -364,9 +367,12 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
           </form>
         </div>
 
-        <div className="px-4 py-4 md:px-8 md:py-5 border-t border-slate-100 dark:border-slate-800 shrink-0 bg-slate-50/50 dark:bg-slate-900/50 rounded-b-2xl md:rounded-b-[24px] flex justify-end gap-2 md:gap-3">
-          <button type="button" onClick={onClose} className="px-4 md:px-6 py-2.5 font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors shadow-sm text-[13px] md:text-[14px]">Đóng</button>
-          <button type="submit" form="taskForm" disabled={loading} className="px-4 md:px-6 py-2.5 font-bold bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-xl transition-colors shadow-[0_4px_12px_rgba(37,99,235,0.3)] disabled:opacity-50 text-[13px] md:text-[14px]">
+        </div>
+
+        {/* Footer */}
+        <div className="px-4 py-3 sm:py-4 md:px-8 md:py-5 border-t border-slate-200 dark:border-slate-800 shrink-0 bg-white dark:bg-[#111827] sm:rounded-b-[24px] flex justify-end gap-2 md:gap-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-4 md:pb-5">
+          <button type="button" onClick={onClose} className="flex-1 sm:flex-none justify-center px-4 md:px-6 py-3 sm:py-2.5 font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors shadow-sm text-[14px]">Đóng</button>
+          <button type="submit" form="taskForm" disabled={loading} className="flex-1 sm:flex-none justify-center px-4 md:px-6 py-3 sm:py-2.5 font-bold bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-xl transition-colors shadow-[0_4px_12px_rgba(37,99,235,0.3)] disabled:opacity-50 text-[14px]">
             {loading ? 'Đang lưu...' : 'Lưu nhiệm vụ'}
           </button>
         </div>

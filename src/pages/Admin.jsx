@@ -180,8 +180,8 @@ export default function Admin() {
   };
 
   const filteredUsers = (users || []).filter(u => 
-    u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-    u.email?.toLowerCase().includes(search.toLowerCase())
+    (u.full_name || '').toLowerCase().includes(search.toLowerCase()) ||
+    (u.email || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const getRelativeTime = (ts) => {
@@ -266,9 +266,9 @@ export default function Admin() {
                   <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="p-5">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-sm">{u.full_name?.charAt(0).toUpperCase()}</div>
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-sm">{(u.full_name || u.email || 'U').charAt(0).toUpperCase()}</div>
                         <div>
-                          <p className="font-bold text-slate-800 dark:text-slate-200 text-[15px]">{u.full_name}</p>
+                          <p className="font-bold text-slate-800 dark:text-slate-200 text-[15px]">{u.full_name || 'Chưa có tên'}</p>
                           <p className="text-[12px] text-slate-500 dark:text-slate-400">{u.email}</p>
                         </div>
                       </div>

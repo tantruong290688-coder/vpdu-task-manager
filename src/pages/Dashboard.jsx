@@ -85,42 +85,44 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5">
-      <div className="flex gap-3 mb-2">
-        <button onClick={fetchDashboardData} className="bg-[#2563eb] hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-[14px] font-bold transition-colors shadow-sm">
+      <div className="flex gap-2 md:gap-3 mb-2">
+        <button onClick={fetchDashboardData} className="flex-1 md:flex-none justify-center bg-[#2563eb] hover:bg-blue-700 text-white px-3 md:px-5 py-2.5 rounded-xl flex items-center gap-2 text-[13px] md:text-[14px] font-bold transition-colors shadow-sm">
           <RotateCcw size={16} strokeWidth={2.5} />
-          Làm mới dashboard
+          <span className="hidden sm:inline">Làm mới dashboard</span>
+          <span className="sm:hidden">Làm mới</span>
         </button>
-        <button onClick={() => navigate('/all-tasks')} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-5 py-2.5 rounded-xl flex items-center gap-2 text-[14px] font-bold transition-colors shadow-sm">
+        <button onClick={() => navigate('/all-tasks')} className="flex-1 md:flex-none justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 md:px-5 py-2.5 rounded-xl flex items-center gap-2 text-[13px] md:text-[14px] font-bold transition-colors shadow-sm">
           <Filter size={16} strokeWidth={2.5} className="text-red-500" />
-          Bộ lọc nâng cao
+          <span className="hidden sm:inline">Bộ lọc nâng cao</span>
+          <span className="sm:hidden">Lọc</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5">
         {cardsTop.map((card, i) => (
-          <div key={i} onClick={() => handleCardClick(card.filter)} className="bg-white dark:bg-[#111827] rounded-[20px] shadow-sm border border-slate-100 dark:border-slate-800 p-5 flex flex-col min-h-[140px] hover:shadow-md dark:hover:border-slate-700 transition-all cursor-pointer">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-4 ${card.iconBg}`}>
-              <card.icon size={16} strokeWidth={2.5} className={card.iconColor} />
+          <div key={i} onClick={() => handleCardClick(card.filter)} className="bg-white dark:bg-[#111827] rounded-xl md:rounded-[20px] shadow-sm border border-slate-100 dark:border-slate-800 p-3 md:p-5 flex flex-col min-h-[110px] md:min-h-[140px] hover:shadow-md dark:hover:border-slate-700 transition-all cursor-pointer">
+            <div className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center mb-2 md:mb-4 ${card.iconBg}`}>
+              <card.icon size={14} className={`md:w-4 md:h-4 ${card.iconColor}`} strokeWidth={2.5} />
             </div>
             <div className="mt-auto">
-              <p className="text-[32px] font-black text-[#111827] dark:text-white leading-none mb-1.5">{card.value}</p>
-              <p className="text-[13px] font-bold text-[#111827] dark:text-slate-200">{card.label}</p>
-              <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500 mt-1 line-clamp-2 leading-snug">{card.desc}</p>
+              <p className="text-[24px] md:text-[32px] font-black text-[#111827] dark:text-white leading-none mb-1 md:mb-1.5">{card.value}</p>
+              <p className="text-[12px] md:text-[13px] font-bold text-[#111827] dark:text-slate-200 leading-tight">{card.label}</p>
+              <p className="text-[10px] md:text-[11px] font-medium text-slate-400 dark:text-slate-500 mt-1 line-clamp-2 leading-snug hidden sm:block">{card.desc}</p>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5">
         {cardsBottom.map((card, i) => (
-          <div key={i} onClick={() => handleCardClick(card.filter)} className="bg-white dark:bg-[#111827] rounded-[20px] shadow-sm border border-slate-100 dark:border-slate-800 p-5 flex flex-col min-h-[140px] hover:shadow-md dark:hover:border-slate-700 transition-all cursor-pointer">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-4 ${card.iconBg}`}>
-              <card.icon size={16} strokeWidth={2.5} className={card.iconColor} />
+          <div key={i} onClick={() => handleCardClick(card.filter)} className="bg-white dark:bg-[#111827] rounded-xl md:rounded-[20px] shadow-sm border border-slate-100 dark:border-slate-800 p-3 md:p-5 flex flex-col min-h-[110px] md:min-h-[140px] hover:shadow-md dark:hover:border-slate-700 transition-all cursor-pointer">
+            <div className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center mb-2 md:mb-4 ${card.iconBg}`}>
+              <card.icon size={14} className={`md:w-4 md:h-4 ${card.iconColor}`} strokeWidth={2.5} />
             </div>
             <div className="mt-auto">
-              <p className="text-[32px] font-black text-[#111827] dark:text-white leading-none mb-1.5">{card.value}</p>
-              <p className="text-[13px] font-bold text-[#111827] dark:text-slate-200">{card.label}</p>
-              <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500 mt-1 line-clamp-2 leading-snug">{card.desc}</p>
+              <p className="text-[24px] md:text-[32px] font-black text-[#111827] dark:text-white leading-none mb-1 md:mb-1.5">{card.value}</p>
+              <p className="text-[12px] md:text-[13px] font-bold text-[#111827] dark:text-slate-200 leading-tight">{card.label}</p>
+              <p className="text-[10px] md:text-[11px] font-medium text-slate-400 dark:text-slate-500 mt-1 line-clamp-2 leading-snug hidden sm:block">{card.desc}</p>
             </div>
           </div>
         ))}

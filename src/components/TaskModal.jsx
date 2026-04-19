@@ -204,23 +204,23 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-[#111827] rounded-[24px] w-full max-w-5xl shadow-2xl relative my-8 flex flex-col max-h-[90vh] border border-transparent dark:border-slate-800">
-        <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 shrink-0 flex items-center justify-between">
+    <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/70 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+      <div className="bg-white dark:bg-[#111827] rounded-2xl md:rounded-[24px] w-full max-w-5xl shadow-2xl relative my-2 sm:my-8 flex flex-col max-h-[95vh] sm:max-h-[90vh] border border-transparent dark:border-slate-800">
+        <div className="px-4 py-4 md:px-8 md:py-6 border-b border-slate-100 dark:border-slate-800 shrink-0 flex items-start sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-[20px] font-extrabold text-slate-800 dark:text-white">{initialData ? 'Chi tiết / Cập nhật nhiệm vụ' : 'Tạo mới nhiệm vụ'}</h2>
-            <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 mt-1">{initialData ? 'Chỉnh sửa thông tin nhiệm vụ hiện tại.' : 'Nhập đủ thông tin để giao nhiệm vụ mới.'}</p>
+            <h2 className="text-[18px] md:text-[20px] font-extrabold text-slate-800 dark:text-white leading-tight">{initialData ? 'Chi tiết / Cập nhật nhiệm vụ' : 'Tạo mới nhiệm vụ'}</h2>
+            <p className="text-[12px] md:text-[13px] font-medium text-slate-500 dark:text-slate-400 mt-1">{initialData ? 'Chỉnh sửa thông tin nhiệm vụ hiện tại.' : 'Nhập đủ thông tin để giao nhiệm vụ mới.'}</p>
           </div>
-          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors">
-            <X size={20} />
+          <button onClick={onClose} className="w-8 h-8 md:w-10 md:h-10 shrink-0 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors">
+            <X size={18} />
           </button>
         </div>
 
-        <div className="p-8 overflow-y-auto">
-          <form id="taskForm" onSubmit={handleSubmit} className="space-y-6">
+        <div className="p-4 md:p-8 overflow-y-auto">
+          <form id="taskForm" onSubmit={handleSubmit} className="space-y-5 md:space-y-6">
             
             {/* Row 1 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
               <div className="space-y-6">
                 <div>
                   <label className="block text-[13px] font-bold text-slate-800 dark:text-slate-200 mb-2">Ngày giao</label>
@@ -266,7 +266,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
             </div>
 
             {/* Row 2 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
               <div>
                 <label className="block text-[13px] font-bold text-slate-800 mb-2">Nhóm nhiệm vụ</label>
                 <select value={taskGroup} onChange={e => setTaskGroup(e.target.value)}
@@ -305,7 +305,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
             </div>
 
             {/* Row 4 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
               <div>
                 <label className="block text-[13px] font-bold text-slate-800 mb-2">Mức độ ưu tiên</label>
                 <select value={priority} onChange={e => setPriority(e.target.value)}
@@ -321,23 +321,15 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
                 <select value={evaluationPeriod} onChange={e => setEvaluationPeriod(e.target.value)}
                   className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none text-[14px] font-medium text-slate-700">
                   <option value="">-- Chọn --</option>
-                  <option value="Tháng 1">Tháng 1</option>
-                  <option value="Tháng 2">Tháng 2</option>
-                  <option value="Tháng 3">Tháng 3</option>
-                  <option value="Tháng 4">Tháng 4</option>
-                  <option value="Tháng 5">Tháng 5</option>
-                  <option value="Tháng 6">Tháng 6</option>
-                  <option value="Quý 1">Quý 1</option>
-                  <option value="Quý 2">Quý 2</option>
-                  <option value="Quý 3">Quý 3</option>
-                  <option value="Quý 4">Quý 4</option>
+                  <option value="Tháng">Tháng</option>
+                  <option value="Quý">Quý</option>
                   <option value="Năm">Năm</option>
                 </select>
               </div>
             </div>
 
             {/* Row 5 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
               <div>
                 <label className="block text-[13px] font-bold text-slate-800 mb-2">Ngày bắt đầu</label>
                 <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
@@ -351,7 +343,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
             </div>
 
             {/* Row 6 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
               <div>
                 <label className="block text-[13px] font-bold text-slate-800 mb-2">Loại nhiệm vụ</label>
                 <select value={taskType} onChange={e => setTaskType(e.target.value)}
@@ -372,9 +364,9 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
           </form>
         </div>
 
-        <div className="px-8 py-5 border-t border-slate-100 dark:border-slate-800 shrink-0 bg-slate-50/50 dark:bg-slate-900/50 rounded-b-[24px] flex justify-end gap-3">
-          <button type="button" onClick={onClose} className="px-6 py-2.5 font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors shadow-sm">Đóng</button>
-          <button type="submit" form="taskForm" disabled={loading} className="px-6 py-2.5 font-bold bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-xl transition-colors shadow-[0_4px_12px_rgba(37,99,235,0.3)] disabled:opacity-50">
+        <div className="px-4 py-4 md:px-8 md:py-5 border-t border-slate-100 dark:border-slate-800 shrink-0 bg-slate-50/50 dark:bg-slate-900/50 rounded-b-2xl md:rounded-b-[24px] flex justify-end gap-2 md:gap-3">
+          <button type="button" onClick={onClose} className="px-4 md:px-6 py-2.5 font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors shadow-sm text-[13px] md:text-[14px]">Đóng</button>
+          <button type="submit" form="taskForm" disabled={loading} className="px-4 md:px-6 py-2.5 font-bold bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-xl transition-colors shadow-[0_4px_12px_rgba(37,99,235,0.3)] disabled:opacity-50 text-[13px] md:text-[14px]">
             {loading ? 'Đang lưu...' : 'Lưu nhiệm vụ'}
           </button>
         </div>

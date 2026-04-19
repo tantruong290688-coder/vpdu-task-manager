@@ -8,6 +8,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [onlineUsers, setOnlineUsers] = useState({}); // Lưu danh sách online toàn cục
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -18,8 +19,9 @@ export const AuthProvider = ({ children }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      else {
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
         setProfile(null);
         setLoading(false);
       }
@@ -27,6 +29,58 @@ export const AuthProvider = ({ children }) => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Tracking Realtime Presence
+  useEffect(() => {
+    // Luôn lắng nghe Presence để Admin (hoặc user khác) thấy ai online
+    const channel = supabase.channel('global-presence', {
+      config: { presence: { key: user?.id || 'guest' } }
+    });
+
+    channel.on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState();
+      const map = {};
+      Object.values(state).flat().forEach(p => {
+        if (p?.userId) map[p.userId] = p.online_at; // Lưu thời gian bắt đầu online
+      });
+      setOnlineUsers(map);
+    });
+
+    channel.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED' && user) {
+        // Gửi trạng thái của mình lên mạng
+        await channel.track({ 
+          userId: user.id, 
+          online_at: new Date().toISOString() 
+        });
+      }
+    });
+
+    // Fallback: Heartbeat DB mỗi 30s
+    let intervalId;
+    if (user) {
+      const sendHeartbeat = () => {
+        supabase.from('profiles').update({ 
+          is_online: true, 
+          last_seen_at: new Date().toISOString() 
+        }).eq('id', user.id).then().catch(() => {});
+      };
+      sendHeartbeat();
+      intervalId = setInterval(sendHeartbeat, 30000);
+    }
+
+    // Cập nhật Database (fallback) khi rời đi
+    const handleBeforeUnload = () => {
+      if (user) supabase.from('profiles').update({ is_online: false }).eq('id', user.id).then();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   const fetchProfile = async (userId) => {
     try {
@@ -36,8 +90,12 @@ export const AuthProvider = ({ children }) => {
       
       if (data) {
         setProfile(data);
-        // Cập nhật thời gian truy cập (không chặn việc load app nếu lỗi)
-        supabase.from('profiles').update({ last_login_at: new Date().toISOString() }).eq('id', userId).then();
+        // Cập nhật thời gian truy cập
+        supabase.from('profiles').update({ 
+          last_login_at: new Date().toISOString(),
+          last_seen_at: new Date().toISOString(),
+          is_online: true 
+        }).eq('id', userId).then();
       }
     } catch (err) {
       console.error('Lỗi fetchProfile:', err);
@@ -70,6 +128,7 @@ export const AuthProvider = ({ children }) => {
         action: 'Đăng xuất',
         note: `Đăng xuất lúc ${new Date().toLocaleString('vi-VN')}`,
       });
+      await supabase.from('profiles').update({ is_online: false }).eq('id', profile.id);
     }
     await supabase.auth.signOut();
   };
@@ -85,7 +144,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, login, logout, changePassword, resetPasswordForEmail, loading }}>
+    <AuthContext.Provider value={{ user, profile, onlineUsers, login, logout, changePassword, resetPasswordForEmail, loading }}>
       {loading ? (
         <div className="min-h-screen flex items-center justify-center bg-slate-100">
           <div className="flex flex-col items-center gap-4">

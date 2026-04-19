@@ -1,10 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Send, LayoutList, ClipboardList, History, Settings, Star } from 'lucide-react';
+import { LayoutDashboard, Send, LayoutList, ClipboardList, History, Settings, Star, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
   const { profile } = useAuth();
   const { theme } = useTheme();
@@ -21,10 +21,22 @@ export default function Sidebar() {
   ].filter(m => !m.adminOnly || profile?.role === 'admin');
 
   return (
-    <div className="w-[280px] bg-[#f8fafc] dark:bg-[#111827] border-r border-slate-200 dark:border-slate-800 flex flex-col p-5 shrink-0 z-10 shadow-[2px_0_10px_rgba(0,0,0,0.02)] transition-colors">
-      {/* Top red banner */}
-      <div className="bg-[#b91c1c] rounded-[20px] p-4 text-white shadow-[0_8px_20px_rgba(185,28,28,0.3)] mb-5 flex items-center gap-3">
-        <div className="w-12 h-12 bg-[#fde047] rounded-xl flex items-center justify-center shrink-0 shadow-inner">
+    <>
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/60 z-40 lg:hidden backdrop-blur-sm transition-opacity"
+          onClick={onClose}
+        />
+      )}
+
+      <div className={`fixed inset-y-0 left-0 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-0 z-50 w-[280px] bg-[#f8fafc] dark:bg-[#111827] border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 md:p-5 shrink-0 shadow-[2px_0_10px_rgba(0,0,0,0.02)] transition-transform duration-300 ease-in-out`}>
+        {/* Top red banner */}
+        <div className="bg-[#b91c1c] rounded-[20px] p-4 text-white shadow-[0_8px_20px_rgba(185,28,28,0.3)] mb-5 flex items-center gap-3 relative">
+          <button onClick={onClose} className="absolute top-2 right-2 p-1 rounded-full bg-white/10 hover:bg-white/20 text-white lg:hidden transition-colors">
+            <X size={16} />
+          </button>
+          <div className="w-12 h-12 bg-[#fde047] rounded-xl flex items-center justify-center shrink-0 shadow-inner">
           <Star className="text-[#b91c1c] fill-[#b91c1c]" size={24} />
         </div>
         <div>
@@ -46,7 +58,7 @@ export default function Sidebar() {
           const Icon = menu.icon;
           const isActive = location.pathname === menu.path || (menu.path === '/tasks' && location.pathname.includes('/tasks'));
           return (
-              <Link key={menu.path} to={menu.path} 
+              <Link key={menu.path} to={menu.path} onClick={onClose}
               className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all font-semibold text-[14px] ${
                 isActive 
                   ? 'bg-gradient-to-r from-[#dc2626] to-[#ef4444] text-white shadow-[0_4px_12px_rgba(239,68,68,0.3)]' 
@@ -65,6 +77,7 @@ export default function Sidebar() {
         <p>Creator: Bùi Tấn Trường</p>
         <p>Giao diện: {themeLabel}</p>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

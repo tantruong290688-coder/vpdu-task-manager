@@ -1,9 +1,5 @@
-/**
- * useAdminApi – custom hook: gọi /api/admin một cách tập trung, có error handling, loading state.
- * Sử dụng trong Admin.jsx để tránh lặp code fetch().
- */
 import { useCallback, useState } from 'react';
-import toast from 'react-hot-toast';
+import { supabase } from '../lib/supabase';
 
 export function useAdminApi() {
   const [loading, setLoading] = useState(false);
@@ -11,9 +7,15 @@ export function useAdminApi() {
   const call = useCallback(async (action, userData = {}) => {
     setLoading(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      
       const res = await fetch('/api/admin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ action, userData }),
       });
 

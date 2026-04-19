@@ -108,9 +108,8 @@ function RoleSelect({ value, onChange }) {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function Admin() {
-  const { profile } = useAuth();
+  const { profile, onlineUsers } = useAuth();
   const [users, setUsers] = useState([]);
-  const [onlineMap, setOnlineMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [apiErr, setApiErr] = useState(null);
   const [search, setSearch] = useState('');
@@ -124,42 +123,30 @@ export default function Admin() {
   const [createForm, setCreateForm] = useState({ full_name: '', email: '', role: 'staff', password: '', method: 'password' });
   const [editForm, setEditForm] = useState({ full_name: '', role: 'staff' });
   const [newPwd, setNewPwd] = useState('');
-
+  
   const isAdmin = profile?.role === 'admin';
-  const channelRef = useRef(null);
-
-  // Presence tracking
-  useEffect(() => {
-    if (!isAdmin) return;
-    const ch = supabase.channel('admin-presence-view');
-    channelRef.current = ch;
-    ch.on('presence', { event: 'sync' }, () => {
-      const state = ch.presenceState();
-      const map = {};
-      Object.values(state).flat().forEach(p => { if (p?.userId) map[p.userId] = true; });
-      setOnlineMap(map);
-    }).subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [isAdmin]);
 
   const fetchUsers = useCallback(async () => {
-    setLoading(true);
+    // Không set loading = true ở đây nếu chỉ là polling ngầm
     setApiErr(null);
     try {
       const data = await callApi('list_users');
       setUsers(data.users || []);
     } catch (e) {
       setApiErr(e.message);
-      toast.error('Lỗi tải danh sách: ' + e.message);
+      // Chỉ toast lỗi nếu danh sách đang rỗng (lỗi load lần đầu)
+      if (users.length === 0) toast.error('Lỗi tải danh sách: ' + e.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [users.length, callApi]);
 
   useEffect(() => {
-    if (isAdmin) fetchUsers();
-    else setLoading(false);
-  }, [isAdmin, fetchUsers]);
+    fetchUsers();
+    // Cần polling 15s/lần để phòng hờ Realtime lỗi, ta vẫn có Data từ DB (Heartbeat fallback)
+    const pollId = setInterval(fetchUsers, 15000);
+    return () => clearInterval(pollId);
+  }, [fetchUsers]);
 
   // ── Actions ────────────────────────────────────────────────────────────────
   const doAction = async (action, userData, successMsg, afterCb) => {
@@ -219,17 +206,6 @@ export default function Admin() {
     return !q || (u.full_name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q);
   });
 
-  // ── Access guard ───────────────────────────────────────────────────────────
-  if (!loading && !isAdmin) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-slate-500">
-        <Shield size={64} className="opacity-20" />
-        <h2 className="text-xl font-extrabold text-slate-700 dark:text-white">Truy cập bị từ chối</h2>
-        <p className="text-[14px]">Chỉ tài khoản quản trị viên mới có thể xem trang này.</p>
-      </div>
-    );
-  }
-
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
@@ -253,10 +229,12 @@ export default function Admin() {
               className="p-3 text-slate-400 hover:text-blue-500 bg-slate-50 dark:bg-slate-800 rounded-xl transition-colors" title="Làm mới">
               <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
             </button>
-            <button onClick={() => setModal('create')}
-              className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.3)] transition-all active:scale-95">
-              <Plus size={18} /> Tạo tài khoản
-            </button>
+            {isAdmin && (
+              <button onClick={() => setModal('create')}
+                className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.3)] transition-all active:scale-95">
+                <Plus size={18} /> Tạo tài khoản
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -291,8 +269,8 @@ export default function Admin() {
           </div>
         )}
 
-        {/* Table */}
-        <div className="overflow-x-auto">
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50/80 dark:bg-slate-900/50 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -301,7 +279,7 @@ export default function Admin() {
                 <th className="px-5 py-4">Trực tuyến</th>
                 <th className="px-5 py-4">Hoạt động cuối</th>
                 <th className="px-5 py-4">Trạng thái</th>
-                <th className="px-5 py-4 text-center">Thao tác</th>
+                {isAdmin && <th className="px-5 py-4 text-center">Thao tác</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
@@ -319,7 +297,15 @@ export default function Admin() {
                     </tr>
                   )
                   : filtered.map(u => {
-                    const isOnline = onlineMap[u.id] || u.is_online || false;
+                    // Xác định Online thông qua state realtime onlineUsers (Ưu tiên số 1)
+                    let isOnline = !!onlineUsers[u.id];
+                    
+                    // Fallback: nếu realtime bị mất kết nối, dùng db last_seen_at
+                    if (!isOnline && u.is_online && u.last_seen_at) {
+                      const diffSeconds = (Date.now() - new Date(u.last_seen_at).getTime()) / 1000;
+                      if (diffSeconds < 60) isOnline = true;
+                    }
+                    
                     const locked = u.is_locked || u.status === 'locked';
                     const avatar = (u.full_name || u.email || '?').charAt(0).toUpperCase();
                     return (
@@ -344,7 +330,7 @@ export default function Admin() {
                         </td>
                         {/* Online */}
                         <td className="px-5 py-4">
-                          <OnlineBadge isOnline={isOnline} lastSeen={u.last_seen_at} />
+                          <OnlineBadge isOnline={isOnline} lastSeen={onlineUsers[u.id] || u.last_seen_at} />
                         </td>
                         {/* Last active */}
                         <td className="px-5 py-4">
@@ -357,34 +343,113 @@ export default function Admin() {
                           </span>
                         </td>
                         {/* Actions */}
-                        <td className="px-5 py-4">
-                          <div className="flex items-center justify-center gap-1">
-                            <button title="Chỉnh sửa" onClick={() => { setSelectedUser(u); setEditForm({ full_name: u.full_name || '', role: u.role || 'staff' }); setModal('edit'); }}
-                              className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
-                              <Edit size={16} />
-                            </button>
-                            <button title="Đổi mật khẩu" onClick={() => { setSelectedUser(u); setNewPwd(''); setModal('password'); }}
-                              className="p-2 rounded-lg text-slate-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors">
-                              <Key size={16} />
-                            </button>
-                            <button title={locked ? 'Mở khóa' : 'Khóa tài khoản'} onClick={() => handleToggleLock(u)}
-                              className={`p-2 rounded-lg transition-colors ${locked ? 'text-green-600 bg-green-50 dark:bg-green-900/20 hover:bg-green-100' : 'text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20'}`}>
-                              {locked ? <Unlock size={16} /> : <Lock size={16} />}
-                            </button>
-                            {u.id !== profile?.id && (
-                              <button title="Xóa tài khoản" onClick={() => handleDelete(u)}
-                                className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                                <Trash2 size={16} />
+                        {isAdmin && (
+                          <td className="px-5 py-4">
+                            <div className="flex items-center justify-center gap-1">
+                              <button title="Chỉnh sửa" onClick={() => { setSelectedUser(u); setEditForm({ full_name: u.full_name || '', role: u.role || 'staff' }); setModal('edit'); }}
+                                className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                                <Edit size={16} />
                               </button>
-                            )}
-                          </div>
-                        </td>
+                              <button title="Đổi mật khẩu" onClick={() => { setSelectedUser(u); setNewPwd(''); setModal('password'); }}
+                                className="p-2 rounded-lg text-slate-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors">
+                                <Key size={16} />
+                              </button>
+                              <button title={locked ? 'Mở khóa' : 'Khóa tài khoản'} onClick={() => handleToggleLock(u)}
+                                className={`p-2 rounded-lg transition-colors ${locked ? 'text-green-600 bg-green-50 dark:bg-green-900/20 hover:bg-green-100' : 'text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20'}`}>
+                                {locked ? <Unlock size={16} /> : <Lock size={16} />}
+                              </button>
+                              {u.id !== profile?.id && (
+                                <button title="Xóa tài khoản" onClick={() => handleDelete(u)}
+                                  className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                                  <Trash2 size={16} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     );
                   })
               }
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800/50">
+          {loading && users.length === 0 ? (
+            [...Array(4)].map((_, i) => (
+              <div key={i} className="p-4 space-y-3 animate-pulse">
+                <div className="flex gap-3"><div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full"></div><div className="flex-1 space-y-2"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/2"></div><div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/3"></div></div></div>
+              </div>
+            ))
+          ) : filtered.length === 0 ? (
+            <div className="py-12 text-center flex flex-col items-center gap-2 text-slate-400">
+              <Users size={32} className="opacity-30" />
+              <p className="font-semibold text-[13px]">{search ? 'Không tìm thấy tài khoản phù hợp' : 'Chưa có tài khoản nào'}</p>
+            </div>
+          ) : (
+            filtered.map(u => {
+              let isOnline = !!onlineUsers[u.id];
+              if (!isOnline && u.is_online && u.last_seen_at) {
+                const diffSeconds = (Date.now() - new Date(u.last_seen_at).getTime()) / 1000;
+                if (diffSeconds < 60) isOnline = true;
+              }
+              const locked = u.is_locked || u.status === 'locked';
+              const avatar = (u.full_name || u.email || '?').charAt(0).toUpperCase();
+
+              return (
+                <div key={u.id} className="p-4 bg-white dark:bg-[#111827] hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-[15px] shadow-sm shrink-0 ${locked ? 'bg-slate-400' : 'bg-gradient-to-br from-indigo-500 to-purple-600'}`}>
+                        {avatar}
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-800 dark:text-slate-100 text-[14px] leading-tight">{u.full_name || '(Chưa có tên)'}</p>
+                        <p className="text-[12px] text-slate-500 dark:text-slate-400">{u.email}</p>
+                      </div>
+                    </div>
+                    <span className={`shrink-0 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold ${locked ? 'text-red-600 bg-red-50 dark:bg-red-900/20' : 'text-green-600 bg-green-50 dark:bg-green-900/20'}`}>
+                      <Circle size={6} fill={locked ? '#dc2626' : '#16a34a'} /> {locked ? 'Đã khóa' : 'Hoạt động'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[12px]">
+                    <div className="flex items-center gap-3">
+                      <span className={`inline-flex px-2 py-0.5 rounded-md font-bold uppercase ${ROLE_COLORS[u.role] || ROLE_COLORS.staff}`}>
+                        {ROLE_LABELS[u.role] || u.role}
+                      </span>
+                      <OnlineBadge isOnline={isOnline} lastSeen={onlineUsers[u.id] || u.last_seen_at} />
+                    </div>
+                  </div>
+
+                  {isAdmin && (
+                    <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <button onClick={() => { setSelectedUser(u); setEditForm({ full_name: u.full_name || '', role: u.role || 'staff' }); setModal('edit'); }}
+                        className="flex-1 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-blue-600 flex items-center justify-center font-medium text-[12px]">
+                        Sửa
+                      </button>
+                      <button onClick={() => { setSelectedUser(u); setNewPwd(''); setModal('password'); }}
+                        className="flex-1 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-orange-500 flex items-center justify-center font-medium text-[12px]">
+                        Pass
+                      </button>
+                      <button onClick={() => handleToggleLock(u)}
+                        className={`flex-1 py-1.5 rounded-lg flex items-center justify-center font-medium text-[12px] ${locked ? 'text-green-600 bg-green-50 dark:bg-green-900/20' : 'text-slate-500 bg-slate-50 dark:bg-slate-800 hover:text-red-600'}`}>
+                        {locked ? 'Mở' : 'Khóa'}
+                      </button>
+                      {u.id !== profile?.id && (
+                        <button onClick={() => handleDelete(u)}
+                          className="w-10 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-red-600 flex items-center justify-center font-medium">
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 

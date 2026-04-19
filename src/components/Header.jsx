@@ -1,10 +1,10 @@
 import { useAuth } from '../context/AuthContext';
-import { Search, MessageSquare, Bell, RotateCcw } from 'lucide-react';
+import { Search, MessageSquare, Bell, RotateCcw, Menu } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import AccountMenu from './Account/AccountMenu';
 import NotificationsDropdown from './NotificationsDropdown';
 
-export default function Header() {
+export default function Header({ onMenuClick }) {
   const { profile } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -17,10 +17,18 @@ export default function Header() {
   else if (location.pathname.includes('/admin')) title = "Quản trị hệ thống";
 
   return (
-    <header className="bg-white h-[80px] flex items-center justify-between px-8 shrink-0 z-20 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-      <div>
-        <h2 className="text-[22px] font-extrabold text-slate-800">{title}</h2>
-        <p className="text-[13px] text-slate-500 font-medium">Web App quản trị nhiệm vụ - {profile?.full_name || 'Bùi Tấn Trường'}</p>
+    <header className="bg-white h-[70px] md:h-[80px] flex items-center justify-between px-4 md:px-8 shrink-0 z-20 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+      <div className="flex items-center gap-2 md:gap-3">
+        <button 
+          onClick={onMenuClick}
+          className="lg:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+        >
+          <Menu size={24} />
+        </button>
+        <div>
+          <h2 className="text-[18px] md:text-[22px] font-extrabold text-slate-800 line-clamp-1">{title}</h2>
+          <p className="text-[12px] md:text-[13px] text-slate-500 font-medium hidden sm:block">Web App quản trị nhiệm vụ - {profile?.full_name || 'Bùi Tấn Trường'}</p>
+        </div>
       </div>
       
       <div className="flex items-center gap-4">
@@ -40,14 +48,14 @@ export default function Header() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2">
-          <button className="w-10 h-10 rounded-xl bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-600 transition-colors">
+        <div className="flex items-center gap-1 md:gap-2">
+          <button className="hidden sm:flex w-10 h-10 rounded-xl bg-slate-50 hover:bg-slate-100 items-center justify-center text-slate-600 transition-colors">
             <MessageSquare size={18} />
           </button>
           
           <NotificationsDropdown />
           
-          <button onClick={() => window.location.reload()} className="w-10 h-10 rounded-xl bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-600 transition-colors">
+          <button onClick={() => window.location.reload()} className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-600 transition-colors">
             <RotateCcw size={18} />
           </button>
         </div>

@@ -128,9 +128,15 @@ async function deleteUser(db, d, res) {
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return err(res, 405, 'Method not allowed');
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return err(res, 401, 'Unauthorized');
+  }
+  const token = authHeader.split(' ')[1];
 
   const { action, userData = {} } = req.body || {};
   if (!action) return err(res, 400, 'Thiếu action');
@@ -139,6 +145,18 @@ export default async function handler(req, res) {
   try { db = getAdmin(); } catch (e) { return err(res, 500, e.message); }
 
   try {
+    // Verify user token
+    const { data: { user }, error: authErr } = await db.auth.getUser(token);
+    if (authErr || !user) return err(res, 401, 'Invalid token');
+
+    // Mặc định role lấy từ meta data
+    const role = user.user_metadata?.role || 'staff';
+    
+    // Nếu không phải admin và muốn làm hành động thay đổi data -> 403
+    if (role !== 'admin' && action !== 'list_users') {
+      return err(res, 403, 'Không có quyền thực hiện. Yêu cầu role admin.');
+    }
+
     switch (action) {
       case 'list_users':     return await listUsers(db, res);
       case 'create_user':    return await createUser(db, userData, res);

@@ -34,6 +34,8 @@ export default function Tasks() {
   const [editingTask, setEditingTask] = useState(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState(EMPTY_FILTERS);
+  const [expandedTaskId, setExpandedTaskId] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
   const { profile } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -167,6 +169,126 @@ export default function Tasks() {
     setActiveFilters(EMPTY_FILTERS);
   };
 
+  const handleExport = async (filtersToExport) => {
+    try {
+      setIsExporting(true);
+      
+      // Re-fetch data based on current filter state (filtersToExport)
+      // to ensure we get exactly what the user is seeing/filtering
+      let query = supabase
+        .from('tasks')
+        .select('*, assignee:profiles!tasks_assignee_id_fkey(full_name), assigner:profiles!tasks_assigned_by_fkey(full_name), task_collaborators(user_id, profiles(full_name))');
+
+      if (filtersToExport.keyword) {
+        query = query.or(`title.ilike.%${filtersToExport.keyword}%,code.ilike.%${filtersToExport.keyword}%,description.ilike.%${filtersToExport.keyword}%`);
+      }
+      if (filtersToExport.assignerId) query = query.eq('assigned_by', filtersToExport.assignerId);
+      if (filtersToExport.assigneeId) query = query.eq('assignee_id', filtersToExport.assigneeId);
+      if (filtersToExport.workArea) query = query.eq('work_area', filtersToExport.workArea);
+      if (filtersToExport.taskGroup) query = query.eq('task_group', filtersToExport.taskGroup);
+      if (filtersToExport.status) query = query.eq('status', filtersToExport.status);
+      if (filtersToExport.priority) query = query.eq('priority', filtersToExport.priority);
+      if (filtersToExport.evaluationPeriod) query = query.eq('evaluation_period', filtersToExport.evaluationPeriod);
+      if (filtersToExport.taskType) query = query.eq('task_type', filtersToExport.taskType);
+
+      if (filtersToExport.assignedDateFrom) query = query.gte('assigned_date', filtersToExport.assignedDateFrom);
+      if (filtersToExport.assignedDateTo) query = query.lte('assigned_date', filtersToExport.assignedDateTo);
+      if (filtersToExport.dueDateFrom) query = query.gte('due_date', filtersToExport.dueDateFrom);
+      if (filtersToExport.dueDateTo) query = query.lte('due_date', filtersToExport.dueDateTo);
+
+      if (filtersToExport.isOverdue) {
+        const now = new Date().toISOString();
+        query = query.not('due_date', 'is', null).lt('due_date', now).neq('status', 'completed');
+      }
+      if (filtersToExport.isDueSoon) {
+        const today = new Date();
+        const threeDays = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000);
+        query = query.not('due_date', 'is', null)
+          .gte('due_date', today.toISOString())
+          .lte('due_date', threeDays.toISOString())
+          .neq('status', 'completed');
+      }
+      if (filtersToExport.isForMe && profile) {
+        query = query.eq('assignee_id', profile.id).eq('status', 'pending');
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+      if (error) throw error;
+
+      let result = data || [];
+      if (filtersToExport.collaboratorId) {
+        result = result.filter(t =>
+          (t.task_collaborators || []).some(c => c.user_id === filtersToExport.collaboratorId)
+        );
+      }
+      
+      // Format data for Excel
+      const excelData = result.map(t => ({
+        'Mã nhiệm vụ': t.code || '',
+        'Tên nhiệm vụ': t.title || '',
+        'Người giao': t.assigner?.full_name || '',
+        'Người thực hiện': t.assignee?.full_name || '',
+        'Người phối hợp': (t.task_collaborators || []).map(c => c.profiles?.full_name).filter(Boolean).join(', '),
+        'Lĩnh vực': t.work_area || '',
+        'Nhóm nhiệm vụ': t.task_group || '',
+        'Trạng thái': t.status === 'completed' ? 'Hoàn thành' : t.status === 'in_progress' ? 'Đang thực hiện' : t.status === 'overdue' ? 'Quá hạn' : 'Chờ xử lý',
+        'Mức độ ưu tiên': t.priority === 'high' ? 'Cao' : t.priority === 'low' ? 'Thấp' : 'Trung bình',
+        'Kỳ đánh giá': t.evaluation_period || '',
+        'Loại nhiệm vụ': t.task_type || '',
+        'Ngày giao': t.assigned_date ? new Date(t.assigned_date).toLocaleDateString('vi-VN') : '',
+        'Hạn hoàn thành': t.due_date ? new Date(t.due_date).toLocaleDateString('vi-VN') : '',
+        'Sản phẩm đầu ra': t.expected_output || '',
+        'Nội dung yêu cầu': t.description || ''
+      }));
+
+      if (excelData.length === 0) {
+        toast.error('Không có dữ liệu để xuất Excel');
+        setIsExporting(false);
+        return;
+      }
+
+      // Dynamically import xlsx to avoid bundle size bloat and missing dependency crash on load
+      const XLSX = await import('xlsx');
+      
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      
+      // Adjust column widths
+      const colWidths = [
+        { wch: 15 }, // Mã
+        { wch: 40 }, // Tên
+        { wch: 20 }, // Người giao
+        { wch: 20 }, // Người TH
+        { wch: 30 }, // Phối hợp
+        { wch: 25 }, // Lĩnh vực
+        { wch: 25 }, // Nhóm
+        { wch: 15 }, // Trạng thái
+        { wch: 15 }, // Ưu tiên
+        { wch: 15 }, // Kỳ ĐG
+        { wch: 15 }, // Loại NV
+        { wch: 12 }, // Ngày giao
+        { wch: 12 }, // Hạn HT
+        { wch: 30 }, // Sản phẩm
+        { wch: 50 }, // Nội dung
+      ];
+      worksheet['!cols'] = colWidths;
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh sách nhiệm vụ');
+      
+      // Generate filename with timestamp
+      const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const filename = `danh-sach-nhiem-vu-${dateStr}.xlsx`;
+      
+      XLSX.writeFile(workbook, filename);
+      toast.success('Đã xuất file Excel thành công');
+    } catch (error) {
+      console.error('Lỗi xuất Excel:', error);
+      toast.error('Có lỗi xảy ra khi xuất Excel');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleDelete = async (id) => {
     const taskToDelete = tasks.find(t => t.id === id);
     if (!window.confirm('Bạn có chắc chắn muốn xóa nhiệm vụ này?')) return;
@@ -216,8 +338,8 @@ export default function Tasks() {
         <p className="text-[13px] text-slate-500 dark:text-slate-400 mb-6 font-medium">Hiển thị gọn các cột A-M của sheet 04_NHIEM_VU để theo dõi và giao việc nhanh, rõ và đẹp mắt.</p>
 
         {/* Filter bar */}
-        <div className="mb-6 flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-3 flex-wrap">
+        <div className="mb-4 md:mb-6 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 md:gap-3 flex-wrap w-full md:w-auto">
             {/* URL filter reset */}
             {(filterParam || searchStr) && (
               <button
@@ -253,7 +375,7 @@ export default function Tasks() {
           {/* Advanced filter button */}
           <button
             onClick={() => setIsFilterOpen(true)}
-            className={`relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all border ${
+            className={`relative flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-[13px] font-bold transition-all border w-full md:w-auto justify-center md:justify-start ${
               activeFilterCount > 0
                 ? 'bg-blue-600 text-white border-blue-600 shadow-[0_4px_12px_rgba(37,99,235,0.3)] hover:bg-blue-700'
                 : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
@@ -269,8 +391,8 @@ export default function Tasks() {
           </button>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto pb-4">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto pb-4">
           <table className="w-full text-left border-collapse min-w-[1400px]">
             <thead>
               <tr className="border-b-2 border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 text-[11px] uppercase tracking-wider font-bold">
@@ -356,11 +478,85 @@ export default function Tasks() {
           </table>
         </div>
 
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-4">
+          {tasks.map(task => {
+            const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed';
+            const isExpanded = expandedTaskId === task.id;
+            return (
+              <div key={task.id} className={`bg-white dark:bg-slate-800 rounded-2xl border ${isOverdue ? 'border-red-200 dark:border-red-900/50 bg-red-50/20' : 'border-slate-200 dark:border-slate-700'} p-4 shadow-sm relative flex flex-col transition-all`}>
+                <div className="flex justify-between items-start mb-3 gap-2">
+                  <h3 className="font-bold text-[15px] text-slate-800 dark:text-white leading-snug">{task.title}</h3>
+                  <span className={`shrink-0 px-2.5 py-1 text-[11px] font-bold rounded-lg ${
+                    task.priority === 'high' ? 'bg-red-100 text-red-700' :
+                    task.priority === 'low' ? 'bg-slate-100 text-slate-600' :
+                    'bg-amber-100 text-amber-700'
+                  }`}>
+                    {task.priority === 'high' ? 'Cao' : task.priority === 'low' ? 'Thấp' : 'TB'}
+                  </span>
+                </div>
+                
+                <div className="text-[13px] text-slate-600 dark:text-slate-400 space-y-2 mb-3">
+                  <div className="flex items-center justify-between">
+                    <span>Mã: <strong className="text-slate-800 dark:text-slate-200">{task.code || 'NV-000'}</strong></span>
+                    <span className={isOverdue ? 'text-red-600 font-bold' : 'font-medium'}>
+                      Hạn: {task.due_date ? new Date(task.due_date).toLocaleDateString('vi-VN') : '--'}
+                    </span>
+                  </div>
+                  <p>Phụ trách: <strong className="text-slate-800 dark:text-slate-200">{task.assignee?.full_name || 'Chưa phân công'}</strong></p>
+                </div>
+
+                {isExpanded && (
+                  <div className="mt-2 pt-3 border-t border-slate-100 dark:border-slate-700 text-[13px] text-slate-600 dark:text-slate-400 space-y-2 pb-3">
+                    <p><strong>Ngày giao:</strong> {task.assigned_date ? new Date(task.assigned_date).toLocaleDateString('vi-VN') : '--'}</p>
+                    <p><strong>Người giao:</strong> {task.assigner?.full_name}</p>
+                    <p><strong>Phối hợp:</strong> {(task.task_collaborators || []).map(c => c.profiles?.full_name).filter(Boolean).join(', ')}</p>
+                    <p><strong>Nhóm:</strong> {task.task_group}</p>
+                    <p><strong>Lĩnh vực:</strong> {task.work_area}</p>
+                    <p><strong>Nội dung:</strong> {task.description}</p>
+                    <p><strong>Sản phẩm:</strong> {task.expected_output}</p>
+                  </div>
+                )}
+
+                <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                  <button 
+                    onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}
+                    className="text-blue-600 dark:text-blue-400 text-[13px] font-semibold px-2 py-1 -ml-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                  >
+                    {isExpanded ? 'Thu gọn' : 'Xem chi tiết'}
+                  </button>
+                  <div className="flex gap-1.5">
+                    {task.status !== 'completed' && (
+                      <button onClick={() => handleStatusChange(task.id, 'completed')} className="w-8 h-8 bg-slate-50 dark:bg-slate-700 rounded-lg flex items-center justify-center text-slate-500 hover:text-green-600 hover:bg-green-100 transition-colors">
+                        <CheckCircle size={16} />
+                      </button>
+                    )}
+                    <button onClick={() => openEditModal(task)} className="w-8 h-8 bg-slate-50 dark:bg-slate-700 rounded-lg flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-blue-100 transition-colors">
+                      <Edit2 size={16} />
+                    </button>
+                    {(profile?.role === 'admin' || profile?.id === task.assigned_by || profile?.id === task.created_by) && (
+                      <button onClick={() => handleDelete(task.id)} className="w-8 h-8 bg-slate-50 dark:bg-slate-700 rounded-lg flex items-center justify-center text-slate-500 hover:text-red-600 hover:bg-red-100 transition-colors">
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {tasks.length === 0 && (
+            <div className="p-10 text-center flex flex-col items-center gap-3 text-slate-400 border border-slate-200 dark:border-slate-700 rounded-2xl border-dashed">
+              <SlidersHorizontal size={32} className="opacity-30" />
+              <p className="font-semibold text-[14px]">Không có nhiệm vụ nào</p>
+            </div>
+          )}
+        </div>
+
         {/* Floating Add Button */}
         {(profile?.role === 'admin' || profile?.role === 'manager') && (
-          <div className="fixed bottom-10 right-10 z-40 flex flex-col items-center gap-2 group/fab">
+          <div className="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-40 flex flex-col items-center gap-2 group/fab">
             <span className={[
-              'absolute bottom-[72px] right-0',
+              'absolute bottom-[60px] md:bottom-[72px] right-0',
               'px-3.5 py-2 rounded-xl text-[13px] font-bold text-white whitespace-nowrap',
               'bg-slate-900 dark:bg-slate-700 shadow-[0_4px_16px_rgba(0,0,0,0.25)]',
               'pointer-events-none select-none',
@@ -376,7 +572,7 @@ export default function Tasks() {
               onClick={openAddModal}
               aria-label="Tạo nhiệm vụ mới"
               className={[
-                'w-[60px] h-[60px] rounded-full flex items-center justify-center',
+                'w-[50px] h-[50px] md:w-[60px] md:h-[60px] rounded-full flex items-center justify-center',
                 'bg-[#2563eb] hover:bg-[#1d4ed8] active:bg-[#1e40af]',
                 'text-white border-4 border-white dark:border-[#0b1121]',
                 'shadow-[0_10px_25px_rgba(37,99,235,0.4)]',
@@ -395,6 +591,8 @@ export default function Tasks() {
         onClose={() => setIsFilterOpen(false)}
         onApply={handleApplyFilters}
         activeCount={activeFilterCount}
+        onExport={handleExport}
+        isExporting={isExporting}
       />
 
       <TaskModal

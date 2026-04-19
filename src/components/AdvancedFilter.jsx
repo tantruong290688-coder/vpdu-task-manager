@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { X, SlidersHorizontal, RotateCcw, CheckCheck } from 'lucide-react';
+import { X, SlidersHorizontal, RotateCcw, CheckCheck, Download, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
@@ -16,8 +16,7 @@ const WORK_AREAS = [
   'CNTT - chuyển đổi số', 'Hành chính - quản trị', 'Hội nghị - hậu cần', 'Đối thoại',
 ];
 const EVAL_PERIODS = [
-  'Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6',
-  'Quý 1','Quý 2','Quý 3','Quý 4','Năm',
+  'Tháng', 'Quý', 'Năm',
 ];
 
 const EMPTY_FILTERS = {
@@ -40,7 +39,7 @@ const EMPTY_FILTERS = {
   isForMe: false,
 };
 
-export default function AdvancedFilter({ isOpen, onClose, onApply, activeCount }) {
+export default function AdvancedFilter({ isOpen, onClose, onApply, activeCount, onExport, isExporting }) {
   const { profile } = useAuth();
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [users, setUsers] = useState([]);
@@ -134,7 +133,7 @@ export default function AdvancedFilter({ isOpen, onClose, onApply, activeCount }
           <div className="border-t border-slate-100 dark:border-slate-800" />
 
           {/* Người giao / Người thực hiện */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Người giao</label>
               <select value={filters.assignerId} onChange={e => set('assignerId', e.target.value)} className={inputCls}>
@@ -163,7 +162,7 @@ export default function AdvancedFilter({ isOpen, onClose, onApply, activeCount }
           <div className="border-t border-slate-100 dark:border-slate-800" />
 
           {/* Lĩnh vực / Nhóm */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Lĩnh vực công tác</label>
               <select value={filters.workArea} onChange={e => set('workArea', e.target.value)} className={inputCls}>
@@ -181,7 +180,7 @@ export default function AdvancedFilter({ isOpen, onClose, onApply, activeCount }
           </div>
 
           {/* Trạng thái / Ưu tiên */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Trạng thái</label>
               <select value={filters.status} onChange={e => set('status', e.target.value)} className={inputCls}>
@@ -204,7 +203,7 @@ export default function AdvancedFilter({ isOpen, onClose, onApply, activeCount }
           </div>
 
           {/* Kỳ đánh giá / Loại nhiệm vụ */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Kỳ đánh giá</label>
               <select value={filters.evaluationPeriod} onChange={e => set('evaluationPeriod', e.target.value)} className={inputCls}>
@@ -281,20 +280,29 @@ export default function AdvancedFilter({ isOpen, onClose, onApply, activeCount }
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 shrink-0 flex gap-3 bg-slate-50/80 dark:bg-slate-900/50">
+        <div className="px-4 sm:px-6 py-4 border-t border-slate-100 dark:border-slate-800 shrink-0 flex gap-2 sm:gap-3 flex-wrap bg-slate-50/80 dark:bg-slate-900/50">
+          <button
+            onClick={() => onExport && onExport(filters)}
+            disabled={isExporting}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2.5 font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-xl transition-colors text-[13px] disabled:opacity-50"
+            title="Xuất danh sách theo bộ lọc hiện tại"
+          >
+            {isExporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+            Xuất Excel
+          </button>
           <button
             onClick={handleReset}
-            className="flex items-center gap-2 px-4 py-2.5 font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors text-[13px]"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2.5 font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors text-[13px]"
           >
             <RotateCcw size={15} />
             Đặt lại
           </button>
           <button
             onClick={handleApply}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 font-bold bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.3)] transition-all active:scale-95 text-[13px]"
+            className="flex-1 flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 font-bold bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.3)] transition-all active:scale-95 text-[13px]"
           >
             <CheckCheck size={15} />
-            Áp dụng bộ lọc
+            Áp dụng
             {activeFiltersCount > 0 && (
               <span className="bg-white/20 px-1.5 py-0.5 rounded-md text-[11px]">{activeFiltersCount}</span>
             )}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { Settings, Users, Plus, UserPlus, Shield, Lock, Unlock, Search, X, Loader2, Circle, Edit, Key, RefreshCw } from 'lucide-react';
+import { Settings, Users, Plus, UserPlus, Shield, Lock, Unlock, Search, X, Loader2, Circle, Edit, Key, RefreshCw, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -34,6 +34,17 @@ export default function Admin() {
   const [newPassword, setNewPassword] = useState('');
 
   const isAdmin = profile?.role === 'admin';
+
+  const callAdminApi = async (action, userData) => {
+    const res = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, userData })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Lỗi server');
+    return data;
+  };
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -95,12 +106,7 @@ export default function Admin() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('manage-users', {
-        body: { action: 'create_user', userData: formData }
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      await callAdminApi('create_user', formData);
 
       toast.success(formData.method === 'invite' ? 'Đã gửi lời mời qua email!' : 'Tạo tài khoản thành công!');
       setIsModalOpen(false);
@@ -117,12 +123,7 @@ export default function Admin() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('manage-users', {
-        body: { action: 'update_user', userData: { userId: selectedUser.id, ...editData } }
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      await callAdminApi('update_user', { userId: selectedUser.id, ...editData });
 
       toast.success('Cập nhật tài khoản thành công');
       setIsEditModalOpen(false);
@@ -138,14 +139,7 @@ export default function Admin() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('manage-users', {
-        body: { 
-          action: 'reset_password', 
-          userData: { userId: selectedUser.id, newPassword } 
-        }
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      await callAdminApi('reset_password', { userId: selectedUser.id, newPassword });
 
       toast.success('Đã đổi mật khẩu mới cho ' + selectedUser.full_name);
       setIsPasswordModalOpen(false);
@@ -164,19 +158,24 @@ export default function Admin() {
     if (!window.confirm(`Bạn có chắc muốn ${actionLabel.toLowerCase()} tài khoản này?`)) return;
 
     try {
-      const { data, error } = await supabase.functions.invoke('manage-users', {
-        body: { 
-          action: 'toggle_lock', 
-          userData: { userId: user.id, isLocked: !isCurrentlyLocked } 
-        }
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      await callAdminApi('toggle_lock', { userId: user.id, isLocked: !isCurrentlyLocked });
 
       toast.success(`${actionLabel} tài khoản thành công`);
       fetchUsers();
     } catch (err) {
       toast.error('Lỗi: ' + err.message);
+    }
+  };
+
+  const handleDeleteUser = async (user) => {
+    if (!window.confirm(`NGUY HIỂM: Bạn có chắc chắn muốn XÓA VĨNH VIỄN tài khoản của ${user.full_name}? Hành động này không thể hoàn tác!`)) return;
+
+    try {
+      await callAdminApi('delete_user', { userId: user.id });
+      toast.success('Xóa tài khoản thành công');
+      fetchUsers();
+    } catch (err) {
+      toast.error('Lỗi khi xóa: ' + err.message);
     }
   };
 
@@ -316,6 +315,7 @@ export default function Admin() {
                         <button onClick={() => { setSelectedUser(u); setEditData({ full_name: u.full_name, role: u.role, status: u.status }); setIsEditModalOpen(true); }} className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"><Edit size={18} /></button>
                         <button onClick={() => { setSelectedUser(u); setIsPasswordModalOpen(true); }} className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"><Key size={18} /></button>
                         <button onClick={() => handleToggleLock(u)} className={`p-2 rounded-lg transition-colors ${u.status === 'active' && !u.is_locked ? 'text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20' : 'text-red-500 bg-red-50 dark:bg-red-900/20 hover:text-green-500 hover:bg-green-50'}`}>{u.status === 'active' && !u.is_locked ? <Lock size={18} /> : <Unlock size={18} />}</button>
+                        <button onClick={() => handleDeleteUser(u)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors" title="Xóa tài khoản"><Trash2 size={18} /></button>
                       </div>
                     </td>
                   </tr>

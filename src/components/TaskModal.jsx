@@ -79,96 +79,103 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
-    const payload = { 
-      title, 
-      description, 
-      assignee_id: assigneeId || null, 
-      assigned_by: assignerId || null,
-      due_date: dueDate || null,
-      start_date: startDate || null,
-      assigned_date: assignedDate || null,
-      task_group: taskGroup,
-      work_area: workArea,
-      expected_output: expectedOutput,
-      priority: priority || 'normal',
-      evaluation_period: evaluationPeriod,
-      task_type: taskType,
-      original_due_date: originalDueDate || null
-    };
 
-    let taskId = null;
+    try {
+      const payload = { 
+        title, 
+        description, 
+        assignee_id: assigneeId || null, 
+        assigned_by: assignerId || null,
+        due_date: dueDate || null,
+        start_date: startDate || null,
+        assigned_date: assignedDate || null,
+        task_group: taskGroup || null,
+        work_area: workArea || null,
+        expected_output: expectedOutput || null,
+        priority: priority || 'normal',
+        evaluation_period: evaluationPeriod || null,
+        task_type: taskType || null,
+        original_due_date: originalDueDate || null
+      };
 
-    if (initialData) {
-      const { data, error } = await supabase.from('tasks').update(payload).eq('id', initialData.id).select().single();
-      if (error) { toast.error('Lỗi: ' + error.message); setLoading(false); return; }
-      taskId = data.id;
-      await supabase.from('task_collaborators').delete().eq('task_id', taskId);
-      await writeLog({
-        actorId: profile.id,
-        actorName: profile.full_name,
-        actorRole: profile.role,
-        action: 'Cập nhật nhiệm vụ',
-        taskId,
-        taskCode: initialData.code,
-        note: `Cập nhật thông tin: ${title}`,
-      });
-      toast.success('Đã cập nhật nhiệm vụ!');
-    } else {
-      const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
-      payload.code = 'NV-' + dateStr + '-' + Math.floor(100 + Math.random() * 900);
-      payload.created_by = profile.id;
-      payload.status = 'pending';
+      let taskId = null;
 
-      const { data, error } = await supabase.from('tasks').insert([payload]).select().single();
-      if (error) { toast.error('Lỗi: ' + error.message); setLoading(false); return; }
-      taskId = data.id;
-      
-      // Log creation
-      await supabase.from('task_updates').insert([{
-        task_id: taskId, user_id: profile.id, action: 'tạo mới'
-      }]).catch(() => {});
-      await writeLog({
-        actorId: profile.id,
-        actorName: profile.full_name,
-        actorRole: profile.role,
-        action: 'Tạo nhiệm vụ',
-        taskId,
-        taskCode: payload.code,
-        note: `Tạo nhiệm vụ: ${title}`,
-      });
-      toast.success('Đã giao nhiệm vụ mới!');
+      if (initialData) {
+        const { data, error } = await supabase.from('tasks').update(payload).eq('id', initialData.id).select().single();
+        if (error) throw error;
+        taskId = data.id;
+        await supabase.from('task_collaborators').delete().eq('task_id', taskId);
+        await writeLog({
+          actorId: profile?.id,
+          actorName: profile?.full_name,
+          actorRole: profile?.role,
+          action: 'Cập nhật nhiệm vụ',
+          taskId,
+          taskCode: initialData.code,
+          note: `Cập nhật thông tin: ${title}`,
+        });
+        toast.success('Đã cập nhật nhiệm vụ!');
+      } else {
+        const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+        payload.code = 'NV-' + dateStr + '-' + Math.floor(100 + Math.random() * 900);
+        payload.created_by = profile?.id;
+        payload.status = 'pending';
 
-      // Create notification for assignee
-      if (assigneeId && assigneeId !== profile.id) {
-        await supabase.from('notifications').insert([{
-          user_id: assigneeId,
-          task_id: taskId,
-          message: `Bạn được giao một nhiệm vụ mới: [${payload.code}] ${title}`
-        }]);
-      }
-    }
+        const { data, error } = await supabase.from('tasks').insert([payload]).select().single();
+        if (error) throw error;
+        taskId = data.id;
+        
+        // Log creation
+        await supabase.from('task_updates').insert([{
+          task_id: taskId, user_id: profile?.id, action: 'tạo mới'
+        }]).catch(() => {});
+        
+        await writeLog({
+          actorId: profile?.id,
+          actorName: profile?.full_name,
+          actorRole: profile?.role,
+          action: 'Tạo nhiệm vụ',
+          taskId,
+          taskCode: payload.code,
+          note: `Tạo nhiệm vụ: ${title}`,
+        });
+        toast.success('Đã giao nhiệm vụ mới!');
 
-    if (collaborators.length > 0 && taskId) {
-      const collabData = collaborators.map(cId => ({ task_id: taskId, user_id: cId }));
-      await supabase.from('task_collaborators').insert(collabData);
-      
-      // Create notifications for collaborators
-      if (!initialData) {
-        const collabNotifs = collaborators.filter(cId => cId !== profile.id).map(cId => ({
-          user_id: cId,
-          task_id: taskId,
-          message: `Bạn được thêm vào người phối hợp cho nhiệm vụ: [${payload.code || initialData?.code}] ${title}`
-        }));
-        if (collabNotifs.length > 0) {
-          await supabase.from('notifications').insert(collabNotifs);
+        // Create notification for assignee
+        if (assigneeId && assigneeId !== profile?.id) {
+          await supabase.from('notifications').insert([{
+            user_id: assigneeId,
+            task_id: taskId,
+            message: `Bạn được giao một nhiệm vụ mới: [${payload.code}] ${title}`
+          }]);
         }
       }
-    }
 
-    setLoading(false);
-    onTaskAdded();
-    onClose();
+      if (collaborators.length > 0 && taskId) {
+        const collabData = collaborators.map(cId => ({ task_id: taskId, user_id: cId }));
+        await supabase.from('task_collaborators').insert(collabData);
+        
+        // Create notifications for collaborators
+        if (!initialData) {
+          const collabNotifs = collaborators.filter(cId => cId !== profile?.id).map(cId => ({
+            user_id: cId,
+            task_id: taskId,
+            message: `Bạn được thêm vào người phối hợp cho nhiệm vụ: [${payload.code || initialData?.code}] ${title}`
+          }));
+          if (collabNotifs.length > 0) {
+            await supabase.from('notifications').insert(collabNotifs);
+          }
+        }
+      }
+
+      onTaskAdded();
+      onClose();
+    } catch (error) {
+      console.error('Lỗi khi lưu nhiệm vụ:', error);
+      toast.error('Có lỗi xảy ra: ' + (error.message || 'Vui lòng thử lại'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCollabChange = (userId) => {

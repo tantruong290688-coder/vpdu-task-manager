@@ -1,13 +1,14 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Send, LayoutList, ClipboardList, History, Settings, Star, X } from 'lucide-react';
+import { LayoutDashboard, Send, LayoutList, ClipboardList, History, Settings, Star, X, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-
+import { useMessage } from '../context/MessageContext';
 
 export default function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
   const { profile } = useAuth();
   const { theme } = useTheme();
+  const { unreadCount, toggleDrawer } = useMessage();
   const themeLabel = { light: 'Sáng', dark: 'Tối', system: 'Theo hệ thống' }[theme] || 'Sáng';
 
   
@@ -69,6 +70,21 @@ export default function Sidebar({ isOpen, onClose }) {
             </Link>
           );
         })}
+        {/* Messages for Mobile/Tablet */}
+        <button 
+          onClick={() => { toggleDrawer(); onClose(); }}
+          className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all font-semibold text-[14px] text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200 sm:hidden"
+        >
+          <div className="flex items-center gap-3">
+            <MessageSquare size={20} strokeWidth={2} />
+            <span>Nhắn tin</span>
+          </div>
+          {unreadCount > 0 && (
+            <span className="bg-red-500 text-white text-[11px] px-2 py-0.5 rounded-full font-bold">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </button>
       </nav>
 
       {/* Footer info */}

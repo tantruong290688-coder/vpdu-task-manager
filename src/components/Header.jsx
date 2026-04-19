@@ -1,4 +1,5 @@
 import { useAuth } from '../context/AuthContext';
+import { useMessage } from '../context/MessageContext';
 import { Search, MessageSquare, Bell, RotateCcw, Menu } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import AccountMenu from './Account/AccountMenu';
@@ -6,6 +7,7 @@ import NotificationsDropdown from './NotificationsDropdown';
 
 export default function Header({ onMenuClick }) {
   const { profile } = useAuth();
+  const { unreadCount, toggleDrawer } = useMessage();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -49,8 +51,16 @@ export default function Header({ onMenuClick }) {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-1 md:gap-2">
-          <button className="hidden sm:flex w-10 h-10 rounded-xl bg-slate-50 hover:bg-slate-100 items-center justify-center text-slate-600 transition-colors">
+          <button 
+            onClick={toggleDrawer}
+            className="relative hidden sm:flex w-10 h-10 rounded-xl bg-slate-50 hover:bg-slate-100 items-center justify-center text-slate-600 transition-colors"
+          >
             <MessageSquare size={18} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
           </button>
           
           <NotificationsDropdown />

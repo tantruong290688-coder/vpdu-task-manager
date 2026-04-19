@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { Plus, Edit2, Trash2, CheckCircle, SlidersHorizontal, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, CheckCircle, SlidersHorizontal, X, Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import TaskModal from '../components/TaskModal';
 import AdvancedFilter from '../components/AdvancedFilter';
+import EvaluationModal from '../components/EvaluationModal';
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { writeLog } from '../lib/logger';
@@ -36,6 +37,7 @@ export default function Tasks() {
   const [activeFilters, setActiveFilters] = useState(EMPTY_FILTERS);
   const [expandedTaskId, setExpandedTaskId] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [evalModalTask, setEvalModalTask] = useState(null);
   const { profile } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -308,22 +310,38 @@ export default function Tasks() {
     }
   };
 
-  const handleStatusChange = async (id, newStatus) => {
-    const taskToChange = tasks.find(t => t.id === id);
-    const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', id);
-    if (error) toast.error('Lỗi cập nhật: ' + error.message);
-    else {
+  const handleStatusChange = async (taskId, newStatus) => {
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      
+      // Chặn nếu không phải người thực hiện chính
+      if (newStatus === 'completed' && task.assignee_id !== profile?.id) {
+        toast.error('Chỉ người thực hiện chính mới được phép đánh dấu hoàn thành.');
+        return;
+      }
+
+      const updatePayload = { status: newStatus };
+      if (newStatus === 'completed') {
+        updatePayload.completed_by = profile.id;
+        updatePayload.completed_at = new Date().toISOString();
+      }
+
+      const { error } = await supabase.from('tasks').update(updatePayload).eq('id', taskId);
+      if (error) throw error;
+      
       await writeLog({
         actorId: profile.id,
         actorName: profile.full_name,
         actorRole: profile.role,
         action: 'Cập nhật trạng thái',
-        taskId: id,
-        taskCode: taskToChange?.code,
-        note: `Đổi sang: ${newStatus === 'completed' ? 'Hoàn thành' : newStatus}`,
+        taskId,
+        taskCode: task?.code,
+        note: `Đổi trạng thái thành: ${newStatus}`,
       });
-      toast.success('Đã cập nhật trạng thái');
+      toast.success('Cập nhật trạng thái thành công');
       fetchTasks(activeFilters);
+    } catch (error) {
+      toast.error('Lỗi khi cập nhật trạng thái');
     }
   };
 
@@ -409,7 +427,8 @@ export default function Tasks() {
                 <th className="p-3 w-24 whitespace-nowrap text-center">K. ƯU TIÊN</th>
                 <th className="p-3 w-28 whitespace-nowrap">L. BẮT ĐẦU</th>
                 <th className="p-3 w-28 whitespace-nowrap">M. HẠN</th>
-                <th className="p-3 w-32 whitespace-nowrap text-center">N. THAO TÁC</th>
+                <th className="p-3 w-32 whitespace-nowrap text-center">N. ĐÁNH GIÁ</th>
+                <th className="p-3 w-32 whitespace-nowrap text-center">O. THAO TÁC</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
@@ -444,10 +463,34 @@ export default function Tasks() {
                       {isOverdue && <span className="ml-1 text-[10px] bg-red-100 text-red-600 dark:bg-red-900/30 px-1.5 py-0.5 rounded-md">Quá hạn</span>}
                     </td>
                     <td className="p-3 text-center whitespace-nowrap">
+                      {task.status === 'completed' ? (
+                        task.evaluation_score !== null ? (
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="text-[13px] font-bold text-blue-600 dark:text-blue-400">{task.evaluation_score} điểm</span>
+                            <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md ${
+                              task.evaluation_rank === 'Xuất sắc' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                              task.evaluation_rank === 'Tốt' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                              task.evaluation_rank === 'Hoàn thành' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                              'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                            }`}>{task.evaluation_rank}</span>
+                          </div>
+                        ) : (
+                          <span className="px-2 py-1 text-[11px] font-semibold bg-slate-100 text-slate-500 rounded-md dark:bg-slate-800 dark:text-slate-400">Chưa ĐG</span>
+                        )
+                      ) : (
+                        <span className="px-2 py-1 text-[11px] font-semibold bg-amber-50 text-amber-600 rounded-md dark:bg-amber-900/20 dark:text-amber-400">Đang xử lý</span>
+                      )}
+                    </td>
+                    <td className="p-3 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-1">
-                        {task.status !== 'completed' && (
+                        {task.status !== 'completed' && task.assignee_id === profile?.id && (
                           <button onClick={() => handleStatusChange(task.id, 'completed')} title="Đánh dấu hoàn thành" className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-green-600 hover:bg-green-50 transition-colors">
                             <CheckCircle size={16} />
+                          </button>
+                        )}
+                        {task.status === 'completed' && (
+                          <button onClick={() => setEvalModalTask(task)} title={task.evaluation_score !== null ? "Xem đánh giá" : "Đánh giá kết quả"} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors">
+                            <Star size={16} className={task.evaluation_score !== null ? "fill-amber-400 text-amber-500" : ""} />
                           </button>
                         )}
                         <button onClick={() => openEditModal(task)} title="Sửa/Chi tiết" className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
@@ -515,30 +558,53 @@ export default function Tasks() {
                     <p><strong>Lĩnh vực:</strong> {task.work_area}</p>
                     <p><strong>Nội dung:</strong> {task.description}</p>
                     <p><strong>Sản phẩm:</strong> {task.expected_output}</p>
+                    {task.status === 'completed' && (
+                      <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <p className="font-bold text-slate-800 dark:text-slate-200 mb-1">Kết quả đánh giá:</p>
+                        {task.evaluation_score !== null ? (
+                          <div className="space-y-1">
+                            <p>Điểm: <strong className="text-blue-600">{task.evaluation_score}</strong> - Xếp loại: <strong className="text-purple-600">{task.evaluation_rank}</strong></p>
+                            <p>Nhận xét: <span className="italic">{task.evaluation_comment || 'Không có'}</span></p>
+                          </div>
+                        ) : (
+                          <p className="italic text-slate-500">Đang chờ người giao đánh giá.</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
-                <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                  <button 
-                    onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}
-                    className="text-blue-600 dark:text-blue-400 text-[13px] font-semibold px-2 py-1 -ml-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30"
-                  >
-                    {isExpanded ? 'Thu gọn' : 'Xem chi tiết'}
-                  </button>
-                  <div className="flex gap-1.5">
-                    {task.status !== 'completed' && (
-                      <button onClick={() => handleStatusChange(task.id, 'completed')} className="w-8 h-8 bg-slate-50 dark:bg-slate-700 rounded-lg flex items-center justify-center text-slate-500 hover:text-green-600 hover:bg-green-100 transition-colors">
-                        <CheckCircle size={16} />
-                      </button>
-                    )}
-                    <button onClick={() => openEditModal(task)} className="w-8 h-8 bg-slate-50 dark:bg-slate-700 rounded-lg flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-blue-100 transition-colors">
-                      <Edit2 size={16} />
+                <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-700 flex flex-col">
+                  <div className="flex items-center justify-between mb-3">
+                    <button 
+                      onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}
+                      className="text-blue-600 dark:text-blue-400 text-[13px] font-semibold px-2 py-1 -ml-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                    >
+                      {isExpanded ? 'Thu gọn' : 'Xem chi tiết'}
                     </button>
                     {(profile?.role === 'admin' || profile?.id === task.assigned_by || profile?.id === task.created_by) && (
                       <button onClick={() => handleDelete(task.id)} className="w-8 h-8 bg-slate-50 dark:bg-slate-700 rounded-lg flex items-center justify-center text-slate-500 hover:text-red-600 hover:bg-red-100 transition-colors">
                         <Trash2 size={16} />
                       </button>
                     )}
+                  </div>
+                  <div className="flex items-center gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                      {task.status !== 'completed' && task.assignee_id === profile?.id && (
+                        <button onClick={(e) => { e.stopPropagation(); handleStatusChange(task.id, 'completed'); }} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-xl text-[13px] font-bold hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors">
+                          <CheckCircle size={16} />
+                          Hoàn thành
+                        </button>
+                      )}
+                      {task.status === 'completed' && (
+                        <button onClick={(e) => { e.stopPropagation(); setEvalModalTask(task); }} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-xl text-[13px] font-bold hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors">
+                          <Star size={16} className={task.evaluation_score !== null ? "fill-amber-400 text-amber-500" : ""} />
+                          {task.evaluation_score !== null ? 'Xem ĐG' : 'Đánh giá'}
+                        </button>
+                      )}
+                      <button onClick={(e) => { e.stopPropagation(); openEditModal(task); }} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-xl text-[13px] font-bold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">
+                        <Edit2 size={16} />
+                        Sửa
+                      </button>
                   </div>
                 </div>
               </div>
@@ -595,11 +661,21 @@ export default function Tasks() {
         isExporting={isExporting}
       />
 
-      <TaskModal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        onTaskAdded={() => fetchTasks(activeFilters)}
-        initialData={editingTask}
+      <TaskModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onTaskAdded={() => fetchTasks(activeFilters)} 
+        initialData={editingTask} 
+      />
+
+      <EvaluationModal
+        isOpen={!!evalModalTask}
+        onClose={() => setEvalModalTask(null)}
+        task={evalModalTask}
+        onEvaluated={() => {
+          fetchTasks(activeFilters);
+          setEvalModalTask(null);
+        }}
       />
     </div>
   );

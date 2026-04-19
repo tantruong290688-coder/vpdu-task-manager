@@ -84,20 +84,16 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-950">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Đang tải hệ thống...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <AuthContext.Provider value={{ user, profile, login, logout, changePassword, resetPasswordForEmail, loading }}>
-      {children}
+      {loading ? (
+        <div className="min-h-screen flex items-center justify-center bg-slate-100">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <p className="text-slate-500 text-sm font-medium">Đang tải hệ thống...</p>
+          </div>
+        </div>
+      ) : children}
     </AuthContext.Provider>
   );
 };

@@ -10,9 +10,15 @@ import {
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const callApi = async (action, userData = {}) => {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  
   const res = await fetch('/api/admin', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    },
     body: JSON.stringify({ action, userData }),
   });
   const json = await res.json();

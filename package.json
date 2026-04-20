@@ -12,7 +12,9 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.103.3",
     "@tailwindcss/vite": "^4.2.2",
+    "@vercel/node": "^5.7.11",
     "autoprefixer": "^10.5.0",
+    "es-toolkit": "^1.45.1",
     "lucide-react": "^1.8.0",
     "postcss": "^8.5.10",
     "react": "^19.2.4",

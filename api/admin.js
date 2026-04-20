@@ -137,6 +137,7 @@ export default async function handler(req, res) {
     return err(res, 401, 'Unauthorized');
   }
   const token = authHeader.split(' ')[1];
+  console.log("Admin API received token:", token.substring(0, 20) + "...");
 
   const { action, userData = {} } = req.body || {};
   if (!action) return err(res, 400, 'Thiếu action');
@@ -145,9 +146,16 @@ export default async function handler(req, res) {
   try { db = getAdmin(); } catch (e) { return err(res, 500, e.message); }
 
   try {
-    // Verify user token
-    const { data: { user }, error: authErr } = await db.auth.getUser(token);
-    if (authErr || !user) return err(res, 401, 'Invalid token');
+    // Verify user token using a dedicated anon client to avoid service_role key conflicts
+    const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
+    const authClient = createClient(url, anonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+      auth: { persistSession: false }
+    });
+
+    const { data: { user }, error: authErr } = await authClient.auth.getUser();
+    if (authErr || !user) return err(res, 401, 'Invalid token: ' + (authErr?.message || 'No user found'));
 
     // Mặc định role lấy từ meta data
     const role = user.user_metadata?.role || 'staff';

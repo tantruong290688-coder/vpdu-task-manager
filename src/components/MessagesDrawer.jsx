@@ -2,20 +2,24 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useMessage } from '../context/MessageContext';
-import { X, Search, Send, Loader2, ArrowLeft, Check, CheckCheck } from 'lucide-react';
+import { X, Search, Send, Loader2, ArrowLeft, Check, CheckCheck, Reply, Trash2, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function MessagesDrawer() {
-  const { user, onlineUsers } = useAuth();
+  const { user, profile, onlineUsers } = useAuth();
   const { isDrawerOpen, closeDrawer, activeChatUserId, setActiveChatUserId, fetchUnreadCount } = useMessage();
   
   const [profiles, setProfiles] = useState({});
   const [messages, setMessages] = useState([]);
+  const [rooms, setRooms] = useState([]);
+  const [activeRoomId, setActiveRoomId] = useState(null);
+  const [roomMessages, setRoomMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   
   // Chat state
   const [newMessage, setNewMessage] = useState('');
+  const [replyTo, setReplyTo] = useState(null);
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef(null);
 
@@ -66,12 +70,39 @@ export default function MessagesDrawer() {
     };
   }, [user, isDrawerOpen, activeChatUserId]);
 
-  // Scroll to bottom when messages change and we are in a chat
+  // Realtime room messages subscription
   useEffect(() => {
-    if (activeChatUserId && messagesEndRef.current) {
+    if (!user || !isDrawerOpen || !activeRoomId) return;
+
+    const channel = supabase.channel(`room:${activeRoomId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'chat_messages', filter: `room_id=eq.${activeRoomId}` },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const msg = payload.new;
+            setRoomMessages(prev => {
+              if (prev.some(m => m.id === msg.id)) return prev;
+              return [...prev, msg];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            setRoomMessages(prev => prev.map(m => m.id === payload.new.id ? payload.new : m));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, isDrawerOpen, activeRoomId]);
+
+  // Scroll to bottom
+  useEffect(() => {
+    if ((activeChatUserId || activeRoomId) && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, activeChatUserId]);
+  }, [messages, roomMessages, activeChatUserId, activeRoomId]);
 
   // Mark as read when opening a chat
   useEffect(() => {
@@ -83,11 +114,16 @@ export default function MessagesDrawer() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch profiles
-      const { data: profs } = await supabase.from('profiles').select('id, full_name, email, role, is_online, last_seen_at');
+      // 1. Fetch profiles and rooms
+      const [{ data: profs }, { data: rms }] = await Promise.all([
+        supabase.from('profiles').select('id, full_name, email, role, is_online, last_seen_at'),
+        supabase.from('chat_rooms').select('*')
+      ]);
+      
       const profMap = {};
       (profs || []).forEach(p => profMap[p.id] = p);
       setProfiles(profMap);
+      setRooms(rms || []);
 
       // 2. Fetch messages involving current user
       const { data: msgs, error } = await supabase
@@ -100,11 +136,33 @@ export default function MessagesDrawer() {
       setMessages(msgs || []);
     } catch (err) {
       console.error(err);
-      toast.error('Lỗi tải tin nhắn');
+      // Don't toast if it's just the rooms table missing (migration not run yet)
     } finally {
       setLoading(false);
     }
   };
+
+  const loadRoomMessages = async (roomId) => {
+    try {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('room_id', roomId)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      setRoomMessages(data || []);
+    } catch (err) {
+      console.error(err);
+      toast.error('Lỗi tải tin nhắn nhóm');
+    }
+  };
+
+  useEffect(() => {
+    if (activeRoomId) {
+      loadRoomMessages(activeRoomId);
+      setReplyTo(null);
+    }
+  }, [activeRoomId]);
 
   const markAsRead = async (otherUserId) => {
     // Find unread messages from this user to me
@@ -131,27 +189,54 @@ export default function MessagesDrawer() {
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !activeChatUserId) return;
+    if (!newMessage.trim() || (!activeChatUserId && !activeRoomId)) return;
 
     const content = newMessage.trim();
     setNewMessage('');
+    const currentReplyTo = replyTo;
+    setReplyTo(null);
     setSending(true);
 
     try {
-      const msg = {
-        sender_id: user.id,
-        receiver_id: activeChatUserId,
-        content,
-        is_read: false
-      };
-      
-      const { error } = await supabase.from('messages').insert(msg);
-      if (error) throw error;
+      if (activeRoomId) {
+        const msg = {
+          room_id: activeRoomId,
+          sender_id: user.id,
+          sender_name: profile?.full_name || user.email.split('@')[0],
+          content,
+          reply_to_id: currentReplyTo?.id || null
+        };
+        const { error } = await supabase.from('chat_messages').insert(msg);
+        if (error) throw error;
+      } else {
+        const msg = {
+          sender_id: user.id,
+          receiver_id: activeChatUserId,
+          content,
+          is_read: false
+        };
+        const { error } = await supabase.from('messages').insert(msg);
+        if (error) throw error;
+      }
     } catch (err) {
       console.error(err);
       toast.error('Không thể gửi tin nhắn');
     } finally {
       setSending(false);
+    }
+  };
+
+  const softDeleteMessage = async (msgId) => {
+    if (!window.confirm('Bạn có chắc muốn xóa tin nhắn này?')) return;
+    try {
+      const { error } = await supabase
+        .from('chat_messages')
+        .update({ is_deleted: true, content: 'Tin nhắn đã bị xóa' })
+        .eq('id', msgId);
+      if (error) throw error;
+    } catch (err) {
+      console.error(err);
+      toast.error('Lỗi khi xóa tin nhắn');
     }
   };
 
@@ -213,26 +298,29 @@ export default function MessagesDrawer() {
         {/* Header */}
         <div className="h-[70px] md:h-[80px] px-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/50 dark:bg-slate-900/50">
           <div className="flex items-center gap-3">
-            {activeChatUserId ? (
+            {(activeChatUserId || activeRoomId) ? (
               <>
-                <button onClick={() => setActiveChatUserId(null)} className="w-10 h-10 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 transition-colors">
+                <button 
+                  onClick={() => { setActiveChatUserId(null); setActiveRoomId(null); }} 
+                  className="w-10 h-10 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 transition-colors"
+                >
                   <ArrowLeft size={20} />
                 </button>
                 <div className="flex items-center gap-3">
                   <div className="relative">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-sm">
-                      {(activeUser?.full_name || activeUser?.email || '?').charAt(0).toUpperCase()}
+                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${activeRoomId ? 'from-amber-400 to-orange-600' : 'from-blue-500 to-indigo-600'} flex items-center justify-center text-white font-bold shadow-sm`}>
+                      {activeRoomId ? <Users size={20} /> : (activeUser?.full_name || activeUser?.email || '?').charAt(0).toUpperCase()}
                     </div>
-                    {!!onlineUsers[activeUser?.id] && (
+                    {!activeRoomId && !!onlineUsers[activeUser?.id] && (
                       <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
                     )}
                   </div>
                   <div>
                     <h3 className="font-bold text-[15px] text-slate-800 dark:text-white leading-tight">
-                      {activeUser?.full_name || '(Chưa có tên)'}
+                      {activeRoomId ? rooms.find(r => r.id === activeRoomId)?.name : (activeUser?.full_name || '(Chưa có tên)')}
                     </h3>
                     <p className="text-[12px] text-slate-500 font-medium">
-                      {!!onlineUsers[activeUser?.id] ? 'Đang trực tuyến' : 'Ngoại tuyến'}
+                      {activeRoomId ? `${Object.keys(profiles).length} thành viên` : (!!onlineUsers[activeUser?.id] ? 'Đang trực tuyến' : 'Ngoại tuyến')}
                     </p>
                   </div>
                 </div>
@@ -252,8 +340,8 @@ export default function MessagesDrawer() {
             <div className="flex-1 flex items-center justify-center">
               <Loader2 size={32} className="animate-spin text-slate-300" />
             </div>
-          ) : !activeChatUserId ? (
-            // Contacts List
+          ) : (!activeChatUserId && !activeRoomId) ? (
+            // Contacts and Groups List
             <div className="flex-1 overflow-y-auto flex flex-col">
               <div className="p-4 shrink-0">
                 <div className="relative">
@@ -269,6 +357,27 @@ export default function MessagesDrawer() {
               </div>
               
               <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-1">
+                {/* Fixed Rooms */}
+                {rooms.map(room => (
+                  <button
+                    key={room.id}
+                    onClick={() => setActiveRoomId(room.id)}
+                    className="w-full flex items-center gap-3 p-3 rounded-2xl bg-amber-50/50 dark:bg-amber-900/10 border border-amber-100/50 dark:border-amber-900/20 hover:bg-amber-100/50 dark:hover:bg-amber-900/20 transition-all group text-left mb-2"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-white shadow-sm shrink-0">
+                      <Users size={24} />
+                    </div>
+                    <div className="overflow-hidden">
+                      <h4 className="font-black text-[15px] text-amber-900 dark:text-amber-400 truncate uppercase">
+                        {room.name}
+                      </h4>
+                      <p className="text-[12px] text-amber-700/60 dark:text-amber-500/60 font-bold truncate">
+                        Phòng chat chung nội bộ
+                      </p>
+                    </div>
+                  </button>
+                ))}
+
                 {userList.length === 0 ? (
                   <p className="text-center text-slate-400 text-sm mt-10">Không tìm thấy ai</p>
                 ) : (
@@ -326,59 +435,132 @@ export default function MessagesDrawer() {
             // Chat Interface
             <>
               <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50 dark:bg-slate-900/20">
-                {chatMessages.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2">
-                    <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-2">
-                      <Send size={24} className="text-slate-300 ml-1" />
+                {activeRoomId ? (
+                  roomMessages.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2">
+                       <p className="font-medium text-sm">Chưa có tin nhắn nào trong nhóm.</p>
                     </div>
-                    <p className="font-medium text-sm">Bắt đầu cuộc trò chuyện với {activeUser?.full_name}</p>
-                  </div>
-                ) : (
-                  chatMessages.map((m, i) => {
-                    const isMe = m.sender_id === user.id;
-                    const showAvatar = !isMe && (i === 0 || chatMessages[i-1].sender_id !== m.sender_id);
-                    
-                    return (
-                      <div key={m.id} className={`flex gap-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
-                        {!isMe && (
-                          <div className="w-8 shrink-0 flex flex-col justify-end">
-                            {showAvatar && (
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
-                                {(activeUser?.full_name || '?').charAt(0).toUpperCase()}
+                  ) : (
+                    roomMessages.map((m, i) => {
+                      const isMe = m.sender_id === user.id;
+                      const isAdmin = profile?.role === 'admin';
+                      const repliedMsg = m.reply_to_id ? roomMessages.find(rm => rm.id === m.reply_to_id) : null;
+                      
+                      return (
+                        <div key={m.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                          {/* Sender Name - color coded: Green for self, Blue for others */}
+                          {!m.is_deleted && (
+                            <span className={`text-[11px] font-bold mb-1 px-1 uppercase tracking-wider ${
+                              isMe ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
+                            }`}>
+                              {m.sender_name}
+                            </span>
+                          )}
+                          <div className={`flex gap-2 max-w-[85%] relative group ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                            <div className={`px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed shadow-sm transition-all ${
+                              m.is_deleted 
+                                ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-400 italic' 
+                                : isMe 
+                                  ? 'bg-blue-600 text-white rounded-br-sm' 
+                                  : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-bl-sm'
+                            }`}>
+                              {repliedMsg && !m.is_deleted && (
+                                <div className={`text-[12px] p-2 mb-2 rounded-lg border-l-4 ${isMe ? 'bg-blue-700/50 border-blue-400 text-blue-100' : 'bg-slate-100 dark:bg-slate-700 border-slate-400 text-slate-500'} italic truncate`}>
+                                  <span className="font-bold mr-1 block">{repliedMsg.sender_name}:</span>
+                                  {repliedMsg.content}
+                                </div>
+                              )}
+                              {m.content}
+                            </div>
+                            
+                            {!m.is_deleted && (
+                              <div className={`flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity self-center ${isMe ? 'mr-2' : 'ml-2'}`}>
+                                <button onClick={() => setReplyTo(m)} title="Trả lời" className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500">
+                                  <Reply size={14} />
+                                </button>
+                                {(isMe || isAdmin) && (
+                                  <button onClick={() => softDeleteMessage(m.id)} title="Xóa" className="p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500">
+                                    <Trash2 size={14} />
+                                  </button>
+                                )}
                               </div>
                             )}
                           </div>
-                        )}
-                        <div className={`max-w-[75%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                          <div className={`px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed shadow-sm ${
-                            isMe 
-                              ? 'bg-blue-600 text-white rounded-br-sm' 
-                              : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-bl-sm'
-                          }`}>
-                            {m.content}
-                          </div>
-                          <div className="flex items-center gap-1 mt-1 px-1">
-                            <span className="text-[10px] text-slate-400 font-medium">{formatTime(m.created_at)}</span>
-                            {isMe && (
-                              m.is_read ? <CheckCheck size={12} className="text-blue-500" /> : <Check size={12} className="text-slate-400" />
-                            )}
+                          <div className="mt-1 px-1">
+                            <span className="text-[10px] text-slate-400 font-medium tracking-tight">
+                              {formatTime(m.created_at)}
+                            </span>
                           </div>
                         </div>
+                      );
+                    })
+                  )
+                ) : (
+                  chatMessages.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2">
+                      <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-2">
+                        <Send size={24} className="text-slate-300 ml-1" />
                       </div>
-                    );
-                  })
+                      <p className="font-medium text-sm">Bắt đầu cuộc trò chuyện với {activeUser?.full_name}</p>
+                    </div>
+                  ) : (
+                    chatMessages.map((m, i) => {
+                      const isMe = m.sender_id === user.id;
+                      const showAvatar = !isMe && (i === 0 || chatMessages[i-1].sender_id !== m.sender_id);
+                      
+                      return (
+                        <div key={m.id} className={`flex gap-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                          {!isMe && (
+                            <div className="w-8 shrink-0 flex flex-col justify-end">
+                              {showAvatar && (
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                                  {(activeUser?.full_name || '?').charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          <div className={`max-w-[75%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                            <div className={`px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed shadow-sm ${
+                              isMe 
+                                ? 'bg-blue-600 text-white rounded-br-sm' 
+                                : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-bl-sm'
+                            }`}>
+                              {m.content}
+                            </div>
+                            <div className="flex items-center gap-1 mt-1 px-1">
+                              <span className="text-[10px] text-slate-400 font-medium">{formatTime(m.created_at)}</span>
+                              {isMe && (
+                                m.is_read ? <CheckCheck size={12} className="text-blue-500" /> : <Check size={12} className="text-slate-400" />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )
                 )}
                 <div ref={messagesEndRef} />
               </div>
               
               {/* Input Area */}
               <div className="p-3 sm:p-4 bg-white dark:bg-[#111827] border-t border-slate-100 dark:border-slate-800 shrink-0">
+                {replyTo && (
+                  <div className="mb-3 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border-l-4 border-blue-500 flex justify-between items-start animate-in slide-in-from-bottom-2">
+                    <div className="overflow-hidden">
+                      <span className="text-[11px] font-bold text-blue-600 uppercase block mb-1">Đang trả lời {replyTo.sender_name}</span>
+                      <p className="text-[13px] text-slate-600 dark:text-slate-400 truncate">{replyTo.content}</p>
+                    </div>
+                    <button onClick={() => setReplyTo(null)} className="p-1 text-slate-400 hover:text-slate-600 transition-colors">
+                      <X size={16} />
+                    </button>
+                  </div>
+                )}
                 <form onSubmit={handleSend} className="flex gap-2 relative">
                   <input
                     type="text"
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Nhập tin nhắn..."
+                    placeholder={replyTo ? `Trả lời ${replyTo.sender_name}...` : "Nhập tin nhắn..."}
                     className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full pl-5 pr-12 py-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-800 dark:text-slate-200 transition-all"
                   />
                   <button 

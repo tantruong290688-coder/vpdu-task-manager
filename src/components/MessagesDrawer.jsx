@@ -242,6 +242,30 @@ export default function MessagesDrawer() {
     }
   };
 
+  const handleClearRoomMessages = async () => {
+    if (!activeRoomId) return;
+    const room = rooms.find(r => r.id === activeRoomId);
+    if (!window.confirm(`CẢNH BÁO: Bạn có chắc muốn XÓA VĨNH VIỄN toàn bộ tin nhắn trong nhóm "${room?.name}"? Hành động này không thể hoàn tác và nhằm tiết kiệm dung lượng.`)) return;
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('chat_messages')
+        .delete()
+        .eq('room_id', activeRoomId);
+      
+      if (error) throw error;
+      
+      setRoomMessages([]);
+      toast.success('Đã xóa sạch lịch sử nhóm');
+    } catch (err) {
+      console.error(err);
+      toast.error('Lỗi khi xóa lịch sử: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!isDrawerOpen) return null;
 
   // Group conversations
@@ -331,9 +355,20 @@ export default function MessagesDrawer() {
               <h2 className="text-[18px] font-extrabold text-slate-800 dark:text-white ml-2">Tin nhắn</h2>
             )}
           </div>
-          <button onClick={closeDrawer} className="w-10 h-10 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 transition-colors">
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-1">
+            {activeRoomId && profile?.role === 'admin' && (
+              <button 
+                onClick={handleClearRoomMessages}
+                className="w-10 h-10 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center text-red-500 transition-colors"
+                title="Xóa toàn bộ lịch sử nhóm (Chỉ Admin)"
+              >
+                <Trash2 size={20} />
+              </button>
+            )}
+            <button onClick={closeDrawer} className="w-10 h-10 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 transition-colors">
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Body */}

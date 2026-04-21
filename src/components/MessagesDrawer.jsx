@@ -213,7 +213,8 @@ export default function MessagesDrawer() {
           sender_id: user.id,
           receiver_id: activeChatUserId,
           content,
-          is_read: false
+          is_read: false,
+          reply_to_id: currentReplyTo?.id || null
         };
         const { error } = await supabase.from('messages').insert(msg);
         if (error) throw error;
@@ -229,8 +230,9 @@ export default function MessagesDrawer() {
   const softDeleteMessage = async (msgId) => {
     if (!window.confirm('Bạn có chắc muốn xóa tin nhắn này?')) return;
     try {
+      const table = activeRoomId ? 'chat_messages' : 'messages';
       const { error } = await supabase
-        .from('chat_messages')
+        .from(table)
         .update({ is_deleted: true, content: 'Tin nhắn đã bị xóa' })
         .eq('id', msgId);
       if (error) throw error;
@@ -296,7 +298,7 @@ export default function MessagesDrawer() {
       <div className="fixed top-0 right-0 h-full w-full sm:w-[400px] md:w-[450px] bg-white dark:bg-[#111827] shadow-2xl z-[70] flex flex-col transform transition-transform duration-300">
         
         {/* Header */}
-        <div className="h-[70px] md:h-[80px] px-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/50 dark:bg-slate-900/50">
+        <div className="h-[calc(70px+env(safe-area-inset-top))] md:h-[80px] pt-[env(safe-area-inset-top)] px-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/50 dark:bg-slate-900/50">
           <div className="flex items-center gap-3">
             {(activeChatUserId || activeRoomId) ? (
               <>
@@ -474,13 +476,13 @@ export default function MessagesDrawer() {
                             </div>
                             
                             {!m.is_deleted && (
-                              <div className={`flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity self-center ${isMe ? 'mr-2' : 'ml-2'}`}>
-                                <button onClick={() => setReplyTo(m)} title="Trả lời" className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500">
-                                  <Reply size={14} />
+                              <div className={`flex gap-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all self-center ${isMe ? 'mr-1' : 'ml-1'}`}>
+                                <button onClick={() => setReplyTo(m)} title="Trả lời" className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 bg-slate-100/50 dark:bg-slate-800/50 md:bg-transparent">
+                                  <Reply size={15} />
                                 </button>
                                 {(isMe || isAdmin) && (
-                                  <button onClick={() => softDeleteMessage(m.id)} title="Xóa" className="p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500">
-                                    <Trash2 size={14} />
+                                  <button onClick={() => softDeleteMessage(m.id)} title="Xóa" className="p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 bg-red-50/50 dark:bg-red-900/10 md:bg-transparent">
+                                    <Trash2 size={15} />
                                   </button>
                                 )}
                               </div>
@@ -519,20 +521,46 @@ export default function MessagesDrawer() {
                               )}
                             </div>
                           )}
-                          <div className={`max-w-[75%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                            <div className={`px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed shadow-sm ${
-                              isMe 
-                                ? 'bg-blue-600 text-white rounded-br-sm' 
-                                : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-bl-sm'
-                            }`}>
-                              {m.content}
+                          <div className={`max-w-[85%] flex relative group ${isMe ? 'flex-row-reverse items-end' : 'flex-row items-start'}`}>
+                            <div className="flex flex-col">
+                              <div className={`px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed shadow-sm transition-all ${
+                                m.is_deleted 
+                                  ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-400 italic' 
+                                  : isMe 
+                                    ? 'bg-blue-600 text-white rounded-br-sm' 
+                                    : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-bl-sm'
+                              }`}>
+                                {m.reply_to_id && !m.is_deleted && (
+                                  <div className={`text-[12px] p-2 mb-2 rounded-lg border-l-4 ${isMe ? 'bg-blue-700/50 border-blue-400 text-blue-100' : 'bg-slate-100 dark:bg-slate-700 border-slate-400 text-slate-500'} italic truncate`}>
+                                    {chatMessages.find(rm => rm.id === m.reply_to_id)?.content || 'Tin nhắn gốc'}
+                                  </div>
+                                )}
+                                {m.content}
+                              </div>
+                              <div className={`flex items-center gap-1 mt-1 px-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                <span className="text-[10px] text-slate-400 font-medium">{formatTime(m.created_at)}</span>
+                                {isMe && !m.is_deleted && (
+                                  m.is_read ? <CheckCheck size={12} className="text-blue-500" /> : <Check size={12} className="text-slate-400" />
+                                )}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1 mt-1 px-1">
-                              <span className="text-[10px] text-slate-400 font-medium">{formatTime(m.created_at)}</span>
-                              {isMe && (
-                                m.is_read ? <CheckCheck size={12} className="text-blue-500" /> : <Check size={12} className="text-slate-400" />
-                              )}
-                            </div>
+
+                            {!m.is_deleted && (
+                              <div className={`flex gap-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all self-center ${isMe ? 'mr-1' : 'ml-1'}`}>
+                                <button 
+                                  onClick={() => setReplyTo({ ...m, sender_name: isMe ? 'Bạn' : activeUser?.full_name })} 
+                                  title="Trả lời" 
+                                  className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 bg-slate-100/50 dark:bg-slate-800/50 md:bg-transparent"
+                                >
+                                  <Reply size={15} />
+                                </button>
+                                {(isMe || profile?.role === 'admin') && (
+                                  <button onClick={() => softDeleteMessage(m.id)} title="Xóa" className="p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 bg-red-50/50 dark:bg-red-900/10 md:bg-transparent">
+                                    <Trash2 size={15} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -543,7 +571,7 @@ export default function MessagesDrawer() {
               </div>
               
               {/* Input Area */}
-              <div className="p-3 sm:p-4 bg-white dark:bg-[#111827] border-t border-slate-100 dark:border-slate-800 shrink-0">
+              <div className="p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-4 bg-white dark:bg-[#111827] border-t border-slate-100 dark:border-slate-800 shrink-0">
                 {replyTo && (
                   <div className="mb-3 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border-l-4 border-blue-500 flex justify-between items-start animate-in slide-in-from-bottom-2">
                     <div className="overflow-hidden">

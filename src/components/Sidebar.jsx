@@ -32,7 +32,7 @@ export default function Sidebar({ isOpen, onClose }) {
         />
       )}
 
-      <div className={`fixed inset-y-0 left-0 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-0 z-50 w-[280px] bg-[#f8fafc] dark:bg-[#111827] border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 md:p-5 shrink-0 shadow-[2px_0_10px_rgba(0,0,0,0.02)] transition-transform duration-300 ease-in-out`}>
+      <div className={`fixed inset-y-0 left-0 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-0 z-50 w-[280px] sm:w-[300px] h-full lg:h-auto min-h-[100dvh] bg-[#f8fafc] dark:bg-[#111827] border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 md:p-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))] shrink-0 shadow-[2px_0_10px_rgba(0,0,0,0.02)] transition-transform duration-300 ease-in-out`}>
         {/* Top red banner */}
         <div className="bg-[#b91c1c] rounded-[24px] p-5 text-white shadow-[0_12px_24px_rgba(185,28,28,0.3)] mb-6 flex items-center gap-4 relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
@@ -45,7 +45,7 @@ export default function Sidebar({ isOpen, onClose }) {
             <img
               src={partyLogo}
               alt="Biểu tượng Văn phòng Cấp ủy"
-              className="w-full h-full object-cover scale-[1.20]"
+              className="w-full h-full object-cover scale-[1.1]"
             />
           </div>
 
@@ -77,8 +77,8 @@ export default function Sidebar({ isOpen, onClose }) {
             return (
               <Link key={menu.path} to={menu.path} onClick={onClose}
                 className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all font-semibold text-[14px] ${isActive
-                    ? 'bg-gradient-to-r from-[#dc2626] to-[#ef4444] text-white shadow-[0_4px_12px_rgba(239,68,68,0.3)]'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
+                  ? 'bg-gradient-to-r from-[#dc2626] to-[#ef4444] text-white shadow-[0_4px_12px_rgba(239,68,68,0.3)]'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
                   }`}>
                 <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
                 <span>{menu.name}</span>
@@ -104,7 +104,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
         {/* Footer info */}
         <div className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-4 border border-amber-100/50 dark:border-amber-900/30 text-[11px] text-amber-900/60 dark:text-amber-400/60 font-semibold mt-auto leading-relaxed transition-colors">
-          <p>Phiên bản: 4.0</p>
+          <p>Phiên bản: 4.1-RBAC</p>
           <p>Creator: Bùi Tấn Trưởng</p>
           <p>Giao diện: {themeLabel}</p>
         </div>

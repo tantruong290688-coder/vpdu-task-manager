@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import {
   X, Edit2, Trash2, CheckCircle, Star, Clock, User, Users,
   Calendar, Flag, FileText, Tag, Layers, AlertCircle,
-  ChevronRight, Award, MessageSquare, Check
+  ChevronRight, Award, MessageSquare, Check, History
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { writeLog } from '../lib/logger';
 import toast from 'react-hot-toast';
+import { canEditTask, canUpdateProgress as checkCanUpdateProgress, canEvaluate as checkCanEvaluate, ROLES } from '../lib/permissions';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -83,9 +84,13 @@ function ProgressUpdate({ task, onUpdated, canUpdateProgress }) {
 
   const handleSave = async () => {
     setSaving(true);
-    const { error } = await supabase.from('tasks').update({ progress }).eq('id', task.id);
+    const { error } = await supabase.from('tasks').update({ progress: Number(progress) }).eq('id', task.id);
     setSaving(false);
-    if (error) { toast.error('Lỗi cập nhật tiến độ'); return; }
+    if (error) {
+      console.error('Lỗi cập nhật tiến độ:', error);
+      toast.error('Lỗi cập nhật tiến độ: ' + error.message);
+      return;
+    }
     toast.success('Đã cập nhật tiến độ');
     onUpdated();
   };
@@ -137,18 +142,45 @@ export default function TaskDetailDrawer({
   const { profile } = useAuth();
   const [deleting, setDeleting] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   // Permissions
-  const isAdmin       = profile?.role === 'admin';
-  const isAssigner    = task && (profile?.id === task.assigned_by || profile?.id === task.created_by);
-  const isAssignee    = task && profile?.id === task.assignee_id;
-  const isCollab      = task && (task.task_collaborators || []).some(c => c.user_id === profile?.id);
+  const isAdmin       = profile?.role === ROLES.ADMIN;
+  
+  const canEdit           = task && canEditTask(profile, task);
+  const canUpdateProgress = task && checkCanUpdateProgress(profile, task);
+  const canComplete       = task && (profile?.id === task.assignee_id || isAdmin);
+  const canEvaluate       = task && checkCanEvaluate(profile, task);
+  const canDelete         = isAdmin; // Chỉ admin được phép xóa nhiệm vụ
 
-  const canEdit              = isAdmin || isAssigner;
-  const canUpdateProgress    = isAdmin || isAssigner || isAssignee;
-  const canComplete          = isAssignee || isAdmin || isAssigner;
-  const canEvaluate          = task && (isAdmin || (task.assigned_by === profile?.id)) && task?.status === 'completed';
-  const canDelete            = isAdmin || isAssigner;
+  // Derived helpers for UI labels
+  const isAssigner = task && (profile?.id === task.assigned_by || profile?.id === task.created_by);
+  const isAssignee = task && profile?.id === task.assignee_id;
+  const isCollab   = task && (task.task_collaborators || []).some(c => c.user_id === profile?.id);
+
+  useEffect(() => {
+    if (isOpen && task?.id) {
+      fetchHistory();
+    }
+  }, [isOpen, task?.id]);
+
+  const fetchHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const { data, error } = await supabase
+        .from('task_updates')
+        .select('*, profiles(full_name)')
+        .eq('task_id', task.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setHistory(data || []);
+    } catch (err) {
+      console.error('Lỗi fetch history:', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
 
   // Derived
   const isOverdue = task && task.due_date && new Date(task.due_date) < new Date() && task?.status !== 'completed';
@@ -233,7 +265,7 @@ export default function TaskDetailDrawer({
         className={`fixed top-0 right-0 z-[201] h-full w-full sm:w-[560px] lg:w-[620px] bg-white dark:bg-[#0f172a] shadow-2xl flex flex-col transition-transform duration-300 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
         {/* ── Header ── */}
-        <div className="shrink-0 flex items-start gap-3 px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111827]">
+        <div className="shrink-0 flex items-start gap-3 px-5 py-4 pt-[calc(1rem+env(safe-area-inset-top))] sm:pt-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111827]">
           <div className="flex-1 min-w-0">
             {/* Mã nhiệm vụ + badge trạng thái */}
             <div className="flex items-center gap-2 flex-wrap mb-2">
@@ -250,7 +282,7 @@ export default function TaskDetailDrawer({
                   <AlertCircle size={11} /> Quá hạn
                 </span>
               )}
-              {(isAdmin || isAssigner) && (
+              {canEdit && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-md bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 border border-blue-100 dark:border-blue-800/30">
                   Quyền chỉnh sửa
                 </span>
@@ -510,12 +542,49 @@ export default function TaskDetailDrawer({
             </section>
           )}
 
+          {/* SECTION 5: Lịch sử điều phối & Cập nhật */}
+          <section>
+            <SectionHeader icon={History} label="Lịch sử điều phối & Cập nhật" />
+            <div className="space-y-4">
+              {loadingHistory ? (
+                <div className="flex items-center gap-2 text-slate-400 py-4 animate-pulse">
+                  <div className="w-4 h-4 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-[12px] font-medium">Đang tải lịch sử...</span>
+                </div>
+              ) : history.length > 0 ? (
+                <div className="relative border-l-2 border-slate-100 dark:border-slate-800 ml-2 pl-6 space-y-6 py-2">
+                  {history.map((h, i) => (
+                    <div key={i} className="relative group">
+                      <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 border-blue-500 bg-white dark:bg-[#0f172a] shadow-sm z-10 group-hover:scale-110 transition-transform" />
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200">{h.profiles?.full_name || 'Hệ thống'}</span>
+                          <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded uppercase tracking-tighter">
+                            {h.action}
+                          </span>
+                        </div>
+                        <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-relaxed italic">
+                          {h.details || 'Không có chi tiết'}
+                        </p>
+                        <span className="text-[10px] text-slate-300 dark:text-slate-600 mt-1 block font-medium">
+                          {fmtDateTime(h.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-[12px] text-slate-400 italic py-2">Chưa có lịch sửa cập nhật.</div>
+              )}
+            </div>
+          </section>
+
           {/* Khoảng đệm cuối trang */}
           <div className="h-4" />
         </div>
 
         {/* ── Footer ── */}
-        <div className="shrink-0 px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111827] flex items-center justify-between gap-3">
+        <div className="shrink-0 px-5 py-3 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111827] flex items-center justify-between gap-3">
           <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
             {isAdmin && '🔑 Admin'}
             {!isAdmin && isAssigner && '📋 Người giao việc'}

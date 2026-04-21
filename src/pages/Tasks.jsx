@@ -13,6 +13,7 @@ import TaskDetailDrawer from '../components/TaskDetailDrawer';
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { writeLog } from '../lib/logger';
+import { canEditTask, canUpdateProgress, canEvaluate, ROLES } from '../lib/permissions';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -511,8 +512,8 @@ export default function Tasks() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white dark:bg-[#111827] rounded-[24px] shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden transition-colors">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="bg-white dark:bg-[#111827] sm:rounded-[24px] shadow-sm border-b sm:border border-slate-100 dark:border-slate-800 relative overflow-hidden transition-colors">
 
         {/* ── Top Header ── */}
         <div className="p-6 md:p-8 pb-0">
@@ -674,7 +675,7 @@ export default function Tasks() {
                     {paginatedTasks.map(task => {
                       const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed';
                       const isSelected = selectedTask?.id === task.id && isDrawerOpen;
-                      const canEditRow = profile?.role === 'admin' || profile?.id === task.assigned_by || profile?.id === task.created_by;
+                      const canEditRow = canEditTask(profile, task);
 
                       return (
                         <tr
@@ -818,7 +819,7 @@ export default function Tasks() {
                                 <Eye size={14} />
                               </button>
                               {/* Hoàn thành */}
-                              {task.status !== 'completed' && (task.assignee_id === profile?.id || profile?.role === 'admin' || profile?.id === task.assigned_by) && (
+                              {task.status !== 'completed' && canUpdateProgress(profile, task) && (
                                 <button
                                   onClick={() => handleStatusChange(task.id, 'completed')}
                                   title="Đánh dấu hoàn thành"
@@ -828,7 +829,7 @@ export default function Tasks() {
                                 </button>
                               )}
                               {/* Đánh giá */}
-                              {task.status === 'completed' && (profile?.role === 'admin' || profile?.id === task.assigned_by) && (
+                              {canEvaluate(profile, task) && (
                                 <button
                                   onClick={() => setEvalModalTask(task)}
                                   title={task.evaluation_score !== null ? 'Xem/Sửa đánh giá' : 'Đánh giá kết quả'}
@@ -885,17 +886,15 @@ export default function Tasks() {
             </div>
 
             {/* ── Mobile Card View ── */}
-            <div className="md:hidden px-4 pb-6 space-y-3">
+            <div className="md:hidden pb-6 divide-y divide-slate-100 dark:divide-slate-800">
               {paginatedTasks.map(task => {
                 const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed';
                 return (
                   <div
                     key={task.id}
                     onClick={() => { setSelectedTask(task); setIsDrawerOpen(true); }}
-                    className={`relative bg-white dark:bg-slate-800 rounded-2xl border p-4 shadow-sm cursor-pointer transition-all active:scale-[0.99] ${
-                      isOverdue
-                        ? 'border-red-200 dark:border-red-900/50 bg-red-50/20'
-                        : 'border-slate-200 dark:border-slate-700 hover:border-blue-200 dark:hover:border-blue-800/40'
+                    className={`relative bg-white dark:bg-slate-800 p-4 cursor-pointer transition-all active:bg-slate-50 dark:active:bg-slate-900 ${
+                      isOverdue ? 'bg-red-50/10' : ''
                     }`}
                   >
                     {/* Row 1: Mã + Priority + Status */}

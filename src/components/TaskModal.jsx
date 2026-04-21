@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
-import { X } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { writeLog } from '../lib/logger';
+import { canEditTask, canDelegateToStaff, ROLES } from '../lib/permissions';
 
 export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData }) {
   const { profile } = useAuth();
@@ -23,9 +24,13 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
   const [dueDate, setDueDate] = useState('');
   const [taskType, setTaskType] = useState('');
   const [originalDueDate, setOriginalDueDate] = useState('');
+  const [progress, setProgress] = useState(0);
   
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  const isAdmin = profile?.role === ROLES.ADMIN;
+  const isManager = profile?.role === ROLES.MANAGER;
 
   useEffect(() => {
     if (isOpen) {
@@ -45,6 +50,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
         setDueDate(initialData.due_date || '');
         setTaskType(initialData.task_type || '');
         setOriginalDueDate(initialData.original_due_date || '');
+        setProgress(initialData.progress || 0);
         if (initialData.task_collaborators) {
           setCollaborators(initialData.task_collaborators.map(c => c.profiles?.id || c.user_id).filter(Boolean));
         } else {
@@ -67,6 +73,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
         setDueDate('');
         setTaskType('');
         setOriginalDueDate('');
+        setProgress(0);
       }
     }
   }, [isOpen, profile, initialData]);
@@ -76,8 +83,20 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
     if (data) setUsers(data);
   };
 
+  const visibleCollaborators = useMemo(() => {
+    if (isAdmin) return users;
+    // Manager chỉ được nhìn thấy/giao cho Staff
+    if (isManager) return users.filter(u => u.role === ROLES.STAFF || collaborators.includes(u.id));
+    return users.filter(u => collaborators.includes(u.id));
+  }, [isManager, isAdmin, users, collaborators]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (initialData && !canEditTask(profile, initialData)) {
+      toast.error('Bạn không có quyền chỉnh sửa nhiệm vụ này');
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -95,16 +114,37 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
         priority: priority || 'normal',
         evaluation_period: evaluationPeriod || null,
         task_type: taskType || null,
-        original_due_date: originalDueDate || null
+        original_due_date: originalDueDate || null,
+        progress: Number(progress) || 0
       };
 
       let taskId = null;
+      let changeLog = [];
 
       if (initialData) {
+        // So sánh để tạo change log
+        if (title !== initialData.title) changeLog.push(`Tên: "${initialData.title}" -> "${title}"`);
+        if (description !== initialData.description) changeLog.push(`Cập nhật yêu cầu mới`);
+        if (dueDate !== initialData.due_date) changeLog.push(`Hạn: ${initialData.due_date} -> ${dueDate}`);
+        
+        // Chỉ lưu log nếu có thay đổi
+        const detailsStr = changeLog.length > 0 ? changeLog.join('; ') : 'Cập nhật thông tin nội bộ';
+
         const { data, error } = await supabase.from('tasks').update(payload).eq('id', initialData.id).select().single();
         if (error) throw error;
         taskId = data.id;
+        
+        // Delete colleagues and re-insert
         await supabase.from('task_collaborators').delete().eq('task_id', taskId);
+        
+        // Ghi log cập nhật chi tiết
+        await supabase.from('task_updates').insert([{
+          task_id: taskId, 
+          user_id: profile?.id, 
+          action: isManager ? 'điều phối/sửa đổi' : 'cập nhật',
+          details: detailsStr
+        }]);
+
         await writeLog({
           actorId: profile?.id,
           actorName: profile?.full_name,
@@ -112,7 +152,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
           action: 'Cập nhật nhiệm vụ',
           taskId,
           taskCode: initialData.code,
-          note: `Cập nhật thông tin: ${title}`,
+          note: detailsStr,
         });
         toast.success('Đã cập nhật nhiệm vụ!');
       } else {
@@ -126,10 +166,9 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
         taskId = data.id;
         
         // Log creation
-        const { error: updateError } = await supabase.from('task_updates').insert([{
-          task_id: taskId, user_id: profile?.id, action: 'tạo mới'
+        await supabase.from('task_updates').insert([{
+          task_id: taskId, user_id: profile?.id, action: 'tạo mới', details: 'Khởi tạo nhiệm vụ'
         }]);
-        if (updateError) console.error('Lỗi task_updates:', updateError);
         
         await writeLog({
           actorId: profile?.id,
@@ -245,28 +284,43 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
               <div className="space-y-6">
                 <div>
                   <label className="block text-[13px] font-bold text-slate-800 dark:text-slate-200 mb-2">Người giao</label>
-                  <select value={assignerId} onChange={e => setAssignerId(e.target.value)} required
-                    className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none text-[14px] font-medium text-slate-700 dark:text-slate-200">
+                  <select 
+                    value={assignerId} 
+                    onChange={e => setAssignerId(e.target.value)} 
+                    disabled={isManager && initialData}
+                    required
+                    className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none text-[14px] font-medium text-slate-700 dark:text-slate-200 disabled:opacity-60">
                     <option value="">-- Chọn --</option>
-                    {adminManagers.map(u => (
+                    {users.filter(u => u.role === ROLES.ADMIN || u.role === ROLES.MANAGER).map(u => (
                       <option key={u.id} value={u.id}>{u.full_name}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[13px] sm:text-[14px] font-bold text-slate-800 dark:text-slate-200 mb-2">Người phối hợp</label>
+                  <label className="block text-[13px] sm:text-[14px] font-bold text-slate-800 dark:text-slate-200 mb-2">Người phối hợp {isManager && '(Chỉ chọn Staff)'}</label>
                   <div className="w-full h-[150px] sm:h-[120px] overflow-y-auto px-3 sm:px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl space-y-2">
-                    {users.map(u => (
+                    {visibleCollaborators.map(u => (
                       <label key={u.id} className="flex items-start gap-3 cursor-pointer group py-1">
                         <input type="checkbox" checked={collaborators.includes(u.id)} onChange={() => handleCollabChange(u.id)}
                           className="w-5 h-5 sm:w-4 sm:h-4 mt-0.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer shrink-0" />
-                        <span className="text-[14px] sm:text-[13px] font-semibold text-slate-700 dark:text-slate-300 group-hover:text-blue-600 transition-colors flex-1 min-w-0 break-words leading-snug">{u.full_name}</span>
+                        <span className="text-[14px] sm:text-[13px] font-semibold text-slate-700 dark:text-slate-300 group-hover:text-blue-600 transition-colors flex-1 min-w-0 break-words leading-snug">
+                          {u.full_name} {u.role === ROLES.MANAGER && '(Manager)'}
+                        </span>
                       </label>
                     ))}
                   </div>
                 </div>
               </div>
             </div>
+
+            {isManager && initialData && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 p-4 rounded-xl flex items-start gap-3">
+                <AlertCircle size={18} className="text-blue-600 shrink-0 mt-0.5" />
+                <p className="text-[13px] text-blue-800 dark:text-blue-300 font-medium">
+                  Bạn đang ở chế độ <b>Điều phối / Tiếp tục giao việc</b>. Bạn có thể cập nhật yêu cầu, hạn hoàn thành và thêm người phối hợp là Staff.
+                </p>
+              </div>
+            )}
 
             {/* Row 2 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
@@ -361,6 +415,20 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
                 <label className="block text-[13px] font-bold text-slate-800 mb-2">Hạn hoàn thành gốc</label>
                 <input type="date" value={originalDueDate} onChange={e => setOriginalDueDate(e.target.value)}
                   className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none text-[14px] font-medium text-slate-700" />
+              </div>
+            </div>
+
+            {/* Row 7 - Progress */}
+            <div>
+              <label className="block text-[13px] font-bold text-slate-800 mb-2">Tiến độ thực hiện ({progress}%)</label>
+              <div className="flex items-center gap-4">
+                <input 
+                  type="range" min="0" max="100" step="5" 
+                  value={progress} 
+                  onChange={e => setProgress(e.target.value)}
+                  className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" 
+                />
+                <span className="text-[14px] font-bold text-slate-700 w-10 text-right">{progress}%</span>
               </div>
             </div>
 

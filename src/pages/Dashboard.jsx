@@ -32,7 +32,7 @@ export default function Dashboard() {
         return diff > 0 && diff <= 3 * 24 * 60 * 60 * 1000;
       }).length;
       
-      const pendingEval = tasks.filter(t => t.status === 'completed' && !t.evaluation_level).length;
+      const pendingEval = tasks.filter(t => t.status === 'completed' && t.evaluation_score === null).length;
       const pendingFinal = 0;
       const completionRate = total > 0 ? (completed / total * 100).toFixed(1) : 0;
       const onTimeRate = completed > 0 ? 100 : 0;
@@ -84,7 +84,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 px-4 sm:px-0">
       <div className="flex gap-2 md:gap-3 mb-2">
         <button onClick={fetchDashboardData} className="flex-1 md:flex-none justify-center bg-[#2563eb] hover:bg-blue-700 text-white px-3 md:px-5 py-2.5 rounded-xl flex items-center gap-2 text-[13px] md:text-[14px] font-bold transition-colors shadow-sm">
           <RotateCcw size={16} strokeWidth={2.5} />

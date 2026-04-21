@@ -19,7 +19,7 @@ export default function Header({ onMenuClick }) {
   else if (location.pathname.includes('/admin')) title = "Quản trị hệ thống";
 
   return (
-    <header className="bg-white h-[60px] sm:h-[70px] md:h-[80px] flex items-center justify-between px-3 sm:px-4 md:px-8 shrink-0 z-20 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] gap-2">
+    <header className="bg-white dark:bg-[#111827] h-[calc(60px+env(safe-area-inset-top))] sm:h-[70px] md:h-[80px] pt-[env(safe-area-inset-top)] flex items-center justify-between px-3 sm:px-4 md:px-8 shrink-0 z-20 sticky top-0 shadow-[0_2px_10px_rgba(0,0,0,0.02)] border-b border-slate-100 dark:border-slate-800 gap-2">
       <div className="flex items-center gap-1 sm:gap-2 md:gap-3 flex-1 min-w-0">
         <button 
           onClick={onMenuClick}

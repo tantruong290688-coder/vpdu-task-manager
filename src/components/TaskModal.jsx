@@ -124,8 +124,12 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
       taskType, originalDueDate, progress
     };
     
-    // Only save if at least title, description, or assignee is set
-    if (title || description || assigneeId) {
+    // Save if any key field is modified from empty state
+    const hasData = title || description || assigneeId || taskGroup || workArea || 
+                    expectedOutput || (collaborators && collaborators.length > 0) || 
+                    priority || evaluationPeriod || taskType || progress > 0;
+
+    if (hasData) {
       localStorage.setItem(draftKey, JSON.stringify(draftData));
     }
   };

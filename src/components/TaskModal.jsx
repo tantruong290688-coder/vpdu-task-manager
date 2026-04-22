@@ -325,6 +325,14 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
 
   const adminManagers = users.filter(u => u.role === 'admin' || u.role === 'manager');
 
+  const handleCancel = () => {
+    if (!initialData) {
+      const draftKey = getDraftKey(profile?.id);
+      if (draftKey) localStorage.removeItem(draftKey);
+    }
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -337,7 +345,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
             <h2 className="text-[17px] sm:text-[18px] md:text-[20px] font-extrabold text-slate-800 dark:text-white leading-tight break-words">{initialData ? 'Chi tiết / Cập nhật nhiệm vụ' : 'Tạo mới nhiệm vụ'}</h2>
             <p className="text-[12px] md:text-[13px] font-medium text-slate-500 dark:text-slate-400 mt-1 truncate">{initialData ? 'Chỉnh sửa thông tin nhiệm vụ hiện tại.' : 'Nhập đủ thông tin để giao nhiệm vụ mới.'}</p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 md:w-10 md:h-10 shrink-0 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors">
+          <button onClick={handleCancel} className="w-8 h-8 md:w-10 md:h-10 shrink-0 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -522,7 +530,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
 
         {/* Footer */}
         <div className="px-4 py-3 sm:py-4 md:px-8 md:py-5 border-t border-slate-200 dark:border-slate-800 shrink-0 bg-white dark:bg-[#111827] sm:rounded-b-[24px] flex justify-end gap-2 md:gap-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-4 md:pb-5">
-          <button type="button" onClick={onClose} className="flex-1 sm:flex-none justify-center px-4 md:px-6 py-3 sm:py-2.5 font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors shadow-sm text-[14px]">Đóng</button>
+          <button type="button" onClick={handleCancel} className="flex-1 sm:flex-none justify-center px-4 md:px-6 py-3 sm:py-2.5 font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors shadow-sm text-[14px]">Đóng</button>
           <button type="submit" form="taskForm" disabled={loading} className="flex-1 sm:flex-none justify-center px-4 md:px-6 py-3 sm:py-2.5 font-bold bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-xl transition-colors shadow-[0_4px_12px_rgba(37,99,235,0.3)] disabled:opacity-50 text-[14px]">
             {loading ? 'Đang lưu...' : 'Lưu nhiệm vụ'}
           </button>

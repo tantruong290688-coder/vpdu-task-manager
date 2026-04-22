@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { X, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -31,6 +31,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
   
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const isClosingRef = useRef(false);
 
   const isAdmin = profile?.role === ROLES.ADMIN;
   const isManager = profile?.role === ROLES.MANAGER;
@@ -38,6 +39,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
   useEffect(() => {
     if (isOpen) {
       fetchUsers();
+      isClosingRef.current = false; // Reset flag when modal opens
       if (initialData) {
         setAssignedDate(initialData.assigned_date || '');
         setStartDate(initialData.start_date || '');
@@ -113,7 +115,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
   }, [isOpen, profile, initialData]);
 
   const saveDraft = () => {
-    if (!isOpen || initialData || !profile?.id) return;
+    if (!isOpen || initialData || !profile?.id || isClosingRef.current) return;
     const draftKey = getDraftKey(profile.id);
     const draftData = {
       assignedDate, assignerId, assigneeId, collaborators,
@@ -327,6 +329,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
 
   const handleCancel = () => {
     if (!initialData) {
+      isClosingRef.current = true; // Block any further saves
       const draftKey = getDraftKey(profile?.id);
       if (draftKey) localStorage.removeItem(draftKey);
     }

@@ -6,6 +6,9 @@ import toast from 'react-hot-toast';
 import { writeLog } from '../lib/logger';
 import { canEditTask, canDelegateToStaff, ROLES } from '../lib/permissions';
 
+// Key for local storage draft
+const getDraftKey = (userId) => userId ? `task_create_draft_${userId}` : null;
+
 export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData }) {
   const { profile } = useAuth();
   
@@ -57,26 +60,104 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
           setCollaborators([]);
         }
       } else {
-        const today = new Date().toISOString().split('T')[0];
-        setAssignedDate(today);
-        setStartDate(today);
-        setAssignerId(profile?.id || '');
-        setAssigneeId('');
-        setCollaborators([]);
-        setTaskGroup('');
-        setWorkArea('');
-        setTitle('');
-        setDescription('');
-        setExpectedOutput('');
-        setPriority('');
-        setEvaluationPeriod('');
-        setDueDate('');
-        setTaskType('');
-        setOriginalDueDate('');
-        setProgress(0);
+        // Restore from draft for new tasks
+        const draftKey = getDraftKey(profile?.id);
+        const savedDraft = draftKey ? localStorage.getItem(draftKey) : null;
+        
+        if (savedDraft) {
+          try {
+            const draft = JSON.parse(savedDraft);
+            setAssignedDate(draft.assignedDate || new Date().toISOString().split('T')[0]);
+            setStartDate(draft.startDate || new Date().toISOString().split('T')[0]);
+            setAssignerId(draft.assignerId || profile?.id || '');
+            setAssigneeId(draft.assigneeId || '');
+            setCollaborators(draft.collaborators || []);
+            setTaskGroup(draft.taskGroup || '');
+            setWorkArea(draft.workArea || '');
+            setTitle(draft.title || '');
+            setDescription(draft.description || '');
+            setExpectedOutput(draft.expectedOutput || '');
+            setPriority(draft.priority || '');
+            setEvaluationPeriod(draft.evaluationPeriod || '');
+            setDueDate(draft.dueDate || '');
+            setTaskType(draft.taskType || '');
+            setOriginalDueDate(draft.originalDueDate || '');
+            setProgress(draft.progress || 0);
+            
+            // Optional: toast.success('Đã khôi phục bản nháp!');
+          } catch (e) {
+            console.error('Lỗi khôi phục bản nháp:', e);
+          }
+        } else {
+          // Default values for new task
+          const today = new Date().toISOString().split('T')[0];
+          setAssignedDate(today);
+          setStartDate(today);
+          setAssignerId(profile?.id || '');
+          setAssigneeId('');
+          setCollaborators([]);
+          setTaskGroup('');
+          setWorkArea('');
+          setTitle('');
+          setDescription('');
+          setExpectedOutput('');
+          setPriority('');
+          setEvaluationPeriod('');
+          setDueDate('');
+          setTaskType('');
+          setOriginalDueDate('');
+          setProgress(0);
+        }
       }
     }
   }, [isOpen, profile, initialData]);
+
+  const saveDraft = () => {
+    if (!isOpen || initialData || !profile?.id) return;
+    const draftKey = getDraftKey(profile.id);
+    const draftData = {
+      assignedDate, assignerId, assigneeId, collaborators,
+      taskGroup, workArea, title, description, expectedOutput,
+      priority, evaluationPeriod, startDate, dueDate,
+      taskType, originalDueDate, progress
+    };
+    
+    // Only save if at least title, description, or assignee is set
+    if (title || description || assigneeId) {
+      localStorage.setItem(draftKey, JSON.stringify(draftData));
+    }
+  };
+
+  // Debounced Autosave Effect
+  useEffect(() => {
+    if (!isOpen || initialData || !profile?.id) return;
+    const timeoutId = setTimeout(saveDraft, 500);
+    return () => {
+      clearTimeout(timeoutId);
+      saveDraft(); // Save immediately on unmount
+    };
+  }, [
+    isOpen, initialData, profile,
+    assignedDate, assignerId, assigneeId, collaborators,
+    taskGroup, workArea, title, description, expectedOutput,
+    priority, evaluationPeriod, startDate, dueDate,
+    taskType, originalDueDate, progress
+  ]);
+
+  // Save on tab switch or page refresh
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') saveDraft();
+    };
+    const handleBeforeUnload = () => saveDraft();
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [assignedDate, assignerId, assigneeId, collaborators, taskGroup, workArea, title, description, expectedOutput, priority, evaluationPeriod, startDate, dueDate, taskType, originalDueDate, progress]);
 
   const fetchUsers = async () => {
     const { data } = await supabase.from('profiles').select('id, full_name, role');
@@ -180,6 +261,10 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
           note: `Tạo nhiệm vụ: ${title}`,
         });
         toast.success('Đã giao nhiệm vụ mới!');
+
+        // Clear draft on success
+        const draftKey = getDraftKey(profile?.id);
+        if (draftKey) localStorage.removeItem(draftKey);
 
         // Create notification for assignee
         if (assigneeId && assigneeId !== profile?.id) {

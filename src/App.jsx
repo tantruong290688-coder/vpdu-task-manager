@@ -9,6 +9,7 @@ import Evaluations from './pages/Evaluations';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import Logs from './pages/Logs';
 import Admin from './pages/Admin';
+import TodoPage from './pages/TodoPage';
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
@@ -36,6 +37,7 @@ function App() {
           <Route path="evaluations" element={<Evaluations />} />
           <Route path="logs" element={<Logs />} />
           <Route path="admin" element={<Admin />} />
+          <Route path="todo" element={<TodoPage />} />
         </Route>
       </Routes>
     </Router>

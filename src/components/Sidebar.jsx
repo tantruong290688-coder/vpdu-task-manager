@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Send, LayoutList, ClipboardList, History, Settings, X, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Send, LayoutList, ClipboardList, History, Settings, X, MessageSquare, ListTodo } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useMessage } from '../context/MessageContext';
@@ -18,6 +18,7 @@ export default function Sidebar({ isOpen, onClose }) {
     { name: 'Giao nhiệm vụ', path: '/tasks', icon: Send },
     { name: 'Tất cả nhiệm vụ', path: '/all-tasks', icon: LayoutList },
     { name: 'Nhiệm vụ của tôi', path: '/my-tasks', icon: ClipboardList },
+    { name: 'To-do cá nhân', path: '/todo', icon: ListTodo },
     { name: 'Nhật ký thao tác', path: '/logs', icon: History },
     { name: 'Quản trị hệ thống', path: '/admin', icon: Settings, adminOnly: true },
   ].filter(m => !m.adminOnly || profile?.role === 'admin');

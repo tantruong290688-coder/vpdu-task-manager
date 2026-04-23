@@ -36,6 +36,26 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
   const isAdmin = profile?.role === ROLES.ADMIN;
   const isManager = profile?.role === ROLES.MANAGER;
 
+  const resetForm = () => {
+    const today = new Date().toISOString().split('T')[0];
+    setAssignedDate(today);
+    setStartDate(today);
+    setAssignerId(profile?.id || '');
+    setAssigneeId('');
+    setCollaborators([]);
+    setTaskGroup('');
+    setWorkArea('');
+    setTitle('');
+    setDescription('');
+    setExpectedOutput('');
+    setPriority('');
+    setEvaluationPeriod('');
+    setDueDate('');
+    setTaskType('');
+    setOriginalDueDate('');
+    setProgress(0);
+  };
+
   useEffect(() => {
     if (isOpen) {
       fetchUsers();
@@ -85,30 +105,12 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
             setTaskType(draft.taskType || '');
             setOriginalDueDate(draft.originalDueDate || '');
             setProgress(draft.progress || 0);
-            
-            // Optional: toast.success('Đã khôi phục bản nháp!');
           } catch (e) {
             console.error('Lỗi khôi phục bản nháp:', e);
+            resetForm();
           }
         } else {
-          // Default values for new task
-          const today = new Date().toISOString().split('T')[0];
-          setAssignedDate(today);
-          setStartDate(today);
-          setAssignerId(profile?.id || '');
-          setAssigneeId('');
-          setCollaborators([]);
-          setTaskGroup('');
-          setWorkArea('');
-          setTitle('');
-          setDescription('');
-          setExpectedOutput('');
-          setPriority('');
-          setEvaluationPeriod('');
-          setDueDate('');
-          setTaskType('');
-          setOriginalDueDate('');
-          setProgress(0);
+          resetForm();
         }
       }
     }
@@ -271,6 +273,8 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
         // Clear draft on success
         const draftKey = getDraftKey(profile?.id);
         if (draftKey) localStorage.removeItem(draftKey);
+        isClosingRef.current = true; // Block autosave on close
+        resetForm(); // Reset local state immediately
 
         // Create notification for assignee
         if (assigneeId && assigneeId !== profile?.id) {

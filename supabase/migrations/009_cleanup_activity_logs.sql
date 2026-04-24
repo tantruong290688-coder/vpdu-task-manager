@@ -22,8 +22,14 @@ $$;
 -- Bước 3: Kích hoạt extension pg_cron (nếu chưa có) và lên lịch
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 
--- Xóa job cũ nếu đã tồn tại để tránh trùng lặp
-SELECT cron.unschedule('cleanup-activity-logs-job');
+-- Xóa job cũ nếu đã tồn tại để tránh trùng lặp (dùng DO block để tránh lỗi nếu job chưa tồn tại)
+DO $$
+BEGIN
+    PERFORM cron.unschedule('cleanup-activity-logs-job');
+EXCEPTION
+    WHEN OTHERS THEN
+        NULL;
+END $$;
 
 -- Thiết lập lịch chạy mỗi ngày vào lúc 02:00 sáng
 SELECT cron.schedule(

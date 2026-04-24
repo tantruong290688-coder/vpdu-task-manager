@@ -570,22 +570,34 @@ export default function Tasks() {
               )}
             </div>
 
-            <button
-              onClick={() => setIsFilterOpen(true)}
-              className={`relative flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-[13px] font-bold transition-all border shrink-0 ${
-                activeFilterCount > 0
-                  ? 'bg-blue-600 text-white border-blue-600 shadow-[0_4px_12px_rgba(37,99,235,0.3)] hover:bg-blue-700'
-                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
-              }`}
-            >
-              <SlidersHorizontal size={16} />
-              Bộ lọc nâng cao
-              {activeFilterCount > 0 && (
-                <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">
-                  {activeFilterCount}
-                </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsFilterOpen(true)}
+                className={`relative flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-[13px] font-bold transition-all border shrink-0 ${
+                  activeFilterCount > 0
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-[0_4px_12px_rgba(37,99,235,0.3)] hover:bg-blue-700'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
+                }`}
+              >
+                <SlidersHorizontal size={16} />
+                Bộ lọc
+                {activeFilterCount > 0 && (
+                  <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+
+              {(profile?.role === 'admin' || profile?.role === 'manager') && (
+                <button
+                  onClick={openAddModal}
+                  className="flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-[13px] font-extrabold bg-[#dc2626] text-white hover:bg-[#b91c1c] transition-all shadow-[0_4px_12px_rgba(220,38,38,0.3)] shrink-0"
+                >
+                  <Plus size={18} strokeWidth={3} />
+                  Thêm nhiệm vụ
+                </button>
               )}
-            </button>
+            </div>
           </div>
         </div>
 

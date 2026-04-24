@@ -63,7 +63,7 @@ export default function ChatLauncher() {
         touchAction: 'none'
       }}
       onMouseDown={onMouseDown}
-      className="flex flex-col items-end group"
+      className="hidden sm:flex flex-col items-end group"
     >
       <button
         onClick={() => {

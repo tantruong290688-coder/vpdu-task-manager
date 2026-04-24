@@ -7,8 +7,10 @@ const MessageContext = createContext({});
 export const MessageProvider = ({ children }) => {
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
   const [activeChatUserId, setActiveChatUserId] = useState(null);
+  const [activeRoomId, setActiveRoomId] = useState(null);
 
   // Fetch initial unread count
   const fetchUnreadCount = useCallback(async () => {
@@ -38,8 +40,6 @@ export const MessageProvider = ({ children }) => {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` },
         (payload) => {
-          // If the message is for the currently active chat and the drawer is open,
-          // we might mark it as read immediately in the UI component, but initially it's unread
           if (payload.new.is_read === false) {
             setUnreadCount(prev => prev + 1);
           }
@@ -49,7 +49,6 @@ export const MessageProvider = ({ children }) => {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` },
         (payload) => {
-          // Recalculate if a message was marked as read
           if (payload.new.is_read === true && payload.old.is_read === false) {
             setUnreadCount(prev => Math.max(0, prev - 1));
           }
@@ -62,16 +61,35 @@ export const MessageProvider = ({ children }) => {
     };
   }, [user, fetchUnreadCount]);
 
-  const toggleDrawer = () => setIsDrawerOpen(prev => !prev);
-  const openDrawer = () => setIsDrawerOpen(true);
-  const closeDrawer = () => {
-    setIsDrawerOpen(false);
-    setActiveChatUserId(null); // optional: clear active chat on close
+  const toggleChat = () => {
+    setIsChatOpen(prev => !prev);
+    setIsMinimized(false);
   };
+  const openChat = () => {
+    setIsChatOpen(true);
+    setIsMinimized(false);
+  };
+  const closeChat = () => {
+    setIsChatOpen(false);
+    setIsMinimized(false);
+    setActiveChatUserId(null);
+    setActiveRoomId(null);
+  };
+  const minimizeChat = () => setIsMinimized(true);
+  const maximizeChat = () => setIsMinimized(false);
 
   const openChatWith = (userId) => {
     setActiveChatUserId(userId);
-    setIsDrawerOpen(true);
+    setActiveRoomId(null);
+    setIsChatOpen(true);
+    setIsMinimized(false);
+  };
+
+  const openRoomChat = (roomId) => {
+    setActiveRoomId(roomId);
+    setActiveChatUserId(null);
+    setIsChatOpen(true);
+    setIsMinimized(false);
   };
 
   return (
@@ -79,13 +97,23 @@ export const MessageProvider = ({ children }) => {
       unreadCount,
       setUnreadCount,
       fetchUnreadCount,
-      isDrawerOpen,
-      toggleDrawer,
-      openDrawer,
-      closeDrawer,
+      isChatOpen,
+      isDrawerOpen: isChatOpen, // Backward compatibility
+      isMinimized,
+      toggleChat,
+      toggleDrawer: toggleChat, // Backward compatibility
+      openChat,
+      openDrawer: openChat, // Backward compatibility
+      closeChat,
+      closeDrawer: closeChat, // Backward compatibility
+      minimizeChat,
+      maximizeChat,
       activeChatUserId,
       setActiveChatUserId,
-      openChatWith
+      activeRoomId,
+      setActiveRoomId,
+      openChatWith,
+      openRoomChat
     }}>
       {children}
     </MessageContext.Provider>

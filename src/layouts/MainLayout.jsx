@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
-import MessagesDrawer from '../components/MessagesDrawer';
+import ChatLauncher from '../components/Chat/ChatLauncher';
+import ChatPopup from '../components/Chat/ChatPopup';
 import { usePresence } from '../hooks/usePresence';
 
 export default function MainLayout() {
@@ -19,7 +20,8 @@ export default function MainLayout() {
           </div>
         </main>
       </div>
-      <MessagesDrawer />
+      <ChatLauncher />
+      <ChatPopup />
     </div>
   );
 }

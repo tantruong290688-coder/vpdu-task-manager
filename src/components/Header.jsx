@@ -51,19 +51,6 @@ export default function Header({ onMenuClick }) {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2">
-          {/* Message Icon - Visible on all devices */}
-          <button 
-            onClick={toggleDrawer}
-            className="relative flex w-9 h-9 md:w-10 md:h-10 rounded-xl bg-slate-50 hover:bg-slate-100 items-center justify-center text-slate-600 transition-colors"
-          >
-            <MessageSquare size={18} />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 bg-red-500 border-2 border-white rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-md leading-none">
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </span>
-            )}
-          </button>
-          
           <NotificationsDropdown />
           
           <button onClick={() => window.location.reload()} className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-600 transition-colors">

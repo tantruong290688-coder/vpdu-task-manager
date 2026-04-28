@@ -89,8 +89,9 @@ export function useNotifications({ filter = 'all', page = 1, limit = 20 } = {}) 
     // Cleanup old channel
     if (channelRef.current) supabase.removeChannel(channelRef.current);
 
+    const uniqueId = Math.random().toString(36).substring(7);
     const channel = supabase
-      .channel(`notifications_hook_${user.id}`)
+      .channel(`notifications_hook_${user.id}_${uniqueId}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },

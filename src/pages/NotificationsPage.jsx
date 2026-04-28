@@ -192,7 +192,7 @@ export default function NotificationsPage() {
               return (
                 <div
                   key={n.id}
-                  onPointerDown={() => handleNotificationClick(n)}
+                  onClick={() => handleNotificationClick(n)}
                   className={`p-4 sm:p-5 cursor-pointer transition-all active:bg-slate-100 dark:active:bg-slate-800 flex gap-3 sm:gap-4 touch-manipulation select-none
                     ${!n.is_read ? 'border-l-[3px] border-blue-500 bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-50/60' : 'border-l-[3px] border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/60'}
                   `}

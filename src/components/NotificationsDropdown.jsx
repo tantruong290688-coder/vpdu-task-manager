@@ -184,7 +184,7 @@ export default function NotificationsDropdown() {
                     return (
                       <div
                         key={n.id}
-                        onPointerDown={() => handleNotificationClick(n)}
+                        onClick={() => handleNotificationClick(n)}
                         className={`px-4 py-3.5 cursor-pointer transition-all active:bg-slate-100 dark:active:bg-slate-800 flex gap-3 touch-manipulation select-none
                           ${!n.is_read
                             ? 'bg-blue-50/60 dark:bg-blue-950/30 border-l-[3px] border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/40'

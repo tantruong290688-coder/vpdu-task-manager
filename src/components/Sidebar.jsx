@@ -41,6 +41,26 @@ export default function Sidebar({ isOpen, onClose }) {
     return () => { mounted = false; supabase.removeChannel(channel); };
   }, [user?.id]);
 
+  // Cập nhật App Badge (PWA) và Title tab
+  useEffect(() => {
+    const totalUnread = notifUnread + (unreadCount || 0);
+
+    // Cập nhật Title tab để dễ theo dõi
+    if (totalUnread > 0) {
+      document.title = `(${totalUnread}) Quản trị nhiệm vụ`;
+    } else {
+      document.title = 'Quản trị nhiệm vụ - VPĐU Trà Bồng';
+    }
+
+    // Cập nhật PWA App Badge (icon trên màn hình chính / taskbar)
+    if ('setAppBadge' in navigator) {
+      if (totalUnread > 0) {
+        navigator.setAppBadge(totalUnread).catch(console.error);
+      } else if ('clearAppBadge' in navigator) {
+        navigator.clearAppBadge().catch(console.error);
+      }
+    }
+  }, [notifUnread, unreadCount]);
 
   const menus = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },

@@ -1,78 +1,101 @@
 // ═══════════════════════════════════════════════════════════
-// Hook: usePushNotifications
-// Quản lý đăng ký / huỷ đăng ký Web Push Notification
+// Hook: usePushNotifications – phiên bản an toàn
+// Tất cả truy cập browser API được bảo vệ trong try/catch
 // ═══════════════════════════════════════════════════════════
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
 
-// Chuyển base64url → Uint8Array (chuẩn để đăng ký push)
 function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = atob(base64);
-  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+  try {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+  } catch {
+    return new Uint8Array();
+  }
 }
 
-function detectPlatform() {
-  const ua = navigator.userAgent;
-  if (/iPhone|iPad|iPod/.test(ua)) return 'ios';
-  if (/Android/.test(ua)) return 'android';
-  if (/Windows/.test(ua)) return 'windows';
-  if (/Mac/.test(ua)) return 'macos';
-  return 'linux';
+function safeGetPlatform() {
+  try {
+    const ua = navigator.userAgent || '';
+    if (/iPhone|iPad|iPod/.test(ua)) return { isIOS: true, platform: 'ios' };
+    if (/Android/.test(ua))          return { isIOS: false, platform: 'android' };
+    return { isIOS: false, platform: 'desktop' };
+  } catch {
+    return { isIOS: false, platform: 'unknown' };
+  }
 }
 
-function detectDeviceType() {
-  const ua = navigator.userAgent;
-  if (/Mobi|Android/i.test(ua)) return 'mobile';
-  if (/Tablet|iPad/i.test(ua)) return 'tablet';
-  return 'desktop';
+function safeIsStandalone() {
+  try {
+    return (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true
+    );
+  } catch {
+    return false;
+  }
+}
+
+function safeIsSupported() {
+  try {
+    return (
+      typeof window !== 'undefined' &&
+      'serviceWorker' in navigator &&
+      'PushManager' in window &&
+      'Notification' in window
+    );
+  } catch {
+    return false;
+  }
+}
+
+function safeGetPermission() {
+  try {
+    return typeof Notification !== 'undefined' ? Notification.permission : 'unsupported';
+  } catch {
+    return 'unsupported';
+  }
 }
 
 export function usePushNotifications() {
-  const [permission, setPermission]     = useState(() =>
-    typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'
-  );
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const [isLoading, setIsLoading]       = useState(false);
-  const [swRegistration, setSwReg]      = useState(null);
-  const [error, setError]               = useState(null);
+  const [permission,    setPermission]    = useState(safeGetPermission);
+  const [isSubscribed,  setIsSubscribed]  = useState(false);
+  const [isLoading,     setIsLoading]     = useState(false);
+  const [swRegistration, setSwReg]        = useState(null);
+  const [error,          setError]        = useState(null);
 
-  // Kiểm tra iOS
-  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-  // Kiểm tra chạy ở standalone mode (đã cài PWA)
-  const isStandalone =
-    window.matchMedia('(display-mode: standalone)').matches ||
-    window.navigator.standalone === true;
+  // Các giá trị tĩnh – chỉ tính một lần sau khi mount để tránh crash SSR
+  const { isIOS, platform } = useMemo(() => safeGetPlatform(), []);
+  const isStandalone = useMemo(() => safeIsStandalone(), []);
+  const isSupported  = useMemo(() => safeIsSupported(), []);
 
-  // Hỗ trợ Push API không?
-  const isSupported =
-    'serviceWorker' in navigator &&
-    'PushManager'   in window    &&
-    'Notification'  in window;
-
-  // ── Đăng ký Service Worker khi mount ──────────────────
+  // Đăng ký Service Worker khi mount
   useEffect(() => {
     if (!isSupported) return;
+    let mounted = true;
 
     navigator.serviceWorker
       .register('/sw.js', { scope: '/' })
       .then(async (reg) => {
+        if (!mounted) return;
         setSwReg(reg);
-
-        // Kiểm tra xem đã subscribe chưa
-        const sub = await reg.pushManager.getSubscription();
-        setIsSubscribed(!!sub);
+        try {
+          const sub = await reg.pushManager.getSubscription();
+          if (mounted) setIsSubscribed(!!sub);
+        } catch { /* ignore */ }
       })
       .catch((e) => {
-        console.error('[SW register]', e);
-        setError('Không thể đăng ký service worker');
+        if (mounted) setError('Không thể đăng ký service worker: ' + e.message);
       });
+
+    return () => { mounted = false; };
   }, [isSupported]);
 
-  // ── Xin quyền + Subscribe ──────────────────────────────
+  // Bật thông báo
   const subscribe = useCallback(async () => {
     if (!isSupported) {
       setError('Trình duyệt không hỗ trợ Push Notification');
@@ -82,66 +105,56 @@ export function usePushNotifications() {
       setError('Chưa cấu hình VAPID Public Key');
       return false;
     }
-    if (isIOS && !isStandalone) {
-      // Không thể subscribe nếu chưa cài PWA trên iOS
-      return false;
-    }
+    if (isIOS && !isStandalone) return false; // iOS chưa cài PWA
 
     setIsLoading(true);
     setError(null);
 
     try {
-      // 1. Xin quyền notification
       const perm = await Notification.requestPermission();
       setPermission(perm);
+      if (perm !== 'granted') { setIsLoading(false); return false; }
 
-      if (perm !== 'granted') {
-        setIsLoading(false);
-        return false;
-      }
-
-      // 2. Tạo push subscription
       let reg = swRegistration;
       if (!reg) {
         reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
         setSwReg(reg);
       }
 
-      // Đợi SW active
-      await new Promise((resolve) => {
-        if (reg.active) return resolve();
-        reg.addEventListener('updatefound', () => {
-          const sw = reg.installing;
-          sw?.addEventListener('statechange', () => {
-            if (sw.state === 'activated') resolve();
-          });
-        });
-        setTimeout(resolve, 3000); // timeout fallback
-      });
+      // Chờ SW ready (tối đa 5s)
+      await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise(r => setTimeout(r, 5000)),
+      ]);
+
+      const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+      if (applicationServerKey.length === 0) {
+        throw new Error('VAPID key không hợp lệ');
+      }
 
       const sub = await reg.pushManager.subscribe({
-        userVisibleOnly:      true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        userVisibleOnly: true,
+        applicationServerKey,
       });
 
-      // 3. Gửi subscription lên server
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error('Chưa đăng nhập');
 
       const subJson = sub.toJSON();
+      const ua = navigator.userAgent || '';
       await fetch('/api/push/subscribe', {
-        method:  'POST',
+        method: 'POST',
         headers: {
-          'Content-Type':  'application/json',
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           endpoint:   subJson.endpoint,
           p256dh:     subJson.keys?.p256dh,
           auth:       subJson.keys?.auth,
-          userAgent:  navigator.userAgent,
-          deviceType: detectDeviceType(),
-          platform:   detectPlatform(),
+          userAgent:  ua,
+          deviceType: /Mobi|Android/i.test(ua) ? 'mobile' : 'desktop',
+          platform,
         }),
       });
 
@@ -154,27 +167,26 @@ export function usePushNotifications() {
     } finally {
       setIsLoading(false);
     }
-  }, [swRegistration, isIOS, isStandalone, isSupported]);
+  }, [swRegistration, isIOS, isStandalone, isSupported, platform]);
 
-  // ── Huỷ subscribe ──────────────────────────────────────
+  // Tắt thông báo
   const unsubscribe = useCallback(async () => {
     setIsLoading(true);
     try {
       let reg = swRegistration;
       if (!reg) {
-        reg = await navigator.serviceWorker.getRegistration('/sw.js');
+        reg = await navigator.serviceWorker.getRegistration('/');
       }
       const sub = await reg?.pushManager.getSubscription();
       if (sub) {
         const endpoint = sub.endpoint;
         await sub.unsubscribe();
-
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
           await fetch('/api/push/unsubscribe', {
-            method:  'POST',
+            method: 'POST',
             headers: {
-              'Content-Type':  'application/json',
+              'Content-Type': 'application/json',
               'Authorization': `Bearer ${session.access_token}`,
             },
             body: JSON.stringify({ endpoint }),
@@ -182,7 +194,7 @@ export function usePushNotifications() {
         }
       }
       setIsSubscribed(false);
-      setPermission(Notification.permission);
+      setPermission(safeGetPermission());
     } catch (e) {
       console.error('[unsubscribe]', e);
       setError(e.message);

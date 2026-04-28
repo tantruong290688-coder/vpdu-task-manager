@@ -3,7 +3,7 @@
 // File: public/sw.js
 // ═══════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'vpdu-v2';
+const CACHE_NAME = 'vpdu-v3';
 const OFFLINE_URL = '/offline.html';
 
 // ── Install: pre-cache shell ─────────────────────────────
@@ -13,7 +13,7 @@ self.addEventListener('install', (event) => {
       cache.addAll(['/'])
     )
   );
-  self.skipWaiting();
+  self.skipWaiting(); // Kích hoạt SW mới ngay lập tức
 });
 
 // ── Activate: clean old caches ───────────────────────────
@@ -25,7 +25,14 @@ self.addEventListener('activate', (event) => {
       )
     )
   );
-  self.clients.claim();
+  self.clients.claim(); // Kiểm soát tất cả clients ngay
+});
+
+// ── Message: nhận lệnh từ App (SKIP_WAITING) ─────────────
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // ── Fetch: network-first với fallback cache ──────────────

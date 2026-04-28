@@ -3,16 +3,43 @@ import { LayoutDashboard, Send, LayoutList, ClipboardList, History, Settings, X,
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useMessage } from '../context/MessageContext';
-import { useNotifications } from '../hooks/useNotifications';
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import partyLogo from '../assets/bieu-tuong-vp-cap-uy.png';
 
 export default function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { theme } = useTheme();
   const { unreadCount, toggleDrawer } = useMessage();
-  const { unreadCount: notifUnread } = useNotifications();
   const themeLabel = { light: 'Sáng', dark: 'Tối', system: 'Theo hệ thống' }[theme] || 'Sáng';
+
+  // Lấy số thông báo chưa đọc (dùng query đơn giản, không tạo realtime channel mới)
+  const [notifUnread, setNotifUnread] = useState(0);
+  useEffect(() => {
+    if (!user?.id) return;
+    let mounted = true;
+    const fetch = async () => {
+      const { count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
+      if (mounted) setNotifUnread(count || 0);
+    };
+    fetch();
+    // Lắng nghe thông báo mới qua channel riêng
+    const channel = supabase
+      .channel(`sidebar_notif_${user.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        () => { if (mounted) setNotifUnread(prev => prev + 1); }
+      )
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        () => { fetch(); }
+      )
+      .subscribe();
+    return () => { mounted = false; supabase.removeChannel(channel); };
+  }, [user?.id]);
 
 
   const menus = [

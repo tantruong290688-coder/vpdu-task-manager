@@ -3,7 +3,7 @@
 // File: public/sw.js
 // ═══════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'vpdu-v1';
+const CACHE_NAME = 'vpdu-v2';
 const OFFLINE_URL = '/offline.html';
 
 // ── Install: pre-cache shell ─────────────────────────────

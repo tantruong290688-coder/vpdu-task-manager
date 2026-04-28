@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, Smile, Loader2, X, FileText, Image as ImageIcon } from 'lucide-react';
+import { Send, Paperclip, Smile, Loader2, X, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
+import AttachmentFileIcon from './AttachmentFileIcon';
+import { getFileTypeInfo } from '../../utils/fileType';
 
 export default function ChatComposer({ onSend, sending, replyTo, onCancelReply }) {
   const [text, setText] = useState('');
@@ -88,6 +90,8 @@ export default function ChatComposer({ onSend, sending, replyTo, onCancelReply }
     }
   };
 
+  const previewFileInfo = selectedFile ? getFileTypeInfo(selectedFile.name, selectedFile.type) : null;
+
   return (
     <div className="px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 shrink-0 relative">
       {replyTo && (
@@ -105,14 +109,12 @@ export default function ChatComposer({ onSend, sending, replyTo, onCancelReply }
         </div>
       )}
 
-      {selectedFile && (
+      {selectedFile && previewFileInfo && (
         <div className="mb-3 p-2 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 inline-flex items-center gap-3 relative animate-in fade-in slide-in-from-bottom-2">
           {previewUrl ? (
-            <img src={previewUrl} alt="Preview" className="h-14 w-14 object-cover rounded-lg border border-slate-200 dark:border-slate-700" />
+            <img src={previewUrl} alt="Preview" className="h-11 w-11 object-cover rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900" />
           ) : (
-            <div className="h-14 w-14 flex items-center justify-center bg-blue-50 dark:bg-blue-900/20 text-blue-500 rounded-lg border border-blue-100 dark:border-blue-800">
-              <FileText size={24} />
-            </div>
+            <AttachmentFileIcon fileInfo={previewFileInfo} className="w-11 h-11" textClassName="text-base" />
           )}
           <div className="flex-1 pr-6 max-w-[200px]">
             <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{selectedFile.name}</p>

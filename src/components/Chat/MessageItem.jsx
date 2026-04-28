@@ -60,19 +60,50 @@ export default function MessageItem({ message, isMe, showAvatar, showName, repli
                     <img src={message.attachment_url} alt="attachment" className="max-h-60 max-w-full w-auto object-contain bg-black/5 dark:bg-white/5" />
                   </a>
                 ) : (
-                  <a href={message.attachment_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-xl border border-black/10 dark:border-white/10 transition-colors group/file">
+                  <a 
+                    href={
+                      message.attachment_type?.includes('officedocument') || message.attachment_type?.includes('msword') || message.attachment_type?.includes('ms-excel')
+                        ? `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(message.attachment_url)}`
+                        : message.attachment_url
+                    } 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="flex items-center gap-3 p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-xl border border-black/10 dark:border-white/10 transition-colors group/file"
+                  >
                     <div className="p-2 bg-white dark:bg-slate-700 rounded-lg shadow-sm shrink-0">
                       <FileIcon size={24} className="text-blue-500 group-hover/file:scale-110 transition-transform" />
                     </div>
                     <div className="overflow-hidden flex-1 min-w-[120px] max-w-[200px]">
-                      <p className="text-sm font-medium truncate text-slate-800 dark:text-slate-200">{message.attachment_name || 'Tài liệu đính kèm'}</p>
+                      <p className="text-sm font-medium truncate text-slate-800 dark:text-slate-200" title={message.attachment_name}>{message.attachment_name || 'Tài liệu đính kèm'}</p>
                       <p className="text-[10px] opacity-60 uppercase text-slate-500">
                         {message.attachment_size ? `${(message.attachment_size / 1024 / 1024).toFixed(2)} MB` : ''}
                       </p>
                     </div>
-                    <div className="p-1.5 rounded-full text-slate-400 hover:text-blue-500 bg-white/50 dark:bg-black/20">
+                    <button
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        try {
+                          const res = await fetch(message.attachment_url);
+                          const blob = await res.blob();
+                          const blobUrl = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = blobUrl;
+                          a.download = message.attachment_name || 'tai-lieu';
+                          document.body.appendChild(a);
+                          a.click();
+                          a.remove();
+                          window.URL.revokeObjectURL(blobUrl);
+                        } catch (err) {
+                          console.error('Lỗi tải xuống:', err);
+                          window.open(message.attachment_url, '_blank');
+                        }
+                      }}
+                      className="p-1.5 rounded-full text-slate-400 hover:text-blue-500 bg-white/50 dark:bg-black/20"
+                      title="Tải xuống"
+                    >
                       <Download size={16} />
-                    </div>
+                    </button>
                   </a>
                 )}
                 {message.content && message.content !== '[Hình ảnh]' && message.content !== '[Tệp đính kèm]' && (

@@ -61,11 +61,18 @@ export default function MessageItem({ message, isMe, showAvatar, showName, repli
                   </a>
                 ) : (
                   <a 
-                    href={
-                      message.attachment_type?.includes('officedocument') || message.attachment_type?.includes('msword') || message.attachment_type?.includes('ms-excel')
-                        ? `https://docs.google.com/viewer?url=${encodeURIComponent(message.attachment_url)}`
-                        : message.attachment_url
-                    } 
+                    href={(() => {
+                      const isWord = message.attachment_type?.includes('msword') || message.attachment_type?.includes('wordprocessingml');
+                      const isExcel = message.attachment_type?.includes('ms-excel') || message.attachment_type?.includes('spreadsheetml');
+                      
+                      if (isWord) {
+                        return `https://docs.google.com/viewer?url=${encodeURIComponent(message.attachment_url)}`;
+                      }
+                      if (isExcel) {
+                        return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(message.attachment_url)}`;
+                      }
+                      return message.attachment_url;
+                    })()}
                     target="_blank" 
                     rel="noopener noreferrer" 
                     className="flex items-center gap-3 p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-xl border border-black/10 dark:border-white/10 transition-colors group/file"

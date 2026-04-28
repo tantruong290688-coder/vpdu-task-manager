@@ -253,7 +253,14 @@ export default function ChatPopup() {
     if (!window.confirm('Xóa tin nhắn này?')) return;
     try {
       const table = activeRoomId ? 'chat_messages' : 'messages';
-      await supabase.from(table).update({ is_deleted: true, content: 'Tin nhắn đã bị xóa' }).eq('id', msgId);
+      await supabase.from(table).update({ 
+        is_deleted: true, 
+        content: 'Tin nhắn đã bị xóa',
+        attachment_url: null,
+        attachment_name: null,
+        attachment_type: null,
+        attachment_size: null
+      }).eq('id', msgId);
     } catch (err) {
       toast.error('Lỗi khi xóa');
     }
@@ -273,9 +280,10 @@ export default function ChatPopup() {
 
   if (!isChatOpen || isMinimized) return null;
 
-  const currentChatMessages = activeRoomId 
+  const currentChatMessages = (activeRoomId 
     ? roomMessages 
-    : messages.filter(m => (m.sender_id === user.id && m.receiver_id === activeChatUserId) || (m.sender_id === activeChatUserId && m.receiver_id === user.id));
+    : messages.filter(m => (m.sender_id === user.id && m.receiver_id === activeChatUserId) || (m.sender_id === activeChatUserId && m.receiver_id === user.id))
+  ).filter(m => !m.is_deleted);
 
   return (
     <div className={`

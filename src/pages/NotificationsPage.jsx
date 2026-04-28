@@ -4,8 +4,8 @@
 // ═══════════════════════════════════════════════════════════
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, BellOff, CheckCheck, Filter, AlertTriangle, MessageSquare, ClipboardList, RefreshCw } from 'lucide-react';
-import { useNotifications } from '../hooks/useNotifications';
+import { Bell, BellOff, CheckCheck, AlertTriangle, MessageSquare, ClipboardList, RefreshCw } from 'lucide-react';
+import { useNotifications, getNotifDisplay } from '../hooks/useNotifications';
 import EnablePushButton from '../components/Notifications/EnablePushButton';
 
 const FILTERS = [
@@ -74,16 +74,9 @@ export default function NotificationsPage() {
 
   const handleNotificationClick = async (n) => {
     if (!n.is_read) await markAsRead(n.id);
-
-    // Navigate đến đúng trang
-    if (n.related_task_id || n.task_id) {
-      const taskId = n.related_task_id || n.task_id;
-      const code = n.tasks?.code;
-      if (code) {
-        navigate(`/all-tasks?search=${code}&open=${taskId}`);
-      } else {
-        navigate(`/all-tasks?open=${taskId}`);
-      }
+    const { taskId } = getNotifDisplay(n);
+    if (taskId) {
+      navigate(`/all-tasks?open=${taskId}`);
     } else if (n.related_url) {
       navigate(n.related_url);
     }
@@ -192,18 +185,16 @@ export default function NotificationsPage() {
           </div>
         )}
 
-        {/* List */}
         {!error && notifications.length > 0 && (
           <div className="divide-y divide-slate-50 dark:divide-slate-700/30">
             {notifications.map((n) => {
-              const displayTitle = n.title || n.message || 'Thông báo';
-              const displayBody  = n.body || (n.title ? n.message : '');
+              const { title: displayTitle, body: displayBody, taskId } = getNotifDisplay(n);
               return (
                 <div
                   key={n.id}
-                  onClick={() => handleNotificationClick(n)}
-                  className={`p-4 sm:p-5 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800/60 flex gap-3 sm:gap-4 group
-                    ${!n.is_read ? 'border-l-[3px] border-blue-500 bg-blue-50/40 dark:bg-blue-950/20' : 'border-l-[3px] border-transparent'}
+                  onPointerDown={() => handleNotificationClick(n)}
+                  className={`p-4 sm:p-5 cursor-pointer transition-all active:bg-slate-100 dark:active:bg-slate-800 flex gap-3 sm:gap-4 touch-manipulation select-none
+                    ${!n.is_read ? 'border-l-[3px] border-blue-500 bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-50/60' : 'border-l-[3px] border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/60'}
                   `}
                 >
                   {/* Emoji icon */}
@@ -215,7 +206,7 @@ export default function NotificationsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className={`text-[13px] sm:text-[14px] leading-snug break-words font-${n.is_read ? 'medium' : 'semibold'} text-slate-${n.is_read ? '600 dark:text-slate-400' : '800 dark:text-slate-100'}`}>
+                        <p className={`text-[13px] sm:text-[14px] leading-snug break-words ${n.is_read ? 'font-medium text-slate-600 dark:text-slate-400' : 'font-semibold text-slate-800 dark:text-slate-100'}`}>
                           {displayTitle}
                         </p>
                         {displayBody && displayBody !== displayTitle && (
@@ -229,9 +220,9 @@ export default function NotificationsPage() {
                               {getTypeLabel(n.type)}
                             </span>
                           )}
-                          {(n.tasks?.code || n.related_task_id) && (
+                          {taskId && (
                             <span className="inline-flex items-center px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-md text-[10px] font-bold">
-                              {n.tasks?.code || 'Nhiệm vụ'}
+                              Xem nhiệm vụ →
                             </span>
                           )}
                         </div>

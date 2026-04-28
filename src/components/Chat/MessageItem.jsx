@@ -1,8 +1,12 @@
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Check, CheckCheck, Reply, Trash2 } from 'lucide-react';
 import AttachmentMessageCard from './AttachmentMessageCard';
 
 export default function MessageItem({ message, isMe, showAvatar, showName, repliedMessage, onReply, onDelete }) {
+  const [showActions, setShowActions] = useState(false);
+  const longPressTimer = useRef(null);
+
   const formatTime = (isoString) => {
     if (!isoString) return '';
     const d = new Date(isoString);
@@ -10,6 +14,33 @@ export default function MessageItem({ message, isMe, showAvatar, showName, repli
   };
 
   const isOnlyAttachment = !!message.attachment_url && (!message.content || message.content === '[Hình ảnh]' || message.content === '[Tệp đính kèm]');
+
+  // Long press handlers for mobile
+  const handleTouchStart = useCallback(() => {
+    longPressTimer.current = setTimeout(() => {
+      setShowActions(true);
+    }, 400);
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  // Hide actions when tapping elsewhere
+  useEffect(() => {
+    if (!showActions) return;
+    const hide = () => setShowActions(false);
+    const timer = setTimeout(() => {
+      document.addEventListener('pointerdown', hide, { once: true });
+    }, 100);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('pointerdown', hide);
+    };
+  }, [showActions]);
 
   return (
     <div className={`flex flex-col mb-4 ${isMe ? 'items-end' : 'items-start'}`}>
@@ -34,8 +65,11 @@ export default function MessageItem({ message, isMe, showAvatar, showName, repli
 
         <div className="flex flex-col relative">
           <div 
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onTouchMove={handleTouchEnd}
             className={`
-              relative transition-all shadow-sm
+              relative transition-all shadow-sm select-none
               ${message.is_deleted 
                 ? 'px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed bg-slate-100 dark:bg-slate-800/50 text-slate-400 italic' 
                 : isOnlyAttachment
@@ -77,15 +111,19 @@ export default function MessageItem({ message, isMe, showAvatar, showName, repli
               <p className="whitespace-pre-wrap break-words">{message.content}</p>
             )}
             
-            {/* Quick Actions (Hover) */}
+            {/* Quick Actions - visible on hover (desktop) or long-press (mobile) */}
             {!message.is_deleted && (
               <div className={`
-                absolute top-0 flex gap-1 transition-all opacity-0 group-hover:opacity-100
+                absolute top-0 flex gap-1 transition-all
+                ${showActions ? 'opacity-100' : 'opacity-0'} sm:opacity-0 sm:group-hover:opacity-100
                 ${isMe ? 'right-full mr-2' : 'left-full ml-2'}
-              `}>
+              `}
+                style={{ pointerEvents: 'none' }}
+              >
                 <button 
                   onClick={() => onReply(message)}
                   className="p-1.5 rounded-full bg-white dark:bg-slate-800 shadow-md border border-slate-100 dark:border-slate-700 text-slate-500 hover:text-blue-500 hover:scale-110 transition-all"
+                  style={{ pointerEvents: 'auto' }}
                 >
                   <Reply size={14} />
                 </button>
@@ -93,6 +131,7 @@ export default function MessageItem({ message, isMe, showAvatar, showName, repli
                   <button 
                     onClick={() => onDelete(message.id)}
                     className="p-1.5 rounded-full bg-white dark:bg-slate-800 shadow-md border border-slate-100 dark:border-slate-700 text-slate-500 hover:text-red-500 hover:scale-110 transition-all"
+                    style={{ pointerEvents: 'auto' }}
                   >
                     <Trash2 size={14} />
                   </button>

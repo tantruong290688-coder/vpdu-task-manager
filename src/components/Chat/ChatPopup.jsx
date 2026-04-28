@@ -143,20 +143,54 @@ export default function ChatPopup() {
     }
   };
 
-  const handleSend = async (content) => {
+  const handleSend = async (content, file = null) => {
     setSending(true);
     const currentReplyTo = replyTo;
     setReplyTo(null);
 
     try {
+      let attachmentUrl = null;
+      let attachmentName = null;
+      let attachmentType = null;
+      let attachmentSize = null;
+
+      if (file) {
+        const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const fileName = `${Date.now()}_${safeName}`;
+        const filePath = activeRoomId ? `room_${activeRoomId}/${user.id}/${fileName}` : `private_${activeChatUserId}/${user.id}/${fileName}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('message-attachments')
+          .upload(filePath, file);
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        const { data: publicUrlData } = supabase.storage
+          .from('message-attachments')
+          .getPublicUrl(filePath);
+
+        attachmentUrl = publicUrlData.publicUrl;
+        attachmentName = file.name;
+        attachmentType = file.type;
+        attachmentSize = file.size;
+      }
+
+      const displayContent = content || (file ? (file.type.startsWith('image/') ? '[Hình ảnh]' : '[Tệp đính kèm]') : '');
+
       if (activeRoomId) {
         // Tin nhắn nhóm
         const { error } = await supabase.from('chat_messages').insert({
           room_id: activeRoomId,
           sender_id: user.id,
           sender_name: profile?.full_name || user.email.split('@')[0],
-          content,
-          reply_to_id: currentReplyTo?.id || null
+          content: displayContent,
+          reply_to_id: currentReplyTo?.id || null,
+          attachment_url: attachmentUrl,
+          attachment_name: attachmentName,
+          attachment_type: attachmentType,
+          attachment_size: attachmentSize
         });
         if (error) throw error;
 
@@ -171,7 +205,7 @@ export default function ChatPopup() {
           createNotification({
             userIds: roomMemberIds,
             title: `Tin nhắn nhóm: ${room?.name || 'Nhóm CB,CC,NV'}`,
-            body: `${profile?.full_name || 'Ai đó'}: ${content.substring(0, 80)}`,
+            body: `${profile?.full_name || 'Ai đó'}: ${displayContent.substring(0, 80)}`,
             type: 'message_group',
             relatedUrl: '/',
           });
@@ -182,9 +216,13 @@ export default function ChatPopup() {
         const { error } = await supabase.from('messages').insert({
           sender_id: user.id,
           receiver_id: activeChatUserId,
-          content,
+          content: displayContent,
           is_read: false,
-          reply_to_id: currentReplyTo?.id || null
+          reply_to_id: currentReplyTo?.id || null,
+          attachment_url: attachmentUrl,
+          attachment_name: attachmentName,
+          attachment_type: attachmentType,
+          attachment_size: attachmentSize
         });
         if (error) throw error;
 
@@ -194,7 +232,7 @@ export default function ChatPopup() {
           createNotification({
             userIds: [activeChatUserId],
             title: `Tin nhắn mới từ ${senderName}`,
-            body: content.substring(0, 100),
+            body: displayContent.substring(0, 100),
             type: 'message_private',
             relatedUrl: '/',
           });
@@ -202,7 +240,7 @@ export default function ChatPopup() {
       }
     } catch (err) {
       console.error('Send error:', err);
-      toast.error('Không thể gửi tin nhắn');
+      toast.error('Không thể gửi tin nhắn hoặc tải tệp lên');
     } finally {
       setSending(false);
     }

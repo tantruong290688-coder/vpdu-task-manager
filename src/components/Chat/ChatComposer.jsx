@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, Smile, Loader2, X, Image as ImageIcon } from 'lucide-react';
+import { Send, Paperclip, Smile, Loader2, X, Camera, Image as ImageIcon, FolderOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AttachmentFileIcon from './AttachmentFileIcon';
 import { getFileTypeInfo } from '../../utils/fileType';
@@ -8,9 +8,13 @@ export default function ChatComposer({ onSend, sending, replyTo, onCancelReply }
   const [text, setText] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
   
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+  const imageInputRef = useRef(null);
+  const attachMenuRef = useRef(null);
 
   // Auto-expand textarea
   useEffect(() => {
@@ -20,9 +24,23 @@ export default function ChatComposer({ onSend, sending, replyTo, onCancelReply }
     }
   }, [text]);
 
+  // Close attach menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (attachMenuRef.current && !attachMenuRef.current.contains(e.target)) {
+        setShowAttachMenu(false);
+      }
+    };
+    if (showAttachMenu) {
+      document.addEventListener('pointerdown', handleClickOutside);
+    }
+    return () => document.removeEventListener('pointerdown', handleClickOutside);
+  }, [showAttachMenu]);
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    setShowAttachMenu(false);
 
     // Check size (2MB)
     if (file.size > 2 * 1024 * 1024) {
@@ -63,9 +81,9 @@ export default function ChatComposer({ onSend, sending, replyTo, onCancelReply }
       URL.revokeObjectURL(previewUrl);
       setPreviewUrl(null);
     }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    [fileInputRef, cameraInputRef, imageInputRef].forEach(ref => {
+      if (ref.current) ref.current.value = '';
+    });
   };
 
   // Cleanup preview URL on unmount
@@ -91,6 +109,27 @@ export default function ChatComposer({ onSend, sending, replyTo, onCancelReply }
   };
 
   const previewFileInfo = selectedFile ? getFileTypeInfo(selectedFile.name, selectedFile.type) : null;
+
+  const attachOptions = [
+    {
+      icon: Camera,
+      label: 'Chụp ảnh',
+      color: 'text-green-500 bg-green-50 dark:bg-green-900/30',
+      action: () => cameraInputRef.current?.click(),
+    },
+    {
+      icon: ImageIcon,
+      label: 'Hình ảnh',
+      color: 'text-purple-500 bg-purple-50 dark:bg-purple-900/30',
+      action: () => imageInputRef.current?.click(),
+    },
+    {
+      icon: FolderOpen,
+      label: 'Tài liệu',
+      color: 'text-blue-500 bg-blue-50 dark:bg-blue-900/30',
+      action: () => fileInputRef.current?.click(),
+    },
+  ];
 
   return (
     <div className="px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 shrink-0 relative">
@@ -140,20 +179,59 @@ export default function ChatComposer({ onSend, sending, replyTo, onCancelReply }
           </div>
         )}
 
-        <div className="flex items-center mb-1 relative">
+        <div className="flex items-center mb-1 relative" ref={attachMenuRef}>
+          {/* Hidden file inputs */}
+          <input 
+            type="file" 
+            ref={cameraInputRef} 
+            onChange={handleFileChange}
+            className="hidden" 
+            accept="image/*"
+            capture="environment"
+          />
+          <input 
+            type="file" 
+            ref={imageInputRef} 
+            onChange={handleFileChange}
+            className="hidden" 
+            accept="image/jpeg,image/png,image/webp"
+          />
           <input 
             type="file" 
             ref={fileInputRef} 
             onChange={handleFileChange}
             className="hidden" 
-            accept="image/jpeg,image/png,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            capture="environment"
+            accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           />
+
+          {/* Attach menu popup */}
+          {showAttachMenu && (
+            <div className="absolute bottom-full left-0 mb-2 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2 duration-200 min-w-[150px]">
+              {attachOptions.map((opt, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => { opt.action(); setShowAttachMenu(false); }}
+                  className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors touch-manipulation active:bg-slate-100 dark:active:bg-slate-700"
+                >
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${opt.color}`}>
+                    <opt.icon size={16} />
+                  </div>
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{opt.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => setShowAttachMenu(prev => !prev)}
             disabled={sending}
-            className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-blue-500 transition-colors touch-manipulation disabled:opacity-50"
+            className={`p-2 rounded-full transition-colors touch-manipulation disabled:opacity-50 ${
+              showAttachMenu
+                ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-500'
+                : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-blue-500'
+            }`}
           >
             <Paperclip size={20} />
           </button>
@@ -195,4 +273,3 @@ export default function ChatComposer({ onSend, sending, replyTo, onCancelReply }
     </div>
   );
 }
-

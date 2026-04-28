@@ -9,6 +9,8 @@ export default function MessageItem({ message, isMe, showAvatar, showName, repli
     return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
   };
 
+  const isOnlyAttachment = !!message.attachment_url && (!message.content || message.content === '[Hình ảnh]' || message.content === '[Tệp đính kèm]');
+
   return (
     <div className={`flex flex-col mb-4 ${isMe ? 'items-end' : 'items-start'}`}>
       {showName && !isMe && !message.is_deleted && (
@@ -33,12 +35,15 @@ export default function MessageItem({ message, isMe, showAvatar, showName, repli
         <div className="flex flex-col relative">
           <div 
             className={`
-              px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed shadow-sm transition-all relative
+              relative transition-all shadow-sm
               ${message.is_deleted 
-                ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-400 italic' 
-                : isMe 
-                  ? 'bg-blue-600 text-white rounded-tr-sm' 
-                  : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-tl-sm'}
+                ? 'px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed bg-slate-100 dark:bg-slate-800/50 text-slate-400 italic' 
+                : isOnlyAttachment
+                  ? 'bg-transparent shadow-none'
+                  : `px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed ${isMe 
+                      ? 'bg-blue-600 text-white rounded-tr-sm' 
+                      : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-tl-sm'}`
+              }
             `}
           >
             {repliedMessage && !message.is_deleted && (
@@ -62,8 +67,9 @@ export default function MessageItem({ message, isMe, showAvatar, showName, repli
                   fileType={message.attachment_type}
                   fileUrl={message.attachment_url}
                   isMe={isMe}
+                  isStandalone={isOnlyAttachment}
                 />
-                {message.content && message.content !== '[Hình ảnh]' && message.content !== '[Tệp đính kèm]' && (
+                {!isOnlyAttachment && message.content && (
                   <p className="whitespace-pre-wrap break-words">{message.content}</p>
                 )}
               </div>

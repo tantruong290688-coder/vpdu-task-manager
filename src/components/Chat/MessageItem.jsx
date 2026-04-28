@@ -63,7 +63,7 @@ export default function MessageItem({ message, isMe, showAvatar, showName, repli
                   <a 
                     href={
                       message.attachment_type?.includes('officedocument') || message.attachment_type?.includes('msword') || message.attachment_type?.includes('ms-excel')
-                        ? `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(message.attachment_url)}`
+                        ? `https://docs.google.com/viewer?url=${encodeURIComponent(message.attachment_url)}`
                         : message.attachment_url
                     } 
                     target="_blank" 

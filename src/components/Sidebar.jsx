@@ -1,8 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Send, LayoutList, ClipboardList, History, Settings, X, MessageSquare, ListTodo } from 'lucide-react';
+import { LayoutDashboard, Send, LayoutList, ClipboardList, History, Settings, X, MessageSquare, ListTodo, Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useMessage } from '../context/MessageContext';
+import { useNotifications } from '../hooks/useNotifications';
 import partyLogo from '../assets/bieu-tuong-vp-cap-uy.png';
 
 export default function Sidebar({ isOpen, onClose }) {
@@ -10,6 +11,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const { profile } = useAuth();
   const { theme } = useTheme();
   const { unreadCount, toggleDrawer } = useMessage();
+  const { unreadCount: notifUnread } = useNotifications();
   const themeLabel = { light: 'Sáng', dark: 'Tối', system: 'Theo hệ thống' }[theme] || 'Sáng';
 
 
@@ -19,6 +21,7 @@ export default function Sidebar({ isOpen, onClose }) {
     { name: 'Tất cả nhiệm vụ', path: '/all-tasks', icon: LayoutList },
     { name: 'Nhiệm vụ của tôi', path: '/my-tasks', icon: ClipboardList },
     { name: 'To-do cá nhân', path: '/todo', icon: ListTodo },
+    { name: 'Thông báo', path: '/notifications', icon: Bell, badge: notifUnread },
     { name: 'Nhật ký thao tác', path: '/logs', icon: History },
     { name: 'Quản trị hệ thống', path: '/admin', icon: Settings, adminOnly: true },
   ].filter(m => !m.adminOnly || profile?.role === 'admin');
@@ -82,7 +85,12 @@ export default function Sidebar({ isOpen, onClose }) {
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
                   }`}>
                 <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                <span>{menu.name}</span>
+                <span className="flex-1">{menu.name}</span>
+                {menu.badge > 0 && (
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center ${isActive ? 'bg-white/30 text-white' : 'bg-red-500 text-white'}`}>
+                    {menu.badge > 99 ? '99+' : menu.badge}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -105,7 +113,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
         {/* Footer info */}
         <div className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-4 border border-amber-100/50 dark:border-amber-900/30 text-[11px] text-amber-900/60 dark:text-amber-400/60 font-semibold mt-auto leading-relaxed transition-colors">
-          <p>Phiên bản: 4.1-RBAC</p>
+          <p>Phiên bản: 4.2-PWA</p>
           <p>Creator: Bùi Tấn Trưởng</p>
           <p>Giao diện: {themeLabel}</p>
         </div>

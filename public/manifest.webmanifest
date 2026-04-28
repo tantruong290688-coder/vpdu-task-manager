@@ -1,23 +1,40 @@
 {
-  "name": "QUẢN TRỊ NHIỆM VỤ VPĐU Trà Bồng",
-  "short_name": "Task VPĐU",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#f1f5f9",
-  "theme_color": "#1e40af",
+  "name": "Quản trị nhiệm vụ VPĐU Trà Bồng",
+  "short_name": "VPĐU Trà Bồng",
   "description": "Hệ thống quản lý và điều hành nhiệm vụ VPĐU xã Trà Bồng",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "background_color": "#ffffff",
+  "theme_color": "#dc2626",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "business"],
+  "lang": "vi",
   "icons": [
     {
       "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any"
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Nhiệm vụ",
+      "short_name": "Nhiệm vụ",
+      "description": "Xem danh sách nhiệm vụ",
+      "url": "/tasks",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
     },
     {
-      "src": "/favicon.svg",
-      "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "maskable"
+      "name": "Thông báo",
+      "short_name": "Thông báo",
+      "description": "Xem thông báo mới",
+      "url": "/notifications",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
     }
   ]
 }
+

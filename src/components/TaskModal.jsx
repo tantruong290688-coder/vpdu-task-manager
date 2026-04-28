@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { writeLog } from '../lib/logger';
 import { canEditTask, canDelegateToStaff, ROLES } from '../lib/permissions';
+import { createNotification } from '../hooks/useNotifications';
 
 // Key for local storage draft
 const getDraftKey = (userId) => userId ? `task_create_draft_${userId}` : null;
@@ -276,13 +277,16 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
         isClosingRef.current = true; // Block autosave on close
         resetForm(); // Reset local state immediately
 
-        // Create notification for assignee
+        // Thông báo cho người được giao (push + in-app)
         if (assigneeId && assigneeId !== profile?.id) {
-          await supabase.from('notifications').insert([{
-            user_id: assigneeId,
-            task_id: taskId,
-            message: `Bạn được giao một nhiệm vụ mới: [${payload.code}] ${title}`
-          }]);
+          createNotification({
+            userIds: [assigneeId],
+            title: 'Bạn có nhiệm vụ mới',
+            body: `Đồng chí được giao nhiệm vụ: [${payload.code}] ${title}`,
+            type: 'task_assigned',
+            relatedTaskId: taskId,
+            relatedUrl: `/all-tasks?open=${taskId}`,
+          });
         }
       }
 
@@ -290,15 +294,18 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
         const collabData = collaborators.map(cId => ({ task_id: taskId, user_id: cId }));
         await supabase.from('task_collaborators').insert(collabData);
         
-        // Create notifications for collaborators
+        // Thông báo cho người phối hợp (push + in-app)
         if (!initialData) {
-          const collabNotifs = collaborators.filter(cId => cId !== profile?.id).map(cId => ({
-            user_id: cId,
-            task_id: taskId,
-            message: `Bạn được thêm vào người phối hợp cho nhiệm vụ: [${payload.code || initialData?.code}] ${title}`
-          }));
-          if (collabNotifs.length > 0) {
-            await supabase.from('notifications').insert(collabNotifs);
+          const collabTargets = collaborators.filter(cId => cId !== profile?.id && cId !== assigneeId);
+          if (collabTargets.length > 0) {
+            createNotification({
+              userIds: collabTargets,
+              title: 'Bạn được thêm vào phối hợp nhiệm vụ',
+              body: `Nhiệm vụ: [${payload.code || initialData?.code}] ${title}`,
+              type: 'task_assigned',
+              relatedTaskId: taskId,
+              relatedUrl: `/all-tasks?open=${taskId}`,
+            });
           }
         }
       }

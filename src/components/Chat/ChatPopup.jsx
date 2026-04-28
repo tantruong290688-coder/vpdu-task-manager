@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useMessage } from '../../context/MessageContext';
 import toast from 'react-hot-toast';
 import { Loader2, Send } from 'lucide-react';
+import { createNotification } from '../../hooks/useNotifications';
 
 import ChatHeader from './ChatHeader';
 import ChatComposer from './ChatComposer';
@@ -149,6 +150,7 @@ export default function ChatPopup() {
 
     try {
       if (activeRoomId) {
+        // Tin nhắn nhóm
         const { error } = await supabase.from('chat_messages').insert({
           room_id: activeRoomId,
           sender_id: user.id,
@@ -157,7 +159,26 @@ export default function ChatPopup() {
           reply_to_id: currentReplyTo?.id || null
         });
         if (error) throw error;
+
+        // Thông báo cho các thành viên trong phòng (trừ người gửi)
+        const allProfiles = Object.values(profiles);
+        const roomMemberIds = allProfiles
+          .filter(p => p.id !== user.id)
+          .map(p => p.id);
+
+        if (roomMemberIds.length > 0) {
+          const room = rooms.find(r => r.id === activeRoomId);
+          createNotification({
+            userIds: roomMemberIds,
+            title: `Tin nhắn nhóm: ${room?.name || 'Nhóm CB,CC,NV'}`,
+            body: `${profile?.full_name || 'Ai đó'}: ${content.substring(0, 80)}`,
+            type: 'message_group',
+            relatedUrl: '/',
+          });
+        }
+
       } else {
+        // Tin nhắn riêng
         const { error } = await supabase.from('messages').insert({
           sender_id: user.id,
           receiver_id: activeChatUserId,
@@ -166,6 +187,18 @@ export default function ChatPopup() {
           reply_to_id: currentReplyTo?.id || null
         });
         if (error) throw error;
+
+        // Thông báo cho người nhận
+        if (activeChatUserId) {
+          const senderName = profile?.full_name || user.email?.split('@')[0] || 'Ai đó';
+          createNotification({
+            userIds: [activeChatUserId],
+            title: `Tin nhắn mới từ ${senderName}`,
+            body: content.substring(0, 100),
+            type: 'message_private',
+            relatedUrl: '/',
+          });
+        }
       }
     } catch (err) {
       console.error('Send error:', err);

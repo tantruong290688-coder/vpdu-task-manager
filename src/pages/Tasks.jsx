@@ -39,8 +39,8 @@ const EMPTY_FILTERS = {
 
 // ── Helper Badges ─────────────────────────────────────────────────────────────
 
-function StatusBadge({ status, dueDate }) {
-  const isOverdue = dueDate && new Date(dueDate) < new Date() && status !== 'completed';
+function StatusBadge({ status, dueDate, evaluationScore }) {
+  const isOverdue = dueDate && new Date(dueDate) < new Date() && status !== 'completed' && evaluationScore === null;
   const map = {
     pending:     { label: 'Chờ xử lý',     cls: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/40' },
     in_progress: { label: 'Đang TH',        cls: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/40' },
@@ -157,19 +157,10 @@ export default function Tasks() {
         // Chúng tôi sẽ thực hiện lọc chính xác ở phía client trong biến `result` phía dưới để đảm bảo tính ổn định.
       }
       if (filterParam) {
-        if (['pending', 'in_progress', 'completed', 'overdue'].includes(filterParam)) {
-          query = query.eq('status', filterParam);
-        } else if (filterParam === 'due_soon') {
-          const today = new Date();
-          const threeDays = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000);
-          query = query.not('due_date', 'is', null)
-            .gte('due_date', today.toISOString())
-            .lte('due_date', threeDays.toISOString())
-            .neq('status', 'completed');
-        } else if (filterParam === 'pending_eval') {
-          query = query.eq('status', 'completed').is('evaluation_level', null);
-        } else if (filterParam.startsWith('area_')) {
+        if (filterParam.startsWith('area_')) {
           query = query.eq('work_area', filterParam.replace('area_', ''));
+        } else {
+          query = getDashboardFilter(query, filterParam);
         }
       }
       if (searchStr) {
@@ -192,7 +183,7 @@ export default function Tasks() {
       if (filters.dueDateTo)         query = query.lte('due_date', filters.dueDateTo);
       if (filters.isOverdue) {
         const now = new Date().toISOString();
-        query = query.not('due_date', 'is', null).lt('due_date', now).neq('status', 'completed');
+        query = query.not('due_date', 'is', null).lt('due_date', now).neq('status', 'completed').is('evaluation_score', null);
       }
       if (filters.isDueSoon) {
         const today = new Date();
@@ -200,7 +191,8 @@ export default function Tasks() {
         query = query.not('due_date', 'is', null)
           .gte('due_date', today.toISOString())
           .lte('due_date', threeDays.toISOString())
-          .neq('status', 'completed');
+          .neq('status', 'completed')
+          .is('evaluation_score', null);
       }
       if (filters.isForMe && profile) {
         query = query.eq('assignee_id', profile.id).eq('status', 'pending');
@@ -355,10 +347,10 @@ export default function Tasks() {
       if (filtersToExport.assignedDateTo)  query = query.lte('assigned_date', filtersToExport.assignedDateTo);
       if (filtersToExport.dueDateFrom)     query = query.gte('due_date', filtersToExport.dueDateFrom);
       if (filtersToExport.dueDateTo)       query = query.lte('due_date', filtersToExport.dueDateTo);
-      if (filtersToExport.isOverdue) { const now = new Date().toISOString(); query = query.not('due_date', 'is', null).lt('due_date', now).neq('status', 'completed'); }
+      if (filtersToExport.isOverdue) { const now = new Date().toISOString(); query = query.not('due_date', 'is', null).lt('due_date', now).neq('status', 'completed').is('evaluation_score', null); }
       if (filtersToExport.isDueSoon) {
         const today = new Date(), threeDays = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000);
-        query = query.not('due_date', 'is', null).gte('due_date', today.toISOString()).lte('due_date', threeDays.toISOString()).neq('status', 'completed');
+        query = query.not('due_date', 'is', null).gte('due_date', today.toISOString()).lte('due_date', threeDays.toISOString()).neq('status', 'completed').is('evaluation_score', null);
       }
       if (filtersToExport.isForMe && profile) query = query.eq('assignee_id', profile.id).eq('status', 'pending');
 
@@ -450,8 +442,8 @@ export default function Tasks() {
             bVal = b.due_date ? new Date(b.due_date).getTime() : Number.MAX_SAFE_INTEGER; break;
           case 'status': {
             const map = { overdue: 1, pending: 2, in_progress: 3, completed: 4 };
-            const aOverdue = a.due_date && new Date(a.due_date) < new Date() && a.status !== 'completed';
-            const bOverdue = b.due_date && new Date(b.due_date) < new Date() && b.status !== 'completed';
+            const aOverdue = a.due_date && new Date(a.due_date) < new Date() && a.status !== 'completed' && a.evaluation_score === null;
+            const bOverdue = b.due_date && new Date(b.due_date) < new Date() && b.status !== 'completed' && b.evaluation_score === null;
             aVal = map[aOverdue ? 'overdue' : (a.status || 'pending')] || 2;
             bVal = map[bOverdue ? 'overdue' : (b.status || 'pending')] || 2; break;
           }
@@ -559,6 +551,26 @@ export default function Tasks() {
                     title="Xóa bộ lọc nâng cao"
                   >
                     <X size={14} />
+                  </button>
+                </div>
+              )}
+
+              {/* Dashboard filter badge */}
+              {filterParam && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-900 px-4 py-2 rounded-xl flex items-center gap-1.5">
+                    <Filter size={14} className="shrink-0" />
+                    {filterParam.startsWith('area_') ? `Lĩnh vực: ${filterParam.replace('area_', '')}` : getDashboardFilterTitle(filterParam)} — {tasks.length} kết quả
+                  </span>
+                  <button
+                    onClick={() => {
+                      searchParams.delete('filter');
+                      navigate({ search: searchParams.toString() });
+                    }}
+                    className="px-3 py-2 rounded-xl text-[12px] font-bold text-red-600 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 transition-colors"
+                    title="Xóa bộ lọc"
+                  >
+                    Xóa
                   </button>
                 </div>
               )}
@@ -685,7 +697,9 @@ export default function Tasks() {
                   </thead>
                   <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                     {paginatedTasks.map(task => {
-                      const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed';
+                      const today = new Date();
+                      const todayDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                      const isOverdue = task.due_date && task.due_date < todayDateStr && task.status !== 'completed' && task.evaluation_score === null;
                       const isSelected = selectedTask?.id === task.id && isDrawerOpen;
                       const canEditRow = canEditTask(profile, task);
 
@@ -698,16 +712,16 @@ export default function Tasks() {
                             ${isSelected
                               ? 'bg-blue-50 dark:bg-blue-900/10 ring-inset ring-1 ring-blue-200 dark:ring-blue-800/40'
                               : isOverdue
-                              ? 'bg-red-50/30 dark:bg-red-900/5 hover:bg-red-50/60 dark:hover:bg-red-900/10'
+                              ? 'bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 font-semibold [&_span]:!text-red-900 dark:[&_span]:!text-red-100 [&_td]:!text-red-900 dark:[&_td]:!text-red-100'
                               : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/30'}
                           `}
                           title="Click để xem chi tiết"
                         >
                           {/* A: Mã NV – sticky */}
-                          <td className={`sticky left-0 z-[5] p-3 border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.06)] text-[12px] font-black font-mono text-slate-700 dark:text-slate-200 whitespace-nowrap transition-colors ${
-                            isSelected ? 'bg-blue-50 dark:bg-blue-900/10' :
-                            isOverdue ? 'bg-red-50/30 dark:bg-red-900/5 group-hover:bg-red-50/60 dark:group-hover:bg-red-900/10' :
-                            'bg-white dark:bg-[#111827] group-hover:bg-slate-50/80 dark:group-hover:bg-slate-800/30'
+                          <td className={`sticky left-0 z-[5] p-3 border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.06)] text-[12px] font-black font-mono whitespace-nowrap transition-colors ${
+                            isSelected ? 'bg-blue-50 dark:bg-blue-900/10 text-slate-700 dark:text-slate-200' :
+                            isOverdue ? 'bg-red-100 dark:bg-red-900/30 group-hover:bg-red-200 dark:group-hover:bg-red-900/50 text-red-900 dark:text-red-100' :
+                            'bg-white dark:bg-[#111827] group-hover:bg-slate-50/80 dark:group-hover:bg-slate-800/30 text-slate-700 dark:text-slate-200'
                           }`}>
                             {task.code || 'NV-000'}
                           </td>
@@ -803,7 +817,7 @@ export default function Tasks() {
 
                           {/* N: Trạng thái */}
                           <td className="p-3 text-center">
-                            <StatusBadge status={task.status} dueDate={task.due_date} />
+                            <StatusBadge status={task.status} dueDate={task.due_date} evaluationScore={task.evaluation_score} />
                           </td>
 
                           {/* O: Đánh giá */}
@@ -882,7 +896,9 @@ export default function Tasks() {
                         <td colSpan={16} className="py-20 text-center">
                           <div className="flex flex-col items-center gap-3 text-slate-400">
                             <SlidersHorizontal size={40} className="opacity-20" />
-                            <p className="font-semibold text-[15px] text-slate-500 dark:text-slate-400">Không tìm thấy nhiệm vụ nào</p>
+                            <p className="font-semibold text-[15px] text-slate-500 dark:text-slate-400">
+                              {filterParam ? getDashboardEmptyState(filterParam) : 'Không tìm thấy nhiệm vụ nào'}
+                            </p>
                             <p className="text-[13px] text-slate-400 dark:text-slate-500">
                               {activeFilterCount > 0 || filterParam || searchStr
                                 ? 'Thử điều chỉnh hoặc xóa bộ lọc để xem thêm kết quả.'
@@ -900,7 +916,7 @@ export default function Tasks() {
             {/* ── Mobile Card View ── */}
             <div className="md:hidden pb-6 divide-y divide-slate-100 dark:divide-slate-800">
               {paginatedTasks.map(task => {
-                const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed';
+                const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed' && task.evaluation_score === null;
                 return (
                   <div
                     key={task.id}
@@ -916,7 +932,7 @@ export default function Tasks() {
                           {task.code || 'NV-000'}
                         </span>
                         <PriorityBadge priority={task.priority} />
-                        <StatusBadge status={task.status} dueDate={task.due_date} />
+                        <StatusBadge status={task.status} dueDate={task.due_date} evaluationScore={task.evaluation_score} />
                       </div>
                       <Eye size={16} className="text-slate-300 dark:text-slate-600 shrink-0 mt-0.5" />
                     </div>
@@ -955,9 +971,11 @@ export default function Tasks() {
               {tasks.length === 0 && (
                 <div className="py-14 text-center flex flex-col items-center gap-3 text-slate-400 border border-slate-200 dark:border-slate-700 rounded-2xl border-dashed mx-0">
                   <SlidersHorizontal size={32} className="opacity-20" />
-                  <p className="font-semibold text-[14px]">Không có nhiệm vụ nào</p>
+                  <p className="font-semibold text-[14px]">
+                    {filterParam ? getDashboardEmptyState(filterParam) : 'Không có nhiệm vụ nào'}
+                  </p>
                   <p className="text-[12px] text-slate-400 dark:text-slate-500 px-6">
-                    {activeFilterCount > 0 ? 'Thử xóa bộ lọc để xem thêm.' : 'Chưa có nhiệm vụ. Nhấn + để tạo mới.'}
+                    {activeFilterCount > 0 || filterParam ? 'Thử xóa bộ lọc để xem thêm.' : 'Chưa có nhiệm vụ. Nhấn + để tạo mới.'}
                   </p>
                 </div>
               )}

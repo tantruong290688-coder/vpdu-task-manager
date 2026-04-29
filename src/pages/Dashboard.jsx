@@ -4,6 +4,8 @@ import { RotateCcw, Filter, Pin, Hourglass, Rocket, CheckSquare, AlertCircle, Al
 import { PieChart as RechartsPie, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 
+import { filterTasksLocal } from '../lib/taskFilters';
+
 export default function Dashboard() {
   const [stats, setStats] = useState({
     total: 0, notStarted: 0, inProgress: 0, completed: 0, overdue: 0,
@@ -21,19 +23,13 @@ export default function Dashboard() {
     const { data: tasks, error } = await supabase.from('tasks').select('*');
     if (tasks) {
       const total = tasks.length;
-      const notStarted = tasks.filter(t => t.status === 'pending').length;
-      const inProgress = tasks.filter(t => t.status === 'in_progress').length;
-      const completed = tasks.filter(t => t.status === 'completed').length;
-      const overdue = tasks.filter(t => t.status === 'overdue').length;
-      
-      const dueSoon = tasks.filter(t => {
-        if (!t.due_date || t.status === 'completed') return false;
-        const diff = new Date(t.due_date) - new Date();
-        return diff > 0 && diff <= 3 * 24 * 60 * 60 * 1000;
-      }).length;
-      
-      const pendingEval = tasks.filter(t => t.status === 'completed' && t.evaluation_score === null).length;
-      const pendingFinal = 0;
+      const notStarted = filterTasksLocal(tasks, 'pending').length;
+      const inProgress = filterTasksLocal(tasks, 'in_progress').length;
+      const completed = filterTasksLocal(tasks, 'completed').length;
+      const overdue = filterTasksLocal(tasks, 'overdue').length;
+      const dueSoon = filterTasksLocal(tasks, 'due_soon').length;
+      const pendingEval = filterTasksLocal(tasks, 'pending_eval').length;
+      const pendingFinal = filterTasksLocal(tasks, 'pending_final').length;
       const completionRate = total > 0 ? (completed / total * 100).toFixed(1) : 0;
       const onTimeRate = completed > 0 ? 100 : 0;
 
@@ -100,7 +96,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5">
         {cardsTop.map((card, i) => (
-          <div key={i} onClick={() => handleCardClick(card.filter)} className="bg-white dark:bg-[#111827] rounded-xl md:rounded-[20px] shadow-sm border border-slate-100 dark:border-slate-800 p-3 md:p-5 flex flex-col min-h-[110px] md:min-h-[140px] hover:shadow-md dark:hover:border-slate-700 transition-all cursor-pointer">
+          <div key={i} onClick={() => handleCardClick(card.filter)} className="bg-white dark:bg-[#111827] rounded-xl md:rounded-[20px] shadow-sm border border-slate-100 dark:border-slate-800 p-3 md:p-5 flex flex-col min-h-[110px] md:min-h-[140px] hover:shadow-md hover:scale-[1.02] dark:hover:border-blue-500/50 hover:border-blue-500/30 transition-all cursor-pointer">
             <div className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center mb-2 md:mb-4 ${card.iconBg}`}>
               <card.icon size={14} className={`md:w-4 md:h-4 ${card.iconColor}`} strokeWidth={2.5} />
             </div>
@@ -115,7 +111,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5">
         {cardsBottom.map((card, i) => (
-          <div key={i} onClick={() => handleCardClick(card.filter)} className="bg-white dark:bg-[#111827] rounded-xl md:rounded-[20px] shadow-sm border border-slate-100 dark:border-slate-800 p-3 md:p-5 flex flex-col min-h-[110px] md:min-h-[140px] hover:shadow-md dark:hover:border-slate-700 transition-all cursor-pointer">
+          <div key={i} onClick={() => handleCardClick(card.filter)} className="bg-white dark:bg-[#111827] rounded-xl md:rounded-[20px] shadow-sm border border-slate-100 dark:border-slate-800 p-3 md:p-5 flex flex-col min-h-[110px] md:min-h-[140px] hover:shadow-md hover:scale-[1.02] dark:hover:border-blue-500/50 hover:border-blue-500/30 transition-all cursor-pointer">
             <div className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center mb-2 md:mb-4 ${card.iconBg}`}>
               <card.icon size={14} className={`md:w-4 md:h-4 ${card.iconColor}`} strokeWidth={2.5} />
             </div>

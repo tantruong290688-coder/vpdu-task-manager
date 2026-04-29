@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import {
   Plus, Edit2, Trash2, CheckCircle, SlidersHorizontal, X,
   Star, AlertCircle, Clock, Check, Eye, Calendar,
-  ArrowUp, ArrowDown, ArrowUpDown, ArrowDownUp
+  ArrowUp, ArrowDown, ArrowUpDown, ArrowDownUp, Filter
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import TaskModal from '../components/TaskModal';

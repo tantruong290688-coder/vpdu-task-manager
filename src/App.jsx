@@ -112,9 +112,21 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={<Dashboard />} />
-          <Route path="tasks"         element={<Tasks />} />
-          <Route path="all-tasks"     element={<Tasks />} />
-          <Route path="my-tasks"      element={<Tasks />} />
+          <Route path="tasks" element={
+            <ErrorBoundary>
+              <Tasks />
+            </ErrorBoundary>
+          } />
+          <Route path="all-tasks" element={
+            <ErrorBoundary>
+              <Tasks />
+            </ErrorBoundary>
+          } />
+          <Route path="my-tasks" element={
+            <ErrorBoundary>
+              <Tasks />
+            </ErrorBoundary>
+          } />
           <Route path="evaluations"   element={<Evaluations />} />
           <Route path="logs"          element={<Logs />} />
           <Route path="admin"         element={<Admin />} />

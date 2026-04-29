@@ -41,7 +41,9 @@ const EMPTY_FILTERS = {
 // ── Helper Badges ─────────────────────────────────────────────────────────────
 
 function StatusBadge({ status, dueDate, evaluationScore }) {
-  const isOverdue = dueDate && new Date(dueDate) < new Date() && status !== 'completed' && evaluationScore === null;
+  const today = new Date();
+  const todayDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const isOverdue = dueDate && dueDate < todayDateStr && status !== 'completed' && evaluationScore === null;
   const map = {
     pending:     { label: 'Chờ xử lý',     cls: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/40' },
     in_progress: { label: 'Đang TH',        cls: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/40' },
@@ -231,11 +233,11 @@ export default function Tasks() {
     } finally {
       setLoading(false);
     }
-  }, [location.pathname, filterParam, searchStr, profile, activeFilters]);
+  }, [activeFilters, filterParam, searchStr, location.pathname, profile?.id]);
 
   useEffect(() => {
     fetchTasks(activeFilters);
-  }, [location.pathname, filterParam, searchStr, profile, activeFilters]);
+  }, [fetchTasks]);
 
   // Về trang 1 khi thay đổi param lọc, sắp xếp
   useEffect(() => {
@@ -443,8 +445,10 @@ export default function Tasks() {
             bVal = b.due_date ? new Date(b.due_date).getTime() : Number.MAX_SAFE_INTEGER; break;
           case 'status': {
             const map = { overdue: 1, pending: 2, in_progress: 3, completed: 4 };
-            const aOverdue = a.due_date && new Date(a.due_date) < new Date() && a.status !== 'completed' && a.evaluation_score === null;
-            const bOverdue = b.due_date && new Date(b.due_date) < new Date() && b.status !== 'completed' && b.evaluation_score === null;
+            const today = new Date();
+            const todayDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            const aOverdue = a.due_date && a.due_date < todayDateStr && a.status !== 'completed' && a.evaluation_score === null;
+            const bOverdue = b.due_date && b.due_date < todayDateStr && b.status !== 'completed' && b.evaluation_score === null;
             aVal = map[aOverdue ? 'overdue' : (a.status || 'pending')] || 2;
             bVal = map[bOverdue ? 'overdue' : (b.status || 'pending')] || 2; break;
           }

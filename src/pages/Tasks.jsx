@@ -14,6 +14,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { writeLog } from '../lib/logger';
 import { canEditTask, canUpdateProgress, canEvaluate, ROLES } from '../lib/permissions';
+import { getDashboardFilter, getDashboardFilterTitle, getDashboardEmptyState } from '../lib/taskFilters';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 

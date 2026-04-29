@@ -45,7 +45,7 @@ export default function MessageItem({ message, isMe, showAvatar, showName, repli
   return (
     <div className={`flex flex-col mb-4 ${isMe ? 'items-end' : 'items-start'}`}>
       {showName && !isMe && !message.is_deleted && (
-        <span className="text-[11px] font-bold mb-1 ml-10 text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+        <span className="text-[13px] sm:text-[11px] font-bold mb-1 ml-10 text-blue-600 dark:text-blue-400 uppercase tracking-wider">
           {message.sender_name || 'Người dùng'}
         </span>
       )}
@@ -54,11 +54,11 @@ export default function MessageItem({ message, isMe, showAvatar, showName, repli
         {!isMe && (
           <div className="w-8 shrink-0 flex items-end mb-1">
             {showAvatar ? (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold shadow-sm ring-2 ring-white dark:ring-slate-900">
+              <div className="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold shadow-sm ring-2 ring-white dark:ring-slate-900">
                 {(message.sender_name || '?').charAt(0).toUpperCase()}
               </div>
             ) : (
-              <div className="w-8" />
+              <div className="w-10 sm:w-8" />
             )}
           </div>
         )}
@@ -71,10 +71,10 @@ export default function MessageItem({ message, isMe, showAvatar, showName, repli
             className={`
               relative transition-all shadow-sm select-none
               ${message.is_deleted 
-                ? 'px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed bg-slate-100 dark:bg-slate-800/50 text-slate-400 italic' 
+                ? 'px-4 py-2.5 rounded-2xl text-[16px] sm:text-[14px] leading-relaxed bg-slate-100 dark:bg-slate-800/50 text-slate-400 italic' 
                 : isOnlyAttachment
                   ? 'bg-transparent shadow-none'
-                  : `px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed ${isMe 
+                  : `px-4 py-2.5 rounded-2xl text-[16px] sm:text-[14px] leading-relaxed ${isMe 
                       ? 'bg-blue-600 text-white rounded-tr-sm' 
                       : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-tl-sm'}`
               }
@@ -82,10 +82,10 @@ export default function MessageItem({ message, isMe, showAvatar, showName, repli
           >
             {repliedMessage && !message.is_deleted && (
               <div className={`
-                text-[12px] p-2 mb-2 rounded-lg border-l-4 truncate
+                text-[14px] sm:text-[12px] p-2 mb-2 rounded-lg border-l-4 truncate
                 ${isMe ? 'bg-blue-700/50 border-blue-400 text-blue-100' : 'bg-slate-100 dark:bg-slate-700 border-slate-400 text-slate-500'}
               `}>
-                <span className="font-bold mr-1 block text-[10px] opacity-70">
+                <span className="font-bold mr-1 block text-[12px] sm:text-[10px] opacity-70">
                   {repliedMessage.sender_id === message.sender_id ? 'Trả lời chính mình' : `Trả lời ${repliedMessage.sender_name || 'ai đó'}`}
                 </span>
                 {repliedMessage.content}
@@ -122,7 +122,7 @@ export default function MessageItem({ message, isMe, showAvatar, showName, repli
               >
                 <button 
                   onClick={() => onReply(message)}
-                  className="p-1.5 rounded-full bg-white dark:bg-slate-800 shadow-md border border-slate-100 dark:border-slate-700 text-slate-500 hover:text-blue-500 hover:scale-110 transition-all"
+                  className="p-2 sm:p-1.5 rounded-full bg-white dark:bg-slate-800 shadow-md border border-slate-100 dark:border-slate-700 text-slate-500 hover:text-blue-500 hover:scale-110 transition-all"
                   style={{ pointerEvents: 'auto' }}
                 >
                   <Reply size={14} />
@@ -130,7 +130,7 @@ export default function MessageItem({ message, isMe, showAvatar, showName, repli
                 {(isMe || onDelete) && (
                   <button 
                     onClick={() => onDelete(message.id)}
-                    className="p-1.5 rounded-full bg-white dark:bg-slate-800 shadow-md border border-slate-100 dark:border-slate-700 text-slate-500 hover:text-red-500 hover:scale-110 transition-all"
+                    className="p-2 sm:p-1.5 rounded-full bg-white dark:bg-slate-800 shadow-md border border-slate-100 dark:border-slate-700 text-slate-500 hover:text-red-500 hover:scale-110 transition-all"
                     style={{ pointerEvents: 'auto' }}
                   >
                     <Trash2 size={14} />
@@ -141,7 +141,7 @@ export default function MessageItem({ message, isMe, showAvatar, showName, repli
           </div>
 
           <div className={`flex items-center gap-1.5 mt-1 px-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
-            <span className="text-[10px] text-slate-400 font-medium">{formatTime(message.created_at)}</span>
+            <span className="text-[12px] sm:text-[10px] text-slate-400 font-medium">{formatTime(message.created_at)}</span>
             {isMe && !message.is_deleted && (
               message.is_read 
                 ? <CheckCheck size={12} className="text-blue-500" /> 

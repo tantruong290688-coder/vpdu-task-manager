@@ -65,14 +65,16 @@ export default async function handler(req, res) {
       .from('tasks')
       .select('id, code, title, assignee_id, assigned_by, task_collaborators(user_id)')
       .eq('due_date', tomorrowStr)
-      .not('status', 'eq', 'done');
+      .not('status', 'eq', 'completed')
+      .is('evaluation_score', null);
 
-    // 2. Lấy nhiệm vụ QUÁ HẠN (due_date < hôm nay, chưa hoàn thành)
+    // 2. Lấy nhiệm vụ QUÁ HẠN (due_date < hôm nay, chưa hoàn thành, chưa đánh giá)
     const { data: overdueTasks } = await db
       .from('tasks')
       .select('id, code, title, assignee_id, assigned_by, task_collaborators(user_id)')
       .lt('due_date', todayStr)
-      .not('status', 'eq', 'done');
+      .not('status', 'eq', 'completed')
+      .is('evaluation_score', null);
 
     let notifCount = 0;
 

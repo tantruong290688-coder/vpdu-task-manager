@@ -41,7 +41,7 @@ export default function ContactList({ profiles, rooms, conversations, onlineUser
             placeholder="Tìm kiếm đồng nghiệp..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-slate-800 dark:text-slate-200"
+            className="w-full pl-10 pr-4 py-3 sm:py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-slate-800 dark:text-slate-200"
           />
         </div>
       </div>
@@ -50,23 +50,23 @@ export default function ContactList({ profiles, rooms, conversations, onlineUser
         {/* Rooms Section */}
         {rooms.length > 0 && (
           <div className="mb-6 px-2">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Phòng chat nhóm</h4>
+            <h4 className="text-[12px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Phòng chat nhóm</h4>
             {rooms.map(room => (
               <button
                 key={room.id}
                 onClick={() => onSelectRoom(room.id)}
-                className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-white dark:hover:bg-slate-800 transition-all group text-left shadow-sm hover:shadow-md mb-2 border border-transparent hover:border-slate-100 dark:hover:border-slate-700"
+                className="w-full flex items-center gap-4 sm:gap-3 p-4 sm:p-3 rounded-2xl hover:bg-white dark:hover:bg-slate-800 transition-all group text-left shadow-sm hover:shadow-md mb-2 border border-transparent hover:border-slate-100 dark:hover:border-slate-700"
               >
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-white shadow-lg shrink-0 transform group-hover:rotate-3 transition-transform">
+                <div className="w-14 h-14 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-white shadow-lg shrink-0 transform group-hover:rotate-3 transition-transform">
                   <Users size={24} />
                 </div>
                 <div className="overflow-hidden flex-1">
                   <div className="flex justify-between items-center mb-0.5">
-                    <h4 className="font-extrabold text-[14px] text-slate-800 dark:text-white truncate uppercase">
+                    <h4 className="font-extrabold text-[16px] sm:text-[14px] text-slate-800 dark:text-white truncate uppercase">
                       {room.name}
                     </h4>
                   </div>
-                  <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate">
+                  <p className="text-[14px] sm:text-[12px] text-slate-500 dark:text-slate-400 truncate">
                     Hội ý công việc nội bộ
                   </p>
                 </div>
@@ -78,7 +78,7 @@ export default function ContactList({ profiles, rooms, conversations, onlineUser
 
         {/* Contacts Section */}
         <div className="px-2">
-          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Tin nhắn cá nhân</h4>
+          <h4 className="text-[12px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Tin nhắn cá nhân</h4>
           {filteredUsers.length === 0 ? (
             <div className="py-10 text-center">
               <p className="text-slate-400 text-sm italic">Không tìm thấy người dùng này</p>
@@ -94,10 +94,10 @@ export default function ContactList({ profiles, rooms, conversations, onlineUser
                 <button
                   key={p.id}
                   onClick={() => onSelectUser(p.id)}
-                  className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-white dark:hover:bg-slate-800 transition-all group text-left hover:shadow-sm mb-1 border border-transparent hover:border-slate-100 dark:hover:border-slate-700"
+                  className="w-full flex items-center gap-4 sm:gap-3 p-4 sm:p-3 rounded-2xl hover:bg-white dark:hover:bg-slate-800 transition-all group text-left hover:shadow-sm mb-1 border border-transparent hover:border-slate-100 dark:hover:border-slate-700"
                 >
                   <div className="relative shrink-0">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-sm group-hover:rotate-2 transition-transform">
+                    <div className="w-14 h-14 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-sm group-hover:rotate-2 transition-transform">
                       {(p.full_name || p.email || '?').charAt(0).toUpperCase()}
                     </div>
                     {isOnline && (
@@ -107,22 +107,22 @@ export default function ContactList({ profiles, rooms, conversations, onlineUser
                   
                   <div className="overflow-hidden flex-1">
                     <div className="flex justify-between items-center mb-0.5">
-                      <h4 className="font-bold text-[14px] text-slate-800 dark:text-white truncate">
+                      <h4 className="font-bold text-[16px] sm:text-[14px] text-slate-800 dark:text-white truncate">
                         {p.full_name || p.email}
                       </h4>
                       {lastMsg && (
-                        <span className="text-[10px] font-medium text-slate-400">
+                        <span className="text-[12px] sm:text-[10px] font-medium text-slate-400">
                           {formatTime(lastMsg.created_at)}
                         </span>
                       )}
                     </div>
                     
                     <div className="flex justify-between items-center">
-                      <p className={`text-[12px] truncate ${unread > 0 ? 'font-bold text-slate-800 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400'}`}>
+                      <p className={`text-[14px] sm:text-[12px] truncate ${unread > 0 ? 'font-bold text-slate-800 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400'}`}>
                         {lastMsg ? (lastMsg.sender_id === currentUser.id ? 'Bạn: ' : '') + lastMsg.content : 'Bắt đầu trò chuyện'}
                       </p>
                       {unread > 0 && (
-                        <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-600 px-1.5 text-[10px] font-black text-white ml-2 ring-2 ring-white dark:ring-slate-900">
+                        <span className="flex h-6 min-w-[24px] sm:h-5 sm:min-w-[20px] items-center justify-center rounded-full bg-blue-600 px-1.5 text-[12px] sm:text-[10px] font-black text-white ml-2 ring-2 ring-white dark:ring-slate-900">
                           {unread}
                         </span>
                       )}

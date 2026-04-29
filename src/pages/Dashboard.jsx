@@ -66,7 +66,7 @@ export default function Dashboard() {
   const cardsBottom = [
     { label: 'Sắp đến hạn', value: stats.dueSoon, desc: 'Cần đôn đốc trong ngắn hạn.', icon: AlertTriangle, iconBg: 'bg-yellow-50', iconColor: 'text-yellow-500', filter: 'due_soon' },
     { label: 'Chờ đánh giá', value: stats.pendingEval, desc: 'Đang chờ lãnh đạo nhận xét.', icon: Smartphone, iconBg: 'bg-amber-50', iconColor: 'text-amber-500', filter: 'pending_eval' },
-    { label: 'Chờ chốt cuối', value: stats.pendingFinal, desc: 'Đang chờ người chốt cuối.', icon: Flag, iconBg: 'bg-purple-50', iconColor: 'text-purple-500', filter: 'pending_final' },
+    { label: 'Đã đánh giá', value: stats.pendingFinal, desc: 'Nhiệm vụ đã có điểm đánh giá.', icon: Flag, iconBg: 'bg-purple-50', iconColor: 'text-purple-500', filter: 'pending_final' },
     { label: 'Tỷ lệ hoàn thành', value: stats.completionRate + '%', desc: 'So với tổng nhiệm vụ hiện có.', icon: PieChart, iconBg: 'bg-emerald-50', iconColor: 'text-emerald-500', filter: '' },
     { label: 'Tỷ lệ đúng hạn', value: stats.onTimeRate + '%', desc: 'Trên số nhiệm vụ đã hoàn thành.', icon: Clock, iconBg: 'bg-sky-50', iconColor: 'text-sky-500', filter: '' },
   ];

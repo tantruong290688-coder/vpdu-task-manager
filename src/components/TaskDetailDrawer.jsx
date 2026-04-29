@@ -183,7 +183,7 @@ export default function TaskDetailDrawer({
   };
 
   // Derived
-  const isOverdue = task && task.due_date && new Date(task.due_date) < new Date() && task?.status !== 'completed';
+  const isOverdue = task && task.due_date && new Date(task.due_date) < new Date() && task?.status !== 'completed' && task?.evaluation_score === null;
   const statusInfo = STATUS_MAP[task?.status] || STATUS_MAP.pending;
   const priorityInfo = PRIORITY_MAP[task?.priority] || PRIORITY_MAP.normal;
   const collaboratorNames = (task?.task_collaborators || [])

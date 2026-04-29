@@ -132,12 +132,12 @@ export default function ChatComposer({ onSend, sending, replyTo, onCancelReply }
   ];
 
   return (
-    <div className="px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 shrink-0 relative">
+    <div className="px-3 pt-4 sm:pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 shrink-0 relative">
       {replyTo && (
         <div className="mb-3 p-2 bg-slate-50 dark:bg-slate-800/80 rounded-lg border-l-4 border-blue-500 flex justify-between items-start animate-in slide-in-from-bottom-2">
           <div className="overflow-hidden">
-            <span className="text-[10px] font-bold text-blue-600 uppercase block mb-0.5">Đang trả lời {replyTo.sender_name}</span>
-            <p className="text-[12px] text-slate-600 dark:text-slate-400 truncate">{replyTo.content}</p>
+            <span className="text-[12px] sm:text-[10px] font-bold text-blue-600 uppercase block mb-0.5">Đang trả lời {replyTo.sender_name}</span>
+            <p className="text-[14px] sm:text-[12px] text-slate-600 dark:text-slate-400 truncate">{replyTo.content}</p>
           </div>
           <button
             onPointerDown={onCancelReply}
@@ -156,13 +156,13 @@ export default function ChatComposer({ onSend, sending, replyTo, onCancelReply }
             <AttachmentFileIcon fileInfo={previewFileInfo} className="w-11 h-11" textClassName="text-base" />
           )}
           <div className="flex-1 pr-6 max-w-[200px]">
-            <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{selectedFile.name}</p>
-            <p className="text-xs text-slate-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+            <p className="text-base sm:text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{selectedFile.name}</p>
+            <p className="text-sm sm:text-xs text-slate-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
           </div>
           <button 
             type="button" 
             onClick={removeFile}
-            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors shadow-sm"
+            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-2 sm:p-1 hover:bg-red-600 transition-colors shadow-sm"
           >
             <X size={14} />
           </button>
@@ -212,7 +212,7 @@ export default function ChatComposer({ onSend, sending, replyTo, onCancelReply }
                   key={i}
                   type="button"
                   onClick={() => { opt.action(); setShowAttachMenu(false); }}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors touch-manipulation active:bg-slate-100 dark:active:bg-slate-700"
+                  className="flex items-center gap-3 w-full px-4 py-4 sm:py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors touch-manipulation active:bg-slate-100 dark:active:bg-slate-700"
                 >
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${opt.color}`}>
                     <opt.icon size={16} />
@@ -227,7 +227,7 @@ export default function ChatComposer({ onSend, sending, replyTo, onCancelReply }
             type="button"
             onClick={() => setShowAttachMenu(prev => !prev)}
             disabled={sending}
-            className={`p-2 rounded-full transition-colors touch-manipulation disabled:opacity-50 ${
+            className={`p-3 sm:p-2 rounded-full transition-colors touch-manipulation disabled:opacity-50 ${
               showAttachMenu
                 ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-500'
                 : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-blue-500'
@@ -246,12 +246,12 @@ export default function ChatComposer({ onSend, sending, replyTo, onCancelReply }
             onKeyDown={handleKeyDown}
             disabled={sending}
             placeholder={replyTo ? "Viết câu trả lời..." : "Nhập tin nhắn..."}
-            className="w-full bg-transparent border-none focus:ring-0 py-2.5 px-4 text-[14px] text-slate-800 dark:text-slate-200 resize-none max-h-[120px] scrollbar-hide disabled:opacity-50"
+            className="w-full bg-transparent border-none focus:ring-0 py-3.5 px-4 sm:py-2.5 text-[16px] sm:text-[14px] text-slate-800 dark:text-slate-200 resize-none max-h-[120px] scrollbar-hide disabled:opacity-50"
           />
           <button
             type="button"
             disabled={sending}
-            className="absolute right-2 bottom-1.5 p-1.5 text-slate-400 hover:text-amber-500 transition-colors touch-manipulation disabled:opacity-50"
+            className="absolute right-2 bottom-2 sm:bottom-1.5 p-2.5 sm:p-1.5 text-slate-400 hover:text-amber-500 transition-colors touch-manipulation disabled:opacity-50"
           >
             <Smile size={20} />
           </button>
@@ -261,7 +261,7 @@ export default function ChatComposer({ onSend, sending, replyTo, onCancelReply }
           type="submit"
           disabled={(!text.trim() && !selectedFile) || sending}
           className={`
-            mb-0.5 w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-sm touch-manipulation
+            mb-0.5 w-12 h-12 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all shadow-sm touch-manipulation
             ${(!text.trim() && !selectedFile) || sending
               ? 'bg-slate-100 dark:bg-slate-800 text-slate-400'
               : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'}

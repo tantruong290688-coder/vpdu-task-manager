@@ -72,10 +72,18 @@ export default function EnablePushButton({ variant = 'default' }) {
   const {
     permission, isSubscribed, isLoading,
     isSupported, isIOS, isStandalone,
-    error, subscribe, unsubscribe,
+    error, subscribe, unsubscribe, sendTestNotification
   } = usePushNotifications();
 
   const [showIOSGuide, setShowIOSGuide] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+
+  const handleTest = async () => {
+    setIsTesting(true);
+    await sendTestNotification();
+    toast.success('Đã gửi thông báo thử nghiệm!');
+    setTimeout(() => setIsTesting(false), 2000);
+  };
 
   const handleClick = async () => {
     // iOS chưa cài PWA
@@ -195,28 +203,44 @@ export default function EnablePushButton({ variant = 'default' }) {
           )}
         </div>
 
-        {/* Button */}
-        {permission !== 'denied' && (
-          <button
-            onClick={handleClick}
-            disabled={isLoading}
-            className={`shrink-0 px-4 py-2.5 rounded-xl font-bold text-[13px] transition-all disabled:opacity-50 flex items-center gap-2
-              ${isSubscribed
-                ? 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
-                : 'bg-amber-600 hover:bg-amber-700 text-white shadow-[0_4px_12px_rgba(217,119,6,0.3)]'
-              }
-            `}
-          >
-            {isLoading ? (
-              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-            ) : isSubscribed ? (
-              <BellOff size={15} />
-            ) : (
-              <Bell size={15} />
-            )}
-            {isLoading ? 'Đang xử lý...' : isSubscribed ? 'Tắt' : isIOS && !isStandalone ? 'Hướng dẫn' : 'Bật ngay'}
-          </button>
-        )}
+        {/* Buttons */}
+        <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+          {isSubscribed && (
+            <button
+              onClick={handleTest}
+              disabled={isTesting}
+              className="px-4 py-2.5 rounded-xl font-bold text-[13px] bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2 justify-center"
+            >
+              {isTesting ? (
+                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <BellRing size={15} className="text-blue-500" />
+              )}
+              {isTesting ? 'Đang gửi...' : 'Gửi thử'}
+            </button>
+          )}
+          {permission !== 'denied' && (
+            <button
+              onClick={handleClick}
+              disabled={isLoading}
+              className={`px-4 py-2.5 rounded-xl font-bold text-[13px] transition-all disabled:opacity-50 flex items-center gap-2 justify-center
+                ${isSubscribed
+                  ? 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
+                  : 'bg-amber-600 hover:bg-amber-700 text-white shadow-[0_4px_12px_rgba(217,119,6,0.3)]'
+                }
+              `}
+            >
+              {isLoading ? (
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              ) : isSubscribed ? (
+                <BellOff size={15} />
+              ) : (
+                <Bell size={15} />
+              )}
+              {isLoading ? 'Đang xử lý...' : isSubscribed ? 'Tắt' : isIOS && !isStandalone ? 'Hướng dẫn' : 'Bật ngay'}
+            </button>
+          )}
+        </div>
       </div>
 
       {showIOSGuide && <IOSInstallGuide onClose={() => setShowIOSGuide(false)} />}

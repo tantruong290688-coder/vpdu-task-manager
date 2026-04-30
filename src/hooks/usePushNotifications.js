@@ -213,5 +213,27 @@ export function usePushNotifications() {
     error,
     subscribe,
     unsubscribe,
+    sendTestNotification: async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) return;
+        await fetch('/api/notifications/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            userId: session.user.id,
+            title: 'Thông báo thử nghiệm 🔔',
+            body: 'Đây là thông báo kiểm tra tính năng Web Push trên thiết bị của bạn.',
+            type: 'general',
+            relatedUrl: '/notifications',
+          }),
+        });
+      } catch (e) {
+        console.error('[sendTestNotification]', e);
+      }
+    }
   };
 }

@@ -59,8 +59,9 @@ export default async function handler(req, res) {
     try {
       const user = await verifyUser(token);
       callerRole = user.user_metadata?.role || 'staff';
-      if (!['admin', 'manager'].includes(callerRole)) {
-        return err(res, 403, 'Chỉ admin/manager được tạo thông báo');
+      // Cho phép admin, manager và staff gửi thông báo (để tin nhắn hoạt động)
+      if (!['admin', 'manager', 'staff'].includes(callerRole)) {
+        return err(res, 403, 'Bạn không có quyền tạo thông báo');
       }
     } catch (e) {
       return err(res, 401, e.message);
@@ -131,14 +132,16 @@ export default async function handler(req, res) {
       if (!subs || subs.length === 0) continue;
 
       // 3. Gửi Web Push tới từng subscription
+      const origin = req.headers.host ? `https://${req.headers.host}` : 'https://quantrivpdutrabong.vercel.app';
       const pushPayload = JSON.stringify({
         title,
         body:  body || '',
-        icon:  '/favicon.svg',
-        badge: '/favicon.svg',
+        icon:  `${origin}/favicon.svg`,
+        badge: `${origin}/favicon.svg`,
         url:   relatedUrl || '/notifications',
         type,
         taskId: relatedTaskId || null,
+        timestamp: Date.now(),
       });
 
       for (const sub of subs) {

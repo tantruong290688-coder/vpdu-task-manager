@@ -74,7 +74,8 @@ self.addEventListener('push', (event) => {
     body:     data.body || '',
     icon:     data.icon  || '/favicon.svg',
     badge:    data.badge || '/favicon.svg',
-    tag:      data.type  || 'general',
+    // Bỏ tag để thông báo không bị ghi đè (stacking) giống Zalo/Messenger
+    // tag:      data.type  || 'general', 
     renotify: true,
     data: {
       url:    data.url    || '/notifications',

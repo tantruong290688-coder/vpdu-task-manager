@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { Bell, BellOff, BellRing, Smartphone, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
+import { usePWAInstall } from '../../hooks/usePWAInstall';
 import toast from 'react-hot-toast';
 
 // ── iOS Install Guide ───────────────────────────────────
@@ -63,6 +64,26 @@ function IOSInstallGuide({ onClose }) {
           Đã hiểu
         </button>
       </div>
+      {/* PWA Install Section (Desktop/Android) */}
+      {isInstallable && (
+        <div className="mt-4 p-5 bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50 rounded-3xl flex items-center gap-4 group">
+          <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0">
+            <Download className="text-blue-600 dark:text-blue-400 animate-bounce" size={24} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4 className="font-extrabold text-blue-900 dark:text-blue-300 text-[15px]">Cài đặt ứng dụng</h4>
+            <p className="text-[12px] text-blue-700 dark:text-blue-400/80 mt-0.5 leading-relaxed">
+              Cài đặt để có biểu tượng trên máy tính và trải nghiệm như phần mềm chuyên nghiệp.
+            </p>
+          </div>
+          <button 
+            onClick={installApp}
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-[13px] shadow-lg shadow-blue-600/20 transition-all active:scale-95 shrink-0"
+          >
+            Cài ngay
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -74,6 +95,7 @@ export default function EnablePushButton({ variant = 'default' }) {
     isSupported, isIOS, isStandalone,
     error, subscribe, unsubscribe, sendTestNotification
   } = usePushNotifications();
+  const { isInstallable, installApp } = usePWAInstall();
 
   const [showIOSGuide, setShowIOSGuide] = useState(false);
   const [isTesting, setIsTesting] = useState(false);

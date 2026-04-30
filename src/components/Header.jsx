@@ -4,10 +4,13 @@ import { Search, MessageSquare, Bell, RotateCcw, Menu } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import AccountMenu from './Account/AccountMenu';
 import NotificationsDropdown from './NotificationsDropdown';
+import { usePWAInstall } from '../hooks/usePWAInstall';
+import { Download } from 'lucide-react';
 
 export default function Header({ onMenuClick }) {
   const { profile } = useAuth();
   const { unreadCount, toggleChat } = useMessage();
+  const { isInstallable, installApp } = usePWAInstall();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -51,6 +54,18 @@ export default function Header({ onMenuClick }) {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2">
+          {/* PWA Install Button */}
+          {isInstallable && (
+            <button 
+              onClick={installApp}
+              className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[12px] font-bold shadow-sm transition-all animate-pulse"
+              title="Cài đặt ứng dụng vào máy tính"
+            >
+              <Download size={16} />
+              <span className="hidden sm:inline">Cài đặt</span>
+            </button>
+          )}
+
           {/* Message Icon - Visible on all devices */}
           <button 
             onClick={toggleChat}

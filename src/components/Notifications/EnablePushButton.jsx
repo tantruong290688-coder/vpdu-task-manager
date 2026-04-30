@@ -80,9 +80,25 @@ export default function EnablePushButton({ variant = 'default' }) {
 
   const handleTest = async () => {
     setIsTesting(true);
-    await sendTestNotification();
-    toast.success('Đã gửi thông báo thử nghiệm!');
-    setTimeout(() => setIsTesting(false), 2000);
+    try {
+      console.log('--- Diagnostic ---');
+      console.log('Public Key present:', !!import.meta.env.VITE_VAPID_PUBLIC_KEY);
+      console.log('Subscription state:', isSubscribed);
+      
+      if (!import.meta.env.VITE_VAPID_PUBLIC_KEY) {
+        toast.error('Lỗi: Thiếu VAPID Public Key (VITE_VAPID_PUBLIC_KEY).');
+        setIsTesting(false);
+        return;
+      }
+
+      await sendTestNotification();
+      toast.success('Đã gửi thông báo thử nghiệm!');
+    } catch (err) {
+      console.error('Test error:', err);
+      toast.error('Gửi thử thất bại. Vui lòng kiểm tra console.');
+    } finally {
+      setIsTesting(false);
+    }
   };
 
   const handleClick = async () => {

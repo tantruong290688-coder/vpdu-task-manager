@@ -34,9 +34,14 @@ function setupWebPush() {
   const subject    = process.env.VAPID_SUBJECT || 'mailto:admin@vpdu-trabong.gov.vn';
 
   if (!publicKey || !privateKey) {
+    console.error('SERVER DIAGNOSTIC: Thiếu VAPID keys!', {
+      hasPublic: !!publicKey,
+      hasPrivate: !!privateKey
+    });
     throw new Error('Thiếu VAPID keys trong biến môi trường');
   }
 
+  console.log('SERVER DIAGNOSTIC: VAPID keys detected.');
   webpush.setVapidDetails(subject, publicKey, privateKey);
 }
 

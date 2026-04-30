@@ -1,12 +1,11 @@
-import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import ChatPopup from '../components/Chat/ChatPopup';
 import { usePresence } from '../hooks/usePresence';
-import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
 import { useMessage } from '../context/MessageContext';
+import AppBadgeSync from '../components/Notifications/AppBadgeSync';
 
 export default function MainLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -39,6 +38,7 @@ export default function MainLayout() {
         </main>
       </div>
       <ChatPopup />
+      <AppBadgeSync />
     </div>
   );
 }

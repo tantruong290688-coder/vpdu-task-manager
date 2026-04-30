@@ -92,6 +92,14 @@ self.addEventListener('push', (event) => {
     vibrate: [200, 100, 200],
   };
 
+  // Cập nhật App Badge (số lượng thông báo trên icon app)
+  if ('setAppBadge' in navigator && data.unreadCount !== undefined) {
+    navigator.setAppBadge(data.unreadCount).catch(() => {});
+  } else if ('setAppBadge' in navigator) {
+    // Nếu không có số cụ thể, ít nhất là hiện dấu chấm đỏ (trên một số trình duyệt)
+    navigator.setAppBadge().catch(() => {});
+  }
+
   event.waitUntil(
     self.registration.showNotification(title, options)
   );

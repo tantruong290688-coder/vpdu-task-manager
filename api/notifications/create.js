@@ -131,6 +131,13 @@ export default async function handler(req, res) {
 
       if (!subs || subs.length === 0) continue;
 
+      // 2.5 Tính tổng số chưa đọc (notifications + private messages)
+      const [notifCount, msgCount] = await Promise.all([
+        db.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', uid).eq('is_read', false),
+        db.from('messages').select('*', { count: 'exact', head: true }).eq('receiver_id', uid).eq('is_read', false)
+      ]);
+      const totalUnread = (notifCount.count || 0) + (msgCount.count || 0);
+
       // 3. Gửi Web Push tới từng subscription
       const origin = req.headers.host ? `https://${req.headers.host}` : 'https://quantrivpdutrabong.vercel.app';
       const pushPayload = JSON.stringify({
@@ -142,6 +149,7 @@ export default async function handler(req, res) {
         type,
         taskId: relatedTaskId || null,
         timestamp: Date.now(),
+        unreadCount: totalUnread,
       });
 
       for (const sub of subs) {

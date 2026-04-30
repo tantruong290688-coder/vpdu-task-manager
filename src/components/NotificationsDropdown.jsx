@@ -82,7 +82,7 @@ export default function NotificationsDropdown() {
       >
         <Bell size={18} className="fill-amber-600 dark:fill-amber-500" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 bg-red-500 border-2 border-white dark:border-[#111827] rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-md leading-none pointer-events-none">
+          <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 bg-red-600 border-2 border-white dark:border-[#111827] rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-lg leading-none pointer-events-none animate-in zoom-in duration-300">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}

@@ -134,7 +134,7 @@ export default function Sidebar({ isOpen, onClose }) {
                 <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
                 <span className="flex-1">{menu.name}</span>
                 {menu.badge > 0 && (
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center ${isActive ? 'bg-white/30 text-white' : 'bg-red-500 text-white'}`}>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-sm ${isActive ? 'bg-white/30 text-white' : 'bg-red-600 text-white'}`}>
                     {menu.badge > 99 ? '99+' : menu.badge}
                   </span>
                 )}
@@ -144,14 +144,14 @@ export default function Sidebar({ isOpen, onClose }) {
           {/* Messages for Mobile/Tablet */}
           <button
             onClick={() => { toggleDrawer(); onClose(); }}
-            className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all font-semibold text-[14px] text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200 sm:hidden"
+            className="relative w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all font-semibold text-[14px] text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200 sm:hidden"
           >
             <div className="flex items-center gap-3">
               <MessageSquare size={20} strokeWidth={2} />
               <span>Nhắn tin</span>
             </div>
             {unreadCount > 0 && (
-              <span className="bg-red-500 text-white text-[11px] px-2 py-0.5 rounded-full font-bold">
+              <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 bg-red-600 border-2 border-white rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-lg leading-none animate-in zoom-in duration-300">
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}

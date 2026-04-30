@@ -210,7 +210,7 @@ export default function ChatPopup() {
             title: `Tin nhắn nhóm: ${room?.name || 'Nhóm CB,CC,NV'}`,
             body: `${profile?.full_name || 'Ai đó'}: ${displayContent.substring(0, 80)}`,
             type: 'message_group',
-            relatedUrl: '/',
+            relatedUrl: `/?room=${activeRoomId}`,
           });
         }
 
@@ -237,7 +237,7 @@ export default function ChatPopup() {
             title: `Tin nhắn mới từ ${senderName}`,
             body: displayContent.substring(0, 100),
             type: 'message_private',
-            relatedUrl: '/',
+            relatedUrl: `/?chat=${user.id}`,
           });
         }
       }

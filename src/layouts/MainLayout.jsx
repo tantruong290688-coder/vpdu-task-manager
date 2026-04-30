@@ -4,10 +4,29 @@ import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import ChatPopup from '../components/Chat/ChatPopup';
 import { usePresence } from '../hooks/usePresence';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useMessage } from '../context/MessageContext';
 
 export default function MainLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const location = useLocation();
+  const { openChatWith, openRoomChat } = useMessage();
+
   usePresence();
+
+  // Xử lý mở chat từ URL (deeplinking từ thông báo)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const chatUserId = params.get('chat');
+    const roomId = params.get('room');
+
+    if (chatUserId) {
+      openChatWith(chatUserId);
+    } else if (roomId) {
+      openRoomChat(roomId);
+    }
+  }, [location.search, openChatWith, openRoomChat]);
   return (
     <div className="flex min-h-[100dvh] bg-[#f1f5f9] dark:bg-[#0b1121] font-sans text-slate-800 dark:text-slate-200 transition-colors overflow-hidden">
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />

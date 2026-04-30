@@ -77,6 +77,9 @@ self.addEventListener('push', (event) => {
     // Bỏ tag để thông báo không bị ghi đè (stacking) giống Zalo/Messenger
     // tag:      data.type  || 'general', 
     renotify: true,
+    requireInteraction: true, // Giữ thông báo trên máy tính cho đến khi tương tác
+    silent: false,
+    timestamp: data.timestamp || Date.now(),
     data: {
       url:    data.url    || '/notifications',
       taskId: data.taskId || null,

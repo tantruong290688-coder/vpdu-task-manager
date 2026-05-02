@@ -38,10 +38,8 @@ export default function MessagesDrawer() {
       if (activeChatUserId || activeRoomId) {
         setActiveChatUserId(null);
         setActiveRoomId(null);
-        // Ngăn trình duyệt lùi trang thực sự bằng cách đẩy lại state
-        window.history.pushState(null, '', window.location.href);
         
-        // Làm sạch URL
+        // Làm sạch URL để không tự động mở lại khi render
         const url = new URL(window.location.href);
         url.searchParams.delete('chat');
         url.searchParams.delete('room');
@@ -52,12 +50,14 @@ export default function MessagesDrawer() {
       }
     };
 
-    // Đẩy một state ảo để "chiếm" sự kiện Back
-    window.history.pushState(null, '', window.location.href);
+    // Chỉ thêm state vào history khi drawer vừa mở ra
+    window.history.pushState({ drawerOpen: true }, '', window.location.href);
     window.addEventListener('popstate', handlePopState);
     
     return () => {
       window.removeEventListener('popstate', handlePopState);
+      // Nếu drawer đóng mà vẫn còn state trong history, ta không cần dọn dẹp ở đây
+      // vì popstate đã xử lý hoặc user đã navigate đi chỗ khác.
     };
   }, [isDrawerOpen, activeChatUserId, activeRoomId, closeDrawer, setActiveChatUserId]);
 
@@ -404,19 +404,7 @@ export default function MessagesDrawer() {
             {(activeChatUserId || activeRoomId) ? (
               <>
                 <button 
-                  onClick={() => { 
-                    if (activeChatUserId || activeRoomId) {
-                      setActiveChatUserId(null); 
-                      setActiveRoomId(null);
-                      // Luôn làm sạch URL khi quay lại danh sách
-                      const url = new URL(window.location.href);
-                      url.searchParams.delete('chat');
-                      url.searchParams.delete('room');
-                      window.history.replaceState({}, '', url.pathname);
-                    } else {
-                      closeDrawer();
-                    }
-                  }} 
+                  onClick={() => window.history.back()} 
                   className="w-12 h-12 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 transition-colors active:scale-95"
                 >
                   <ArrowLeft size={24} />
@@ -456,6 +444,11 @@ export default function MessagesDrawer() {
             )}
             <button 
               onClick={() => {
+                // Nếu đang ở ô chat chi tiết, phải back 2 lần để đóng hẳn
+                if (activeChatUserId || activeRoomId) {
+                  setActiveChatUserId(null);
+                  setActiveRoomId(null);
+                }
                 const url = new URL(window.location.href);
                 url.searchParams.delete('chat');
                 url.searchParams.delete('room');

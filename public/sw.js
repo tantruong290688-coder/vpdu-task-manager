@@ -1,9 +1,9 @@
 // ═══════════════════════════════════════════════════════════
 // Service Worker – VPĐU Task Manager PWA
-// Version: 2026.05.02.05 (Force Update)
+// Version: 2026.05.02.08 (Force Update - VAPID Sync)
 // ═══════════════════════════════════════════════════════════
 
-const SW_VERSION = '2026.05.02.05';
+const SW_VERSION = '2026.05.02.08';
 const CACHE_NAME = 'vpdu-v5';
 const OFFLINE_URL = '/offline.html';
 

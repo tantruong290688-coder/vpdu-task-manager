@@ -2,7 +2,7 @@
 // Page: NotificationsPage – /notifications
 // Trang thông báo đầy đủ với filter, phân trang, mark-read
 // ═══════════════════════════════════════════════════════════
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, BellOff, CheckCheck, AlertTriangle, MessageSquare, ClipboardList, RefreshCw } from 'lucide-react';
 import { useNotifications, getNotifDisplay } from '../hooks/useNotifications';

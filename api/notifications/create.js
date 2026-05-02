@@ -39,9 +39,17 @@ async function verifyUser(token) {
 }
 
 function setupWebPush() {
-  const publicKey  = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY;
+  // Ưu tiên lấy từ biến môi trường, nếu không có hoặc sai thì dùng mã chuẩn của hệ thống
+  const EXPECTED_PUBLIC_KEY = 'BOD4Y58jIACGC49hl7rUcPXZ6tJpCavjmUt4acs51WH_lilMTuoyVEhO3ZqJP6bPY6Jz6vbyLQVEuezsK9nVHpU';
+  
+  let publicKey  = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
-  const subject    = process.env.VAPID_SUBJECT || 'mailto:admin@vpdu-trabong.gov.vn';
+  const subject    = process.env.VAPID_SUBJECT || 'mailto:tantruong290688@gmail.com';
+
+  // Nếu trên Vercel cấu hình sai, ta fallback về mã chuẩn để tránh lỗi 403
+  if (!publicKey || publicKey.length < 50) {
+    publicKey = EXPECTED_PUBLIC_KEY;
+  }
 
   if (!publicKey || !privateKey) {
     console.error('SERVER ERROR: Missing VAPID keys!', {
@@ -51,7 +59,7 @@ function setupWebPush() {
     throw new Error('Hệ thống chưa cấu hình VAPID keys trên Vercel');
   }
 
-  console.log('[DEBUG] setupWebPush: Public Key (first 10):', publicKey.substring(0, 10) + '...');
+  console.log('[DEBUG] setupWebPush: Using Public Key:', publicKey.substring(0, 15) + '...');
   webpush.setVapidDetails(subject, publicKey, privateKey);
 }
 

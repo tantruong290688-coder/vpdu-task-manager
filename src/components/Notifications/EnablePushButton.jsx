@@ -117,7 +117,7 @@ export default function EnablePushButton({ variant = 'default' }) {
       toast.success('Đã gửi thông báo thử nghiệm!');
     } catch (err) {
       console.error('Test error:', err);
-      toast.error('Gửi thử thất bại. Vui lòng kiểm tra console.');
+      toast.error('Gửi thử thất bại: ' + err.message);
     } finally {
       setIsTesting(false);
     }

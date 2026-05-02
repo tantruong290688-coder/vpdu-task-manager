@@ -38,18 +38,7 @@ export default function ChatPopup() {
     }
   }, [isChatOpen, user]);
 
-  // ── Xử lý nút Back và Thoát dứt điểm ──────────────────────
-  useEffect(() => {
-    if (!isChatOpen) return;
-
-    // Khi URL thay đổi (nhấn Back), nếu không còn param chat/room thì đóng chat
-    const params = new URLSearchParams(location.search);
-    if (!params.get('chat') && !params.get('room') && isChatOpen) {
-      // Chỉ đóng khi user thực sự bấm Back làm mất param
-      closeChat();
-    }
-  }, [location.search, isChatOpen, closeChat]);
-
+  // ── Xử lý nút Thoát dứt điểm ──────────────────────
   const handleClose = useCallback(() => {
     // Làm sạch URL bằng navigate (chuẩn React Router)
     const params = new URLSearchParams(location.search);

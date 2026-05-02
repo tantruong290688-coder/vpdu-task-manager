@@ -3,7 +3,7 @@
 // Nút bật/tắt thông báo push, kèm hướng dẫn iOS
 // ═══════════════════════════════════════════════════════════
 import { useState } from 'react';
-import { Bell, BellOff, BellRing, Smartphone, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { Bell, BellOff, BellRing, Smartphone, X, CheckCircle, AlertCircle, Info, Download } from 'lucide-react';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import toast from 'react-hot-toast';

@@ -71,11 +71,9 @@ export default async function handler(req, res) {
     const token = authHeader.split(' ')[1];
     try {
       const user = await verifyUser(token);
+      // Lấy role từ metadata hoặc profile table nếu cần, nhưng ở đây ta chấp nhận tất cả user có token hợp lệ
+      // để họ có thể gửi thông báo tin nhắn cho nhau.
       callerRole = user.user_metadata?.role || 'staff';
-      // Cho phép admin, manager và staff gửi thông báo (để tin nhắn hoạt động)
-      if (!['admin', 'manager', 'staff'].includes(callerRole)) {
-        return err(res, 403, 'Bạn không có quyền tạo thông báo');
-      }
     } catch (e) {
       return err(res, 401, e.message);
     }

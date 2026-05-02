@@ -189,23 +189,35 @@ export default function Logs() {
                   if (window.confirm('CẢNH BÁO: Hành động này sẽ xóa VĨNH VIỄN toàn bộ nhật ký thao tác. Bạn có chắc chắn muốn tiếp tục?')) {
                     if (window.confirm('Xác nhận lần cuối: Bạn thực sự muốn xóa sạch nhật ký?')) {
                       try {
-                        const { error: delError } = await supabase
-                          .from('activity_logs')
-                          .delete()
-                          .not('id', 'is', null); // Xóa sạch mọi bản ghi có ID
+                        setLoading(true);
+                        const { data: { session } } = await supabase.auth.getSession();
                         
-                        if (delError) throw delError;
+                        const response = await fetch('/api/admin/clear-logs', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${session?.access_token}`
+                          }
+                        });
+
+                        const result = await response.json();
+                        
+                        if (!response.ok) {
+                          throw new Error(result.error || 'Lỗi không xác định');
+                        }
                         
                         // Xóa trắng dữ liệu local ngay lập tức
                         setLogs([]);
                         setTotalCount(0);
                         
-                        toast.success('Đã xóa sạch nhật ký thao tác');
-                        // Tải lại để xác nhận
+                        toast.success('Đã xóa sạch nhật ký thao tác thành công!');
+                        // Tải lại để xác nhận (lúc này sẽ chỉ còn 1 log mới về việc xóa)
                         await fetchLogs(true);
                       } catch (err) {
                         console.error('Clear logs error:', err);
                         toast.error('Lỗi khi xóa nhật ký: ' + err.message);
+                      } finally {
+                        setLoading(false);
                       }
                     }
                   }

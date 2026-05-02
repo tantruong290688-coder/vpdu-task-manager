@@ -192,7 +192,7 @@ export default function Logs() {
                         const { error: delError } = await supabase
                           .from('activity_logs')
                           .delete()
-                          .neq('id', 0); // Xóa tất cả
+                          .gt('created_at', '1970-01-01'); // Xóa tất cả từ trước đến nay
                         
                         if (delError) throw delError;
                         

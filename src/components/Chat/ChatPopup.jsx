@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { useMessage } from '../../context/MessageContext';
@@ -13,6 +14,8 @@ import ContactList from './ContactList';
 
 export default function ChatPopup() {
   const { user, profile, onlineUsers } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { 
     isChatOpen, isMinimized, closeChat, 
     activeChatUserId, setActiveChatUserId,
@@ -35,24 +38,29 @@ export default function ChatPopup() {
     }
   }, [isChatOpen, user]);
 
-  // ── Xử lý nút Back cho Chat Popup ────────────────────────
+  // ── Xử lý nút Back và Thoát dứt điểm ──────────────────────
   useEffect(() => {
     if (!isChatOpen) return;
 
-    const handlePopState = (e) => {
-      if (activeChatUserId || activeRoomId) {
-        setActiveChatUserId(null);
-        setActiveRoomId(null);
-        window.history.pushState(null, '', window.location.href);
-      } else {
-        closeChat();
-      }
-    };
+    // Khi URL thay đổi (nhấn Back), nếu không còn param chat/room thì đóng chat
+    const params = new URLSearchParams(location.search);
+    if (!params.get('chat') && !params.get('room') && isChatOpen) {
+      // Chỉ đóng khi user thực sự bấm Back làm mất param
+      closeChat();
+    }
+  }, [location.search, isChatOpen, closeChat]);
 
-    window.history.pushState({ chatOpen: true }, '', window.location.href);
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [isChatOpen, activeChatUserId, activeRoomId, closeChat]);
+  const handleClose = useCallback(() => {
+    // Làm sạch URL bằng navigate (chuẩn React Router)
+    const params = new URLSearchParams(location.search);
+    if (params.has('chat') || params.has('room')) {
+      params.delete('chat');
+      params.delete('room');
+      const newSearch = params.toString();
+      navigate({ search: newSearch ? `?${newSearch}` : '' }, { replace: true });
+    }
+    closeChat();
+  }, [location.search, navigate, closeChat]);
 
   // Real-time for private messages
   useEffect(() => {
@@ -313,7 +321,17 @@ export default function ChatPopup() {
       <ChatHeader 
         activeUser={profiles[activeChatUserId]} 
         activeRoom={rooms.find(r => r.id === activeRoomId)}
-        onBack={() => { setActiveChatUserId(null); setActiveRoomId(null); }}
+        onBack={() => { 
+          setActiveChatUserId(null); 
+          setActiveRoomId(null); 
+          // Cập nhật URL khi quay lại danh sách
+          const params = new URLSearchParams(location.search);
+          params.delete('chat');
+          params.delete('room');
+          const newSearch = params.toString();
+          navigate({ search: newSearch ? `?${newSearch}` : '' }, { replace: true });
+        }}
+        onClose={handleClose}
       />
 
       <div className="flex-1 overflow-hidden flex flex-col relative">

@@ -17,14 +17,23 @@ function getServiceClient() {
 }
 
 async function verifyUser(token) {
-  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  
+  if (!url || !anonKey) {
+    console.error('SERVER ERROR: Missing Supabase credentials in environment.');
+    throw new Error('Thiếu cấu hình kết nối database trên Vercel');
+  }
+
   const client = createClient(url, anonKey, {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false }
   });
   const { data: { user }, error } = await client.auth.getUser();
-  if (error || !user) throw new Error('Unauthorized');
+  if (error || !user) {
+    console.error('Auth verify failed:', error?.message);
+    throw new Error('Phiên đăng nhập không hợp lệ hoặc đã hết hạn (Unauthorized)');
+  }
   return user;
 }
 

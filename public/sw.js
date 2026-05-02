@@ -62,12 +62,14 @@ self.addEventListener('fetch', (event) => {
 
 // ── Push: nhận push notification ─────────────────────────
 self.addEventListener('push', (event) => {
+  console.log('[SW] Push Received:', event.data?.text());
   let data = {};
   try {
     data = event.data?.json() || {};
   } catch {
     data = { title: event.data?.text() || 'Thông báo mới', body: '' };
   }
+  console.log('[SW] Push Data:', data);
 
   const title = data.title || 'VPĐU Trà Bồng';
   const options = {
@@ -98,6 +100,7 @@ self.addEventListener('push', (event) => {
 
   event.waitUntil(
     self.registration.showNotification(title, options)
+      .then(() => console.log('[SW] Notification Shown'))
   );
 });
 

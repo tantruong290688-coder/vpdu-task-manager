@@ -29,19 +29,18 @@ async function verifyUser(token) {
 }
 
 function setupWebPush() {
-  const publicKey  = process.env.VITE_VAPID_PUBLIC_KEY;
+  const publicKey  = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
   const subject    = process.env.VAPID_SUBJECT || 'mailto:admin@vpdu-trabong.gov.vn';
 
   if (!publicKey || !privateKey) {
-    console.error('SERVER DIAGNOSTIC: Thiếu VAPID keys!', {
-      hasPublic: !!publicKey,
-      hasPrivate: !!privateKey
+    console.error('SERVER ERROR: Missing VAPID keys!', {
+      publicKey: publicKey ? 'EXISTS' : 'MISSING',
+      privateKey: privateKey ? 'EXISTS' : 'MISSING'
     });
-    throw new Error('Thiếu VAPID keys trong biến môi trường');
+    throw new Error('Hệ thống chưa cấu hình VAPID keys trên Vercel');
   }
 
-  console.log('SERVER DIAGNOSTIC: VAPID keys detected.');
   webpush.setVapidDetails(subject, publicKey, privateKey);
 }
 

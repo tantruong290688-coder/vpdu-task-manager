@@ -144,6 +144,7 @@ export function useNotifications({ filter = 'all', page = 1, limit = 20 } = {}) 
 
   // Mark tất cả đã đọc
   const markAllAsRead = useCallback(async () => {
+    if (!user?.id) return;
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     setUnreadCount(0);
     await supabase
@@ -152,6 +153,28 @@ export function useNotifications({ filter = 'all', page = 1, limit = 20 } = {}) 
       .or(`recipient_id.eq.${user.id},user_id.eq.${user.id}`)
       .eq('is_read', false);
   }, [user?.id]);
+
+  // Xóa tất cả thông báo ĐÃ ĐỌC
+  const deleteReadNotifications = useCallback(async () => {
+    if (!user?.id) return;
+    
+    // Optimistic update
+    setNotifications((prev) => prev.filter((n) => !n.is_read));
+    
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .or(`recipient_id.eq.${user.id},user_id.eq.${user.id}`)
+      .eq('is_read', true);
+      
+    if (error) {
+      console.error('[deleteReadNotifications error]', error);
+      fetchNotifications(); // Rollback if error
+    } else {
+      // Cập nhật lại tổng số lượng
+      fetchNotifications();
+    }
+  }, [user?.id, fetchNotifications]);
 
   return {
     notifications,
@@ -164,6 +187,7 @@ export function useNotifications({ filter = 'all', page = 1, limit = 20 } = {}) 
     fetchUnreadCount,
     markAsRead,
     markAllAsRead,
+    deleteReadNotifications,
   };
 }
 

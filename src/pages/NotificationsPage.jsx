@@ -4,7 +4,7 @@
 // ═══════════════════════════════════════════════════════════
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, BellOff, CheckCheck, AlertTriangle, MessageSquare, ClipboardList, RefreshCw } from 'lucide-react';
+import { Bell, BellOff, CheckCheck, AlertTriangle, MessageSquare, ClipboardList, RefreshCw, Trash2 } from 'lucide-react';
 import { useNotifications, getNotifDisplay } from '../hooks/useNotifications';
 import EnablePushButton from '../components/Notifications/EnablePushButton';
 import { useMessage } from '../context/MessageContext';
@@ -70,7 +70,7 @@ export default function NotificationsPage() {
   const {
     notifications, unreadCount, total,
     loading, error, hasMore,
-    fetchNotifications, markAsRead, markAllAsRead,
+    fetchNotifications, markAsRead, markAllAsRead, deleteReadNotifications,
   } = useNotifications({ filter: activeFilter });
 
   const { openChatWith, openRoomChat } = useMessage();
@@ -143,8 +143,22 @@ export default function NotificationsPage() {
               className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-bold rounded-xl transition-colors shadow-sm"
             >
               <CheckCheck size={14} />
-              <span className="hidden sm:inline">Đánh dấu tất cả đã đọc</span>
-              <span className="sm:hidden">Đọc hết</span>
+              <span className="hidden sm:inline">Đọc hết</span>
+            </button>
+          )}
+
+          {total > unreadCount && (
+            <button
+              onClick={() => {
+                if (window.confirm('Xóa toàn bộ các thông báo đã đọc?')) {
+                  deleteReadNotifications();
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 bg-red-100 hover:bg-red-200 text-red-600 text-[12px] font-bold rounded-xl transition-colors"
+              title="Xóa thông báo đã đọc"
+            >
+              <Trash2 size={14} />
+              <span className="hidden sm:inline">Xóa đã đọc</span>
             </button>
           )}
         </div>

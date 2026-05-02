@@ -2,7 +2,7 @@ import { useMessage } from '../../context/MessageContext';
 import { useAuth } from '../../context/AuthContext';
 import { X, Minus, Search, ArrowLeft, Users } from 'lucide-react';
 
-export default function ChatHeader({ activeUser, activeRoom, onBack }) {
+export default function ChatHeader({ activeUser, activeRoom, onBack, onClose }) {
   const { closeChat, minimizeChat } = useMessage();
   const { onlineUsers } = useAuth();
 
@@ -63,7 +63,7 @@ export default function ChatHeader({ activeUser, activeRoom, onBack }) {
           <Minus size={18} />
         </button>
         <button
-          onClick={(e) => { e.stopPropagation(); closeChat(); }}
+          onClick={(e) => { e.stopPropagation(); onClose ? onClose() : closeChat(); }}
           className="p-3 sm:p-2 rounded-full bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm active:scale-90"
           aria-label="Đóng chat"
         >

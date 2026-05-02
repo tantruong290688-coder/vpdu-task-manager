@@ -192,12 +192,17 @@ export default function Logs() {
                         const { error: delError } = await supabase
                           .from('activity_logs')
                           .delete()
-                          .gt('created_at', '1970-01-01'); // Xóa tất cả từ trước đến nay
+                          .not('id', 'is', null); // Xóa sạch mọi bản ghi có ID
                         
                         if (delError) throw delError;
                         
+                        // Xóa trắng dữ liệu local ngay lập tức
+                        setLogs([]);
+                        setTotalCount(0);
+                        
                         toast.success('Đã xóa sạch nhật ký thao tác');
-                        fetchLogs(true);
+                        // Tải lại để xác nhận
+                        await fetchLogs(true);
                       } catch (err) {
                         console.error('Clear logs error:', err);
                         toast.error('Lỗi khi xóa nhật ký: ' + err.message);

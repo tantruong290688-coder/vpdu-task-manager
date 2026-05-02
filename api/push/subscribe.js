@@ -39,7 +39,7 @@ export default async function handler(req, res) {
 
   try {
     const user = await verifyUser(token);
-    const { endpoint, p256dh, auth, userAgent, deviceType, platform } = req.body || {};
+    const { endpoint, p256dh, auth, userAgent, deviceType, deviceName, platform } = req.body || {};
 
     if (!endpoint || !p256dh || !auth) {
       return err(res, 400, 'Thiếu thông tin subscription (endpoint, p256dh, auth)');
@@ -52,17 +52,19 @@ export default async function handler(req, res) {
       .from('push_subscriptions')
       .upsert(
         {
-          user_id:     user.id,
+          user_id:      user.id,
           endpoint,
           p256dh,
           auth,
-          user_agent:  userAgent || req.headers['user-agent'] || null,
-          device_type: deviceType || null,
-          platform:    platform || null,
-          is_active:   true,
-          updated_at:  new Date().toISOString(),
+          user_agent:   userAgent || req.headers['user-agent'] || null,
+          device_type:  deviceType || null,
+          device_name:  deviceName || deviceType || null,
+          platform:     platform || null,
+          is_active:    true,
+          last_seen_at: new Date().toISOString(),
+          updated_at:   new Date().toISOString(),
         },
-        { onConflict: 'user_id,endpoint', ignoreDuplicates: false }
+        { onConflict: 'endpoint', ignoreDuplicates: false }
       );
 
     if (upsertErr) throw upsertErr;

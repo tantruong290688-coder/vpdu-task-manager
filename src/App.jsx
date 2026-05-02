@@ -64,39 +64,52 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
-  // Đăng ký Service Worker + xử lý update
+  // Đăng ký Service Worker + xử lý update + Offline Sync
   useEffect(() => {
-    if (!('serviceWorker' in navigator)) return;
-
-    navigator.serviceWorker
-      .register('/sw.js', { scope: '/' })
-      .then((reg) => {
-        console.log('[SW] Registered:', reg.scope);
-
-        // Xử lý SW mới đang chờ → kích hoạt ngay
-        const activateNewSW = (worker) => {
-          if (!worker) return;
-          worker.addEventListener('statechange', () => {
-            if (worker.state === 'activated') {
-              // Reload để dùng SW mới (chỉ reload 1 lần)
-              const key = 'sw_reload_' + Date.now();
-              if (!sessionStorage.getItem('sw_reloaded')) {
-                sessionStorage.setItem('sw_reloaded', '1');
-                window.location.reload();
+    // 1. Service Worker registration
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('/sw.js', { scope: '/' })
+        .then((reg) => {
+          console.log('[SW] Registered:', reg.scope);
+          // Xử lý SW mới đang chờ → kích hoạt ngay
+          const activateNewSW = (worker) => {
+            if (!worker) return;
+            worker.addEventListener('statechange', () => {
+              if (worker.state === 'activated') {
+                if (!sessionStorage.getItem('sw_reloaded')) {
+                  sessionStorage.setItem('sw_reloaded', '1');
+                  window.location.reload();
+                }
               }
-            }
-          });
-          worker.postMessage({ type: 'SKIP_WAITING' });
-        };
+            });
+            worker.postMessage({ type: 'SKIP_WAITING' });
+          };
+          if (reg.waiting) activateNewSW(reg.waiting);
+          reg.addEventListener('updatefound', () => activateNewSW(reg.installing));
+        })
+        .catch((err) => console.error('[SW] Registration failed:', err));
+    }
 
-        if (reg.waiting) {
-          activateNewSW(reg.waiting);
-        }
-        reg.addEventListener('updatefound', () => {
-          activateNewSW(reg.installing);
-        });
-      })
-      .catch((err) => console.error('[SW] Registration failed:', err));
+    // 2. Online/Offline handling
+    const handleOnline = () => {
+      toast.success('Đã kết nối mạng. Đang đồng bộ dữ liệu mới...', { icon: '🌐', duration: 4000 });
+      // Tự động reload các tab đang mở hoặc trigger refetch qua event nếu cần
+      // Ở đây ta có thể phát một custom event để các component tự refetch
+      window.dispatchEvent(new CustomEvent('app-sync-data'));
+    };
+
+    const handleOffline = () => {
+      toast.error('Mất kết nối mạng. Bạn đang ở chế độ ngoại tuyến.', { icon: '📶', duration: 5000 });
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   return (

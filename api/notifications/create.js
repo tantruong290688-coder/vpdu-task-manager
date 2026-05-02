@@ -74,11 +74,16 @@ export default async function handler(req, res) {
   }
 
   const {
-    userId,       // UUID - người nhận
+    userId,       // UUID - người nhận (recipient_id)
     userIds,      // UUID[] - nhiều người nhận (ưu tiên nếu có)
+    actorId,      // UUID - người gửi
     title,
     body,
     type = 'general',
+    entityType,   // 'task' | 'message' | 'system'
+    entityId,     // UUID
+    url,          // URL cụ thể
+    // Backward compat fields
     relatedTaskId,
     relatedMessageId,
     relatedUrl,
@@ -106,16 +111,21 @@ export default async function handler(req, res) {
       const { data: notif, error: insertErr } = await db
         .from('notifications')
         .insert({
-          user_id:            uid,
+          recipient_id:       uid,
+          user_id:            uid, // backward compat
+          actor_id:           actorId || null,
           title,
           body,
-          message:            body || title, // backward compat với cột cũ
+          message:            body || title, // backward compat
           type,
-          related_task_id:    relatedTaskId    || null,
-          related_message_id: relatedMessageId || null,
-          related_url:        relatedUrl       || null,
-          task_id:            relatedTaskId    || null, // backward compat
+          entity_type:        entityType || (relatedTaskId ? 'task' : relatedMessageId ? 'message' : 'system'),
+          entity_id:          entityId   || relatedTaskId || relatedMessageId || null,
+          url:                url        || relatedUrl || '/notifications',
+          related_task_id:    relatedTaskId    || (entityType === 'task' ? entityId : null),
+          related_message_id: relatedMessageId || (entityType === 'message' ? entityId : null),
+          related_url:        relatedUrl       || url || '/notifications',
           is_read:            false,
+          push_status:        'pending'
         })
         .select()
         .single();
@@ -134,11 +144,14 @@ export default async function handler(req, res) {
         .eq('user_id', uid)
         .eq('is_active', true);
 
-      if (!subs || subs.length === 0) continue;
+      if (!subs || subs.length === 0) {
+        await db.from('notifications').update({ push_status: 'no_subscription' }).eq('id', notif.id);
+        continue;
+      }
 
       // 2.5 Tính tổng số chưa đọc (notifications + private messages)
       const [notifCount, msgCount] = await Promise.all([
-        db.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', uid).eq('is_read', false),
+        db.from('notifications').select('*', { count: 'exact', head: true }).eq('recipient_id', uid).eq('is_read', false),
         db.from('messages').select('*', { count: 'exact', head: true }).eq('receiver_id', uid).eq('is_read', false)
       ]);
       const totalUnread = (notifCount.count || 0) + (msgCount.count || 0);
@@ -146,16 +159,20 @@ export default async function handler(req, res) {
       // 3. Gửi Web Push tới từng subscription
       const origin = req.headers.host ? `https://${req.headers.host}` : 'https://quantrivpdutrabong.vercel.app';
       const pushPayload = JSON.stringify({
+        notification_id: notif.id,
         title,
         body:  body || '',
-        icon:  `${origin}/favicon.svg`,
+        icon:  `${origin}/icon-512.png`,
         badge: `${origin}/favicon.svg`,
-        url:   relatedUrl || '/notifications',
+        url:   url || relatedUrl || '/notifications',
         type,
-        taskId: relatedTaskId || null,
+        entity_id: entityId || relatedTaskId || relatedMessageId || null,
         timestamp: Date.now(),
         unreadCount: totalUnread,
       });
+
+      let overallPushStatus = 'sent';
+      let overallPushError = null;
 
       for (const sub of subs) {
         const pushSub = {
@@ -163,15 +180,12 @@ export default async function handler(req, res) {
           keys: { p256dh: sub.p256dh, auth: sub.auth },
         };
 
-        let logStatus = 'sent';
-        let logError  = null;
-
         try {
           await webpush.sendNotification(pushSub, pushPayload);
           results.pushed++;
         } catch (pushErr) {
-          logStatus = 'failed';
-          logError  = pushErr.message;
+          overallPushStatus = 'failed';
+          overallPushError = pushErr.message;
           results.failed++;
 
           // 404/410 → subscription không còn hợp lệ → deactivate
@@ -185,15 +199,23 @@ export default async function handler(req, res) {
           console.error('[web-push send]', pushErr.statusCode, pushErr.message);
         }
 
-        // Ghi log
+        // Ghi log (optional but kept for history)
         await db.from('notification_logs').insert({
           notification_id: notif.id,
           user_id:         uid,
           endpoint:        sub.endpoint,
-          status:          logStatus,
-          error_message:   logError,
+          status:          overallPushStatus === 'sent' ? 'sent' : 'failed',
+          error_message:   overallPushError,
         });
       }
+
+      // Cập nhật status cuối cùng vào bảng notifications
+      await db.from('notifications')
+        .update({ 
+          push_status: overallPushStatus,
+          push_error: overallPushError
+        })
+        .eq('id', notif.id);
     }
 
     return ok(res, { results });

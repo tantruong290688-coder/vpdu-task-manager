@@ -206,8 +206,33 @@ export default function MessagesDrawer() {
           content,
           reply_to_id: currentReplyTo?.id || null
         };
-        const { error } = await supabase.from('chat_messages').insert(msg);
+        const { data: savedMsg, error } = await supabase.from('chat_messages').insert(msg).select().single();
         if (error) throw error;
+
+        // Gửi push notification cho các thành viên khác trong nhóm (giả định tất cả member đều cần nhận)
+        // Lưu ý: Trong thực tế nên lấy danh sách member của room, ở đây ta lấy tất cả profiles trừ bản thân
+        const otherUserIds = Object.keys(profiles).filter(id => id !== user.id);
+        if (otherUserIds.length > 0) {
+          const { data: { session } } = await supabase.auth.getSession();
+          fetch('/api/notifications/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session?.access_token}`
+            },
+            body: JSON.stringify({
+              userIds: otherUserIds,
+              actorId: user.id,
+              title: `Tin nhắn mới từ ${profile?.full_name || 'Đồng nghiệp'}`,
+              body: content.length > 100 ? content.substring(0, 97) + '...' : content,
+              type: 'group_message',
+              entityType: 'message',
+              entityId: savedMsg.id,
+              url: '/messages' // Hoặc URL mở drawer
+            })
+          }).catch(err => console.error('Push error:', err));
+        }
+
       } else {
         const msg = {
           sender_id: user.id,
@@ -216,8 +241,28 @@ export default function MessagesDrawer() {
           is_read: false,
           reply_to_id: currentReplyTo?.id || null
         };
-        const { error } = await supabase.from('messages').insert(msg);
+        const { data: savedMsg, error } = await supabase.from('messages').insert(msg).select().single();
         if (error) throw error;
+
+        // Gửi push cho người nhận
+        const { data: { session } } = await supabase.auth.getSession();
+        fetch('/api/notifications/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`
+          },
+          body: JSON.stringify({
+            userId: activeChatUserId,
+            actorId: user.id,
+            title: `Tin nhắn mới từ ${profile?.full_name || 'Đồng nghiệp'}`,
+            body: content.length > 100 ? content.substring(0, 97) + '...' : content,
+            type: 'new_message',
+            entityType: 'message',
+            entityId: savedMsg.id,
+            url: '/messages'
+          })
+        }).catch(err => console.error('Push error:', err));
       }
     } catch (err) {
       console.error(err);

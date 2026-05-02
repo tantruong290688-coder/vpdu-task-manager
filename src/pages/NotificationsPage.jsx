@@ -72,6 +72,15 @@ export default function NotificationsPage() {
     fetchNotifications, markAsRead, markAllAsRead,
   } = useNotifications({ filter: activeFilter });
 
+  // Sync data when app-sync-data event is fired (e.g. when back online)
+  useEffect(() => {
+    const handleSync = () => {
+      fetchNotifications();
+    };
+    window.addEventListener('app-sync-data', handleSync);
+    return () => window.removeEventListener('app-sync-data', handleSync);
+  }, [fetchNotifications]);
+
   const handleNotificationClick = async (n) => {
     if (!n.is_read) await markAsRead(n.id);
     const { taskId } = getNotifDisplay(n);

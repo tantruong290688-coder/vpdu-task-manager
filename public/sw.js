@@ -72,22 +72,21 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'VPĐU Trà Bồng';
   const options = {
     body:     data.body || '',
-    icon:     data.icon  || '/favicon.svg',
+    icon:     data.icon  || '/icon-512.png',
     badge:    data.badge || '/favicon.svg',
-    // Bỏ tag để thông báo không bị ghi đè (stacking) giống Zalo/Messenger
-    // tag:      data.type  || 'general', 
     renotify: true,
-    requireInteraction: true, // Giữ thông báo trên máy tính cho đến khi tương tác
+    requireInteraction: true,
     silent: false,
     timestamp: data.timestamp || Date.now(),
     data: {
-      url:    data.url    || '/notifications',
-      taskId: data.taskId || null,
-      type:   data.type   || 'general',
+      url:             data.url             || '/notifications',
+      notification_id: data.notification_id || null,
+      type:            data.type            || 'general',
+      entity_id:       data.entity_id       || data.taskId || null,
     },
     actions: [
-      { action: 'open',    title: 'Mở ngay' },
-      { action: 'dismiss', title: 'Bỏ qua' },
+      { action: 'open',    title: 'Mở xem' },
+      { action: 'dismiss', title: 'Đóng' },
     ],
     vibrate: [200, 100, 200],
   };
@@ -95,9 +94,6 @@ self.addEventListener('push', (event) => {
   // Cập nhật App Badge (số lượng thông báo trên icon app)
   if ('setAppBadge' in navigator && data.unreadCount !== undefined) {
     navigator.setAppBadge(data.unreadCount).catch(() => {});
-  } else if ('setAppBadge' in navigator) {
-    // Nếu không có số cụ thể, ít nhất là hiện dấu chấm đỏ (trên một số trình duyệt)
-    navigator.setAppBadge().catch(() => {});
   }
 
   event.waitUntil(
@@ -114,16 +110,18 @@ self.addEventListener('notificationclick', (event) => {
   const notifData = event.notification.data || {};
   let targetUrl = notifData.url || '/notifications';
 
-  // Nếu có taskId thì mở trang tasks với param open
-  if (notifData.taskId) {
-    targetUrl = `/all-tasks?open=${notifData.taskId}`;
+  // Nếu có entity_id (taskId) thì mở trang tasks với param open
+  if (notifData.entity_id && (notifData.type === 'new_task' || notifData.type === 'task_assigned' || notifData.type === 'task_updated')) {
+    targetUrl = `/all-tasks?open=${notifData.entity_id}`;
+  } else if (notifData.entity_id && (notifData.type === 'new_message' || notifData.type === 'group_message')) {
+    targetUrl = '/messages'; // Hoặc sâu hơn tùy app
   }
 
   event.waitUntil(
     self.clients
       .matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // Nếu app đang mở → focus tab đó
+        // Nếu app đang mở → tìm tab đó
         const existingClient = clientList.find((c) => {
           const clientUrl = new URL(c.url);
           return clientUrl.origin === self.location.origin;
@@ -131,7 +129,9 @@ self.addEventListener('notificationclick', (event) => {
 
         if (existingClient) {
           existingClient.focus();
-          existingClient.navigate(targetUrl);
+          if ('navigate' in existingClient) {
+            existingClient.navigate(targetUrl);
+          }
           return;
         }
 

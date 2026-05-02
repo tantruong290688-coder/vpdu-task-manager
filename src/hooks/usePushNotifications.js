@@ -154,6 +154,7 @@ export function usePushNotifications() {
           auth:       subJson.keys?.auth,
           userAgent:  ua,
           deviceType: /Mobi|Android/i.test(ua) ? 'mobile' : 'desktop',
+          deviceName: platform === 'ios' ? 'iPhone/iPad' : platform === 'android' ? 'Android Device' : 'Desktop Browser',
           platform,
         }),
       });

@@ -25,8 +25,8 @@ export function useNotifications({ filter = 'all', page = 1, limit = 20 } = {}) 
     try {
       let query = supabase
         .from('notifications')
-        .select('*', { count: 'exact' })      // ← Không JOIN, tương thích cả schema cũ và mới
-        .eq('user_id', user.id)
+        .select('*', { count: 'exact' })
+        .or(`recipient_id.eq.${user.id},user_id.eq.${user.id}`)
         .order('created_at', { ascending: false })
         .range((page - 1) * limit, page * limit - 1);
 
@@ -54,7 +54,7 @@ export function useNotifications({ filter = 'all', page = 1, limit = 20 } = {}) 
         const { data, count } = await supabase
           .from('notifications')
           .select('*', { count: 'exact' })
-          .eq('user_id', user.id)
+          .or(`recipient_id.eq.${user.id},user_id.eq.${user.id}`)
           .order('created_at', { ascending: false })
           .limit(limit);
         setNotifications(data || []);
@@ -74,7 +74,7 @@ export function useNotifications({ filter = 'all', page = 1, limit = 20 } = {}) 
     const { count } = await supabase
       .from('notifications')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
+      .or(`recipient_id.eq.${user.id},user_id.eq.${user.id}`)
       .eq('is_read', false);
     setUnreadCount(count || 0);
   }, [user?.id]);
@@ -89,27 +89,29 @@ export function useNotifications({ filter = 'all', page = 1, limit = 20 } = {}) 
     // Cleanup old channel
     if (channelRef.current) supabase.removeChannel(channelRef.current);
 
-    const uniqueId = Math.random().toString(36).substring(7);
     const channel = supabase
       .channel(`notifications_hook_${user.id}_${uniqueId}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        { event: 'INSERT', schema: 'public', table: 'notifications' }, // Realtime doesn't support complex filters like OR, so we filter in callback
         (payload) => {
-          setNotifications((prev) => [payload.new, ...prev]);
-          setUnreadCount((prev) => prev + 1);
-          setTotal((prev) => prev + 1);
+          if (payload.new.recipient_id === user.id || payload.new.user_id === user.id) {
+            setNotifications((prev) => [payload.new, ...prev]);
+            setUnreadCount((prev) => prev + 1);
+            setTotal((prev) => prev + 1);
+          }
         }
       )
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        { event: 'UPDATE', schema: 'public', table: 'notifications' },
         (payload) => {
-          // Cập nhật inline thay vì refetch để tránh lag
-          setNotifications((prev) =>
-            prev.map((n) => n.id === payload.new.id ? { ...n, ...payload.new } : n)
-          );
-          fetchUnreadCount();
+          if (payload.new.recipient_id === user.id || payload.new.user_id === user.id) {
+            setNotifications((prev) =>
+              prev.map((n) => n.id === payload.new.id ? { ...n, ...payload.new } : n)
+            );
+            fetchUnreadCount();
+          }
         }
       )
       .subscribe();
@@ -146,7 +148,7 @@ export function useNotifications({ filter = 'all', page = 1, limit = 20 } = {}) 
     await supabase
       .from('notifications')
       .update({ is_read: true })
-      .eq('user_id', user.id)
+      .or(`recipient_id.eq.${user.id},user_id.eq.${user.id}`)
       .eq('is_read', false);
   }, [user?.id]);
 
@@ -178,7 +180,7 @@ export function getNotifDisplay(n) {
 // ─────────────────────────────────────────────────────────
 // Helper: gọi API tạo notification (dùng trong TaskModal, ChatPopup, ...)
 // ─────────────────────────────────────────────────────────
-export async function createNotification({ userIds, title, body, type, relatedTaskId, relatedMessageId, relatedUrl }) {
+export async function createNotification({ userIds, actorId, title, body, type, entityType, entityId, url, relatedTaskId, relatedMessageId, relatedUrl }) {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) return;
@@ -196,9 +198,13 @@ export async function createNotification({ userIds, title, body, type, relatedTa
       },
       body: JSON.stringify({
         userIds:          filtered,
+        actorId:          actorId || session.user.id,
         title,
         body,
         type,
+        entityType,
+        entityId,
+        url,
         relatedTaskId,
         relatedMessageId,
         relatedUrl,
@@ -207,26 +213,33 @@ export async function createNotification({ userIds, title, body, type, relatedTa
 
     if (!response.ok) {
       // Fallback: nếu API chưa sẵn sàng (migration chưa chạy), insert trực tiếp vào DB
-      // với schema cũ để không mất thông báo
       const isApiError = response.status === 500 || response.status === 404;
       if (isApiError) {
         for (const uid of filtered) {
           await supabase.from('notifications').insert({
-            user_id: uid,
+            recipient_id: uid,
+            user_id: uid, // backward compat
+            title,
+            body,
             message: body || title,
+            type: type || 'general',
+            entity_type: entityType,
+            entity_id: entityId,
+            url,
             is_read: false,
           });
         }
       }
     }
   } catch (e) {
-    // Fallback im lặng – insert với schema cũ
+    // Fallback im lặng
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       const recipients = Array.isArray(userIds) ? userIds : [userIds];
       for (const uid of recipients.filter(Boolean)) {
         await supabase.from('notifications').insert({
+          recipient_id: uid,
           user_id: uid,
           message: body || title,
           is_read: false,

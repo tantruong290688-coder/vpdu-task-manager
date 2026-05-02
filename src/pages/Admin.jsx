@@ -236,10 +236,50 @@ export default function Admin() {
               <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
             </button>
             {isAdmin && (
-              <button onClick={() => setModal('create')}
-                className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.3)] transition-all active:scale-95">
-                <Plus size={18} /> Tạo tài khoản
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={async () => {
+                    if (window.confirm('CẢNH BÁO: Hành động này sẽ xóa VĨNH VIỄN toàn bộ tin nhắn (riêng và nhóm) trên hệ thống. Bạn có chắc chắn muốn tiếp tục?')) {
+                      if (window.confirm('Xác nhận lần cuối: Bạn thực sự muốn xóa sạch mọi cuộc trò chuyện?')) {
+                        try {
+                          setLoading(true);
+                          const { data: { session } } = await supabase.auth.getSession();
+                          
+                          const response = await fetch('/api/admin/clear-chats', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${session?.access_token}`
+                            }
+                          });
+
+                          const result = await response.json();
+                          
+                          if (!response.ok) throw new Error(result.error || 'Lỗi không xác định');
+                          
+                          toast.success('Đã xóa sạch toàn bộ tin nhắn trên hệ thống!');
+                        } catch (err) {
+                          console.error('Clear chats error:', err);
+                          toast.error('Lỗi khi xóa tin nhắn: ' + err.message);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }
+                    }
+                  }}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-5 py-3 bg-red-100 hover:bg-red-200 text-red-600 font-bold rounded-xl transition-all active:scale-95 disabled:opacity-50"
+                  title="Xóa sạch dữ liệu tin nhắn"
+                >
+                  <Trash2 size={18} />
+                  <span className="hidden sm:inline">Xóa sạch tin nhắn</span>
+                </button>
+
+                <button onClick={() => setModal('create')}
+                  className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.3)] transition-all active:scale-95">
+                  <Plus size={18} /> Tạo tài khoản
+                </button>
+              </div>
             )}
           </div>
         </div>

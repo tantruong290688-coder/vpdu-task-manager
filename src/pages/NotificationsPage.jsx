@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { Bell, BellOff, CheckCheck, AlertTriangle, MessageSquare, ClipboardList, RefreshCw } from 'lucide-react';
 import { useNotifications, getNotifDisplay } from '../hooks/useNotifications';
 import EnablePushButton from '../components/Notifications/EnablePushButton';
+import { useMessage } from '../context/MessageContext';
 
 const FILTERS = [
   { key: 'all',     label: 'Tất cả',   icon: Bell },
@@ -72,6 +73,8 @@ export default function NotificationsPage() {
     fetchNotifications, markAsRead, markAllAsRead,
   } = useNotifications({ filter: activeFilter });
 
+  const { openChatWith, openRoomChat } = useMessage();
+
   // Sync data when app-sync-data event is fired (e.g. when back online)
   useEffect(() => {
     const handleSync = () => {
@@ -84,8 +87,23 @@ export default function NotificationsPage() {
   const handleNotificationClick = async (n) => {
     if (!n.is_read) await markAsRead(n.id);
     const { taskId } = getNotifDisplay(n);
+    
     if (taskId) {
       navigate(`/all-tasks?open=${taskId}`);
+    } else if (n.type?.startsWith('message')) {
+      // Nếu là tin nhắn, mở drawer ngay tại trang này thay vì navigate đi chỗ khác
+      const params = new URLSearchParams(n.related_url?.split('?')[1] || '');
+      const chatId = params.get('chat');
+      const roomId = params.get('room');
+      
+      if (chatId) {
+        openChatWith(chatId);
+      } else if (roomId) {
+        openRoomChat(roomId);
+      } else {
+        // Fallback nếu không có param cụ thể
+        navigate(n.related_url || '/');
+      }
     } else if (n.related_url) {
       navigate(n.related_url);
     }

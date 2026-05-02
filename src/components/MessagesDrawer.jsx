@@ -223,8 +223,8 @@ export default function MessagesDrawer() {
             body: JSON.stringify({
               userIds: otherUserIds,
               actorId: user.id,
-              title: `Tin nhắn mới từ ${profile?.full_name || 'Đồng nghiệp'}`,
-              body: content.length > 100 ? content.substring(0, 97) + '...' : content,
+              title: 'Tin nhắn nhóm CB,CC,NV',
+              body: `${profile?.full_name || 'Đồng nghiệp'}: ${content.length > 80 ? content.substring(0, 77) + '...' : content}`,
               type: 'message_group',
               entityType: 'message',
               entityId: savedMsg.id,
@@ -255,8 +255,8 @@ export default function MessagesDrawer() {
           body: JSON.stringify({
             userId: activeChatUserId,
             actorId: user.id,
-            title: `Tin nhắn mới từ ${profile?.full_name || 'Đồng nghiệp'}`,
-            body: content.length > 100 ? content.substring(0, 97) + '...' : content,
+            title: 'Tin nhắn mới',
+            body: `${profile?.full_name || 'Đồng nghiệp'}: ${content.length > 80 ? content.substring(0, 77) + '...' : content}`,
             type: 'message_private',
             entityType: 'message',
             entityId: savedMsg.id,
@@ -367,15 +367,28 @@ export default function MessagesDrawer() {
       <div className="fixed top-0 right-0 h-full w-full sm:w-[400px] md:w-[450px] bg-white dark:bg-[#111827] shadow-2xl z-[70] flex flex-col transform transition-transform duration-300">
         
         {/* Header */}
-        <div className="h-[calc(70px+env(safe-area-inset-top))] md:h-[80px] pt-[env(safe-area-inset-top)] px-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/50 dark:bg-slate-900/50">
+        <div className="h-[calc(80px+env(safe-area-inset-top))] md:h-[90px] pt-[calc(env(safe-area-inset-top)+8px)] px-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-20">
           <div className="flex items-center gap-3">
             {(activeChatUserId || activeRoomId) ? (
               <>
                 <button 
-                  onClick={() => { setActiveChatUserId(null); setActiveRoomId(null); }} 
-                  className="w-10 h-10 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 transition-colors"
+                  onClick={() => { 
+                    if (activeChatUserId || activeRoomId) {
+                      setActiveChatUserId(null); 
+                      setActiveRoomId(null);
+                      // Nếu đang ở trang thông báo và bấm vào chát, nhấn back sẽ đóng chát để về lại danh sách thông báo
+                      if (window.location.search.includes('chat=') || window.location.search.includes('room=')) {
+                        closeDrawer();
+                        // Xóa param trên URL để sạch sẽ
+                        window.history.replaceState({}, '', window.location.pathname);
+                      }
+                    } else {
+                      closeDrawer();
+                    }
+                  }} 
+                  className="w-12 h-12 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 transition-colors active:scale-95"
                 >
-                  <ArrowLeft size={20} />
+                  <ArrowLeft size={24} />
                 </button>
                 <div className="flex items-center gap-3">
                   <div className="relative">
@@ -410,8 +423,16 @@ export default function MessagesDrawer() {
                 <Trash2 size={20} />
               </button>
             )}
-            <button onClick={closeDrawer} className="w-10 h-10 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 transition-colors">
-              <X size={20} />
+            <button 
+              onClick={() => {
+                closeDrawer();
+                if (window.location.search.includes('chat=') || window.location.search.includes('room=')) {
+                  window.history.replaceState({}, '', window.location.pathname);
+                }
+              }} 
+              className="w-12 h-12 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 transition-colors active:scale-95"
+            >
+              <X size={24} />
             </button>
           </div>
         </div>
@@ -539,12 +560,12 @@ export default function MessagesDrawer() {
                             </span>
                           )}
                           <div className={`flex gap-2 max-w-[85%] relative group ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                            <div className={`px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed shadow-sm transition-all ${
+                            <div className={`px-5 py-3 rounded-2xl text-[16px] font-medium leading-relaxed shadow-sm transition-all ${
                               m.is_deleted 
                                 ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-400 italic' 
                                 : isMe 
-                                  ? 'bg-blue-600 text-white rounded-br-sm' 
-                                  : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-bl-sm'
+                                  ? 'bg-blue-600 text-white rounded-br-sm shadow-blue-500/10' 
+                                  : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-100 dark:border-slate-700 rounded-bl-sm'
                             }`}>
                               {repliedMsg && !m.is_deleted && (
                                 <div className={`text-[12px] p-2 mb-2 rounded-lg border-l-4 ${isMe ? 'bg-blue-700/50 border-blue-400 text-blue-100' : 'bg-slate-100 dark:bg-slate-700 border-slate-400 text-slate-500'} italic truncate`}>
@@ -603,12 +624,12 @@ export default function MessagesDrawer() {
                           )}
                           <div className={`max-w-[85%] flex relative group ${isMe ? 'flex-row-reverse items-end' : 'flex-row items-start'}`}>
                             <div className="flex flex-col">
-                              <div className={`px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed shadow-sm transition-all ${
+                              <div className={`px-5 py-3 rounded-2xl text-[16px] font-medium leading-relaxed shadow-sm transition-all ${
                                 m.is_deleted 
                                   ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-400 italic' 
                                   : isMe 
-                                    ? 'bg-blue-600 text-white rounded-br-sm' 
-                                    : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-bl-sm'
+                                    ? 'bg-blue-600 text-white rounded-br-sm shadow-blue-500/10' 
+                                    : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-100 dark:border-slate-700 rounded-bl-sm'
                               }`}>
                                 {m.reply_to_id && !m.is_deleted && (
                                   <div className={`text-[12px] p-2 mb-2 rounded-lg border-l-4 ${isMe ? 'bg-blue-700/50 border-blue-400 text-blue-100' : 'bg-slate-100 dark:bg-slate-700 border-slate-400 text-slate-500'} italic truncate`}>
@@ -669,7 +690,7 @@ export default function MessagesDrawer() {
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder={replyTo ? `Trả lời ${replyTo.sender_name}...` : "Nhập tin nhắn..."}
-                    className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full pl-5 pr-12 py-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-800 dark:text-slate-200 transition-all"
+                    className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full pl-6 pr-12 py-4 text-[16px] font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 dark:text-white transition-all"
                   />
                   <button 
                     type="submit" 

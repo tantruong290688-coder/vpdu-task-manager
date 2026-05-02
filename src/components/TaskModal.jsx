@@ -279,11 +279,31 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
 
         // Thông báo cho người được giao (push + in-app)
         if (assigneeId && assigneeId !== profile?.id) {
+          const dateStr = dueDate ? new Date(dueDate).toLocaleDateString('vi-VN') : 'chưa xác định';
           createNotification({
             userIds: [assigneeId],
-            title: 'Bạn có nhiệm vụ mới',
-            body: `Đồng chí được giao nhiệm vụ: [${payload.code}] ${title}`,
+            title: 'Nhiệm vụ mới',
+            body: `${title} - hạn ${dateStr}`,
             type: 'task_assigned',
+            entityType: 'task',
+            entityId: taskId,
+            relatedTaskId: taskId,
+            relatedUrl: `/all-tasks?open=${taskId}`,
+          });
+        }
+      }
+
+      // Thông báo cập nhật cho người thực hiện và người phối hợp
+      if (initialData && changeLog.length > 0) {
+        const recipients = [initialData.assignee_id, ...collaborators].filter(id => id && id !== profile?.id);
+        if (recipients.length > 0) {
+          createNotification({
+            userIds: recipients,
+            title: 'Nhiệm vụ được cập nhật',
+            body: `${title} vừa có thay đổi mới.`,
+            type: 'task_updated',
+            entityType: 'task',
+            entityId: taskId,
             relatedTaskId: taskId,
             relatedUrl: `/all-tasks?open=${taskId}`,
           });
@@ -294,15 +314,18 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
         const collabData = collaborators.map(cId => ({ task_id: taskId, user_id: cId }));
         await supabase.from('task_collaborators').insert(collabData);
         
-        // Thông báo cho người phối hợp (push + in-app)
+        // Thông báo cho người phối hợp (push + in-app) - Chỉ khi tạo mới
         if (!initialData) {
           const collabTargets = collaborators.filter(cId => cId !== profile?.id && cId !== assigneeId);
           if (collabTargets.length > 0) {
+            const dateStr = dueDate ? new Date(dueDate).toLocaleDateString('vi-VN') : 'chưa xác định';
             createNotification({
               userIds: collabTargets,
-              title: 'Bạn được thêm vào phối hợp nhiệm vụ',
-              body: `Nhiệm vụ: [${payload.code || initialData?.code}] ${title}`,
+              title: 'Nhiệm vụ mới',
+              body: `${title} - hạn ${dateStr}`,
               type: 'task_assigned',
+              entityType: 'task',
+              entityId: taskId,
               relatedTaskId: taskId,
               relatedUrl: `/all-tasks?open=${taskId}`,
             });

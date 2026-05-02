@@ -69,8 +69,12 @@ export default async function handler(req, res) {
         { onConflict: 'endpoint', ignoreDuplicates: false }
       );
 
-    if (upsertErr) throw upsertErr;
+    if (upsertErr) {
+      console.error('[DEBUG] push/subscribe upsert error:', upsertErr.message);
+      throw upsertErr;
+    }
 
+    console.log('[DEBUG] push/subscribe success for user:', user.id);
     return ok(res, { message: 'Đăng ký nhận thông báo thành công' });
   } catch (e) {
     console.error('[push/subscribe]', e.message);

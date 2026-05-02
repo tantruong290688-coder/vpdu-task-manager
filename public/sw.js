@@ -1,13 +1,15 @@
 // ═══════════════════════════════════════════════════════════
 // Service Worker – VPĐU Task Manager PWA
-// File: public/sw.js
+// Version: 2026.05.02.05 (Force Update)
 // ═══════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'vpdu-v3';
+const SW_VERSION = '2026.05.02.05';
+const CACHE_NAME = 'vpdu-v5';
 const OFFLINE_URL = '/offline.html';
 
 // ── Install: pre-cache shell ─────────────────────────────
 self.addEventListener('install', (event) => {
+  console.log('[SW] Installed version:', SW_VERSION);
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
       cache.addAll(['/'])
@@ -18,6 +20,7 @@ self.addEventListener('install', (event) => {
 
 // ── Activate: clean old caches ───────────────────────────
 self.addEventListener('activate', (event) => {
+  console.log('[SW] Activated version:', SW_VERSION);
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
@@ -74,11 +77,12 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'VPĐU Trà Bồng';
   const options = {
     body:     data.body || '',
-    icon:     data.icon  || '/icon-512.png',
-    badge:    data.badge || '/favicon.svg',
+    icon:     '/icon-512.png',
+    badge:    '/favicon.svg',
+    vibrate:  [200, 100, 200],
+    tag:      data.entity_id || 'general', // Tránh trùng lặp cùng 1 thực thể
     renotify: true,
-    requireInteraction: true,
-    silent: false,
+    requireInteraction: false,
     timestamp: data.timestamp || Date.now(),
     data: {
       url:             data.url             || '/notifications',
@@ -90,7 +94,6 @@ self.addEventListener('push', (event) => {
       { action: 'open',    title: 'Mở xem' },
       { action: 'dismiss', title: 'Đóng' },
     ],
-    vibrate: [200, 100, 200],
   };
 
   // Cập nhật App Badge (số lượng thông báo trên icon app)
@@ -104,42 +107,33 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// ── NotificationClick: mở đúng URL khi bấm vào thông báo ─
+// ── Click: xử lý khi bấm vào thông báo ───────────────────
 self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
+  console.log('[SW] Notification Clicked:', event.action);
+  const notification = event.notification;
+  const data = notification.data || {};
+  notification.close();
 
   if (event.action === 'dismiss') return;
 
-  const notifData = event.notification.data || {};
-  let targetUrl = notifData.url || '/notifications';
-
-  // Nếu có entity_id (taskId) thì mở trang tasks với param open
-  if (notifData.entity_id && (notifData.type === 'new_task' || notifData.type === 'task_assigned' || notifData.type === 'task_updated')) {
-    targetUrl = `/all-tasks?open=${notifData.entity_id}`;
-  } else if (notifData.entity_id && (notifData.type === 'new_message' || notifData.type === 'group_message')) {
-    targetUrl = '/messages'; // Hoặc sâu hơn tùy app
-  }
+  const urlToOpen = new URL(data.url || '/', self.location.origin).href;
 
   event.waitUntil(
-    self.clients
-      .matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList) => {
-        // Nếu app đang mở → tìm tab đó
-        const existingClient = clientList.find((c) => {
-          const clientUrl = new URL(c.url);
-          return clientUrl.origin === self.location.origin;
-        });
-
-        if (existingClient) {
-          existingClient.focus();
-          if ('navigate' in existingClient) {
-            existingClient.navigate(targetUrl);
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((windowClients) => {
+        // Nếu đã có tab đang mở (hoặc tab thuộc origin này), focus vào nó và điều hướng
+        for (let client of windowClients) {
+          if (client.url === urlToOpen || client.url.startsWith(self.location.origin)) {
+            if ('focus' in client) {
+              client.navigate(urlToOpen);
+              return client.focus();
+            }
           }
-          return;
         }
-
-        // Chưa mở → mở tab mới
-        return self.clients.openWindow(targetUrl);
+        // Nếu chưa có tab nào, mở tab mới
+        if (clients.openWindow) {
+          return clients.openWindow(urlToOpen);
+        }
       })
   );
 });

@@ -25,14 +25,15 @@ async function verifyUser(token) {
     throw new Error('Thiếu cấu hình kết nối database trên Vercel');
   }
 
-  const client = createClient(url, anonKey, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-    auth: { persistSession: false }
-  });
-  const { data: { user }, error } = await client.auth.getUser();
+  // Tạo client tạm thời để verify token
+  const client = createClient(url, anonKey, { auth: { persistSession: false } });
+  
+  // Verify token trực tiếp
+  const { data: { user }, error } = await client.auth.getUser(token);
+  
   if (error || !user) {
     console.error('Auth verify failed:', error?.message);
-    throw new Error('Phiên đăng nhập không hợp lệ hoặc đã hết hạn (Unauthorized)');
+    throw new Error(`Xác thực thất bại: ${error?.message || 'Phiên đăng nhập hết hạn'}`);
   }
   return user;
 }
@@ -50,6 +51,7 @@ function setupWebPush() {
     throw new Error('Hệ thống chưa cấu hình VAPID keys trên Vercel');
   }
 
+  console.log('[DEBUG] setupWebPush: Public Key (first 10):', publicKey.substring(0, 10) + '...');
   webpush.setVapidDetails(subject, publicKey, privateKey);
 }
 
@@ -110,6 +112,7 @@ export default async function handler(req, res) {
     setupWebPush();
     const db = getServiceClient();
 
+    console.log('[DEBUG] Recipients:', recipients);
     const results = { inserted: 0, pushed: 0, failed: 0 };
 
     for (const uid of recipients) {
@@ -149,6 +152,8 @@ export default async function handler(req, res) {
         .select('id, endpoint, p256dh, auth')
         .eq('user_id', uid)
         .eq('is_active', true);
+
+      console.log(`[DEBUG] Found ${subs?.length || 0} active subscriptions for user ${uid}`);
 
       if (!subs || subs.length === 0) {
         await db.from('notifications').update({ push_status: 'no_subscription' }).eq('id', notif.id);

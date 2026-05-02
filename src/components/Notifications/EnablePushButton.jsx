@@ -192,92 +192,104 @@ export default function EnablePushButton({ variant = 'default' }) {
   // ── Full card variant (dùng trong trang Notifications) ─
   return (
     <>
-      <div className={`rounded-2xl border p-4 sm:p-5 flex items-center gap-4 transition-all
+      <div className={`rounded-3xl border p-6 flex flex-col gap-6 shadow-sm transition-all
         ${isSubscribed
-          ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
+          ? 'bg-green-50/50 dark:bg-green-950/10 border-green-200/50 dark:border-green-800/30'
           : permission === 'denied'
-            ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800'
-            : 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 border-amber-200 dark:border-amber-800'
+            ? 'bg-red-50/50 dark:bg-red-950/10 border-red-200/50 dark:border-red-800/30'
+            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none'
         }
       `}>
-        {/* Icon */}
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0
-          ${isSubscribed ? 'bg-green-100 dark:bg-green-900/30' : permission === 'denied' ? 'bg-red-100 dark:bg-red-900/30' : 'bg-amber-100 dark:bg-amber-900/30'}
-        `}>
-          {isSubscribed
-            ? <CheckCircle size={22} className="text-green-600 dark:text-green-400" />
-            : permission === 'denied'
-              ? <AlertCircle size={22} className="text-red-600 dark:text-red-400" />
-              : <Bell size={22} className="text-amber-600 dark:text-amber-400" />
-          }
+        <div className="flex items-center gap-4">
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm
+            ${isSubscribed ? 'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400' : 
+              permission === 'denied' ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' : 
+              'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'}
+          `}>
+            {isSubscribed ? <BellRing size={28} /> : permission === 'denied' ? <AlertCircle size={28} /> : <Bell size={28} />}
+          </div>
+          <div className="flex-1">
+            <h4 className="font-black text-[17px] text-slate-800 dark:text-white leading-tight">
+              {isSubscribed ? 'Thông báo đẩy đã bật' : 
+               permission === 'denied' ? 'Thông báo bị chặn' : 
+               isIOS && !isStandalone ? 'Cần cài đặt PWA' : 'Chưa bật thông báo'}
+            </h4>
+            <p className="text-[13px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+              {isSubscribed ? 'Bạn sẽ nhận được tin nhắn và nhiệm vụ mới ngay cả khi đóng ứng dụng.' : 
+               permission === 'denied' ? 'Vui lòng cho phép trong cài đặt trình duyệt để tiếp tục.' :
+               isIOS && !isStandalone ? 'Hãy thêm app vào màn hình chính để nhận thông báo.' : 'Đừng bỏ lỡ các cập nhật quan trọng từ VPĐU.'}
+            </p>
+          </div>
         </div>
 
-        {/* Text */}
-        <div className="flex-1 min-w-0">
-          <p className={`font-bold text-[14px] ${
-            isSubscribed ? 'text-green-800 dark:text-green-300' :
-            permission === 'denied' ? 'text-red-800 dark:text-red-300' :
-            'text-amber-800 dark:text-amber-300'
-          }`}>
-            {isSubscribed
-              ? 'Thông báo đẩy đã được bật'
-              : permission === 'denied'
-                ? 'Thông báo đẩy bị chặn'
-                : isIOS && !isStandalone
-                  ? 'Cần cài app để bật thông báo'
-                  : 'Chưa bật thông báo đẩy'}
-          </p>
-          <p className="text-[12px] mt-0.5 text-slate-600 dark:text-slate-400 leading-relaxed">
-            {isSubscribed
-              ? 'Bạn sẽ nhận thông báo kể cả khi không mở app.'
-              : permission === 'denied'
-                ? 'Vào cài đặt trình duyệt → Thông báo → Cho phép trang này.'
-                : isIOS && !isStandalone
-                  ? 'iOS yêu cầu cài PWA vào Màn hình chính trước.'
-                  : 'Bật để nhận thông báo nhiệm vụ & tin nhắn dù không mở app.'}
-          </p>
-          {error && (
-            <p className="text-[11px] text-red-600 dark:text-red-400 mt-1">{error}</p>
-          )}
-        </div>
-
-        {/* Buttons */}
-        <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-          {isSubscribed && (
-            <button
-              onClick={handleTest}
-              disabled={isTesting}
-              className="px-4 py-2.5 rounded-xl font-bold text-[13px] bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2 justify-center"
-            >
-              {isTesting ? (
-                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <BellRing size={15} className="text-blue-500" />
-              )}
-              {isTesting ? 'Đang gửi...' : 'Gửi thử'}
-            </button>
-          )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {permission !== 'denied' && (
             <button
               onClick={handleClick}
               disabled={isLoading}
-              className={`px-4 py-2.5 rounded-xl font-bold text-[13px] transition-all disabled:opacity-50 flex items-center gap-2 justify-center
+              className={`flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-black text-[15px] transition-all active:scale-95 shadow-lg
                 ${isSubscribed
-                  ? 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
-                  : 'bg-amber-600 hover:bg-amber-700 text-white shadow-[0_4px_12px_rgba(217,119,6,0.3)]'
+                  ? 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25'
                 }
               `}
             >
               {isLoading ? (
-                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-3 border-current border-t-transparent rounded-full animate-spin" />
               ) : isSubscribed ? (
-                <BellOff size={15} />
+                <>
+                  <BellOff size={20} />
+                  <span>Tắt thông báo</span>
+                </>
               ) : (
-                <Bell size={15} />
+                <>
+                  <BellRing size={20} className="animate-pulse" />
+                  <span>Bật ngay bây giờ</span>
+                </>
               )}
-              {isLoading ? 'Đang xử lý...' : isSubscribed ? 'Tắt' : isIOS && !isStandalone ? 'Hướng dẫn' : 'Bật ngay'}
             </button>
           )}
+
+          {isSubscribed && (
+            <button
+              onClick={handleTest}
+              disabled={isTesting}
+              className="flex items-center justify-center gap-3 px-6 py-4 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black text-[15px] transition-all active:scale-95 shadow-lg shadow-amber-500/25"
+            >
+              {isTesting ? (
+                <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Smartphone size={20} />
+                  <span>Gửi thử nghiệm</span>
+                </>
+              )}
+            </button>
+          )}
+
+          {permission === 'denied' && (
+            <div className="sm:col-span-2 p-4 bg-red-100/50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl flex items-start gap-3">
+              <Info size={18} className="text-red-600 shrink-0 mt-0.5" />
+              <p className="text-[13px] text-red-800 dark:text-red-300 font-bold">
+                Bạn đã chặn quyền thông báo. Hãy vào Cài đặt trình duyệt → Quyền → Thông báo → Chọn "Cho phép" cho trang web này.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Diagnostic Info (Small) */}
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800/50">
+          <details className="cursor-pointer group">
+            <summary className="text-[11px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1 group-hover:text-blue-500 transition-colors">
+              Kiểm tra thông số kỹ thuật
+            </summary>
+            <div className="mt-3 p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl space-y-2 font-mono text-[10px] text-slate-500 dark:text-slate-400 break-all border border-slate-100 dark:border-slate-800">
+              <p><span className="text-blue-500 font-bold">SW Status:</span> {isSupported ? 'Hỗ trợ' : 'Không hỗ trợ'}</p>
+              <p><span className="text-blue-500 font-bold">VAPID Key:</span> {import.meta.env.VITE_VAPID_PUBLIC_KEY ? `${import.meta.env.VITE_VAPID_PUBLIC_KEY.substring(0, 15)}...` : 'MISSING'}</p>
+              <p><span className="text-blue-500 font-bold">Browser:</span> {navigator.userAgent}</p>
+              {error && <p className="text-red-500 font-bold">Lỗi: {error}</p>}
+            </div>
+          </details>
         </div>
       </div>
 

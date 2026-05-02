@@ -4,6 +4,7 @@ import { X, Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { writeLog } from '../lib/logger';
+import { createNotification } from '../hooks/useNotifications';
 
 export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) {
   const { profile } = useAuth();
@@ -75,13 +76,32 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         note: `Đánh giá ${numScore} điểm (${currentRank})`,
       });
 
-      // Gửi thông báo cho người thực hiện
+      // Gửi thông báo cho người thực hiện (push + in-app)
       if (task.assignee_id && task.assignee_id !== profile.id) {
-        await supabase.from('notifications').insert([{
-          user_id: task.assignee_id,
-          task_id: task.id,
-          message: `Nhiệm vụ [${task.code}] đã được đánh giá: ${numScore} điểm (${currentRank}).`
-        }]);
+        createNotification({
+          userIds: [task.assignee_id],
+          title: 'Nhiệm vụ đã được đánh giá',
+          body: `${numScore} điểm (${currentRank}). ${comment ? `Nhận xét: ${comment.length > 50 ? comment.substring(0, 47) + '...' : comment}` : ''}`,
+          type: 'task_evaluated',
+          entityType: 'task',
+          entityId: task.id,
+          relatedTaskId: task.id,
+          relatedUrl: `/all-tasks?open=${task.id}`,
+        });
+
+        // Nếu có nhận xét, gửi thêm thông báo bình luận như yêu cầu
+        if (comment) {
+          createNotification({
+            userIds: [task.assignee_id],
+            title: 'Bình luận mới',
+            body: `${profile.full_name}: ${comment.length > 80 ? comment.substring(0, 77) + '...' : comment}`,
+            type: 'task_comment',
+            entityType: 'task',
+            entityId: task.id,
+            relatedTaskId: task.id,
+            relatedUrl: `/all-tasks?open=${task.id}`,
+          });
+        }
       }
 
       toast.success('Đã lưu đánh giá!');

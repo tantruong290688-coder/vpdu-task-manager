@@ -101,9 +101,9 @@ export default function Dashboard() {
               <card.icon size={14} className={`md:w-4 md:h-4 ${card.iconColor}`} strokeWidth={2.5} />
             </div>
             <div className="mt-auto">
-              <p className="text-[24px] md:text-[32px] font-black text-[#111827] dark:text-white leading-none mb-1 md:mb-1.5">{card.value}</p>
-              <p className="text-[12px] md:text-[13px] font-bold text-[#111827] dark:text-slate-200 leading-tight">{card.label}</p>
-              <p className="text-[10px] md:text-[11px] font-medium text-slate-400 dark:text-slate-500 mt-1 line-clamp-2 leading-snug hidden sm:block">{card.desc}</p>
+              <p className="text-[28px] md:text-[36px] font-black text-[#111827] dark:text-white leading-none mb-1 md:mb-1.5 tracking-tighter">{card.value}</p>
+              <p className="text-[14px] md:text-[15px] font-black text-[#111827] dark:text-slate-200 leading-tight uppercase tracking-wide">{card.label}</p>
+              <p className="text-[11px] md:text-[12px] font-bold text-slate-500 dark:text-slate-500 mt-1.5 line-clamp-2 leading-snug hidden sm:block">{card.desc}</p>
             </div>
           </div>
         ))}
@@ -116,9 +116,9 @@ export default function Dashboard() {
               <card.icon size={14} className={`md:w-4 md:h-4 ${card.iconColor}`} strokeWidth={2.5} />
             </div>
             <div className="mt-auto">
-              <p className="text-[24px] md:text-[32px] font-black text-[#111827] dark:text-white leading-none mb-1 md:mb-1.5">{card.value}</p>
-              <p className="text-[12px] md:text-[13px] font-bold text-[#111827] dark:text-slate-200 leading-tight">{card.label}</p>
-              <p className="text-[10px] md:text-[11px] font-medium text-slate-400 dark:text-slate-500 mt-1 line-clamp-2 leading-snug hidden sm:block">{card.desc}</p>
+              <p className="text-[28px] md:text-[36px] font-black text-[#111827] dark:text-white leading-none mb-1 md:mb-1.5 tracking-tighter">{card.value}</p>
+              <p className="text-[14px] md:text-[15px] font-black text-[#111827] dark:text-slate-200 leading-tight uppercase tracking-wide">{card.label}</p>
+              <p className="text-[11px] md:text-[12px] font-bold text-slate-500 dark:text-slate-500 mt-1.5 line-clamp-2 leading-snug hidden sm:block">{card.desc}</p>
             </div>
           </div>
         ))}

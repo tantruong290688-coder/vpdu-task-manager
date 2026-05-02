@@ -943,19 +943,19 @@ export default function Tasks() {
                     </div>
 
                     {/* Row 2: Tên nhiệm vụ */}
-                    <h3 className="font-bold text-[14px] text-slate-800 dark:text-white leading-snug mb-2 line-clamp-2">
+                    <h3 className="font-black text-[16px] text-slate-900 dark:text-white leading-snug mb-2.5 line-clamp-2">
                       {task.title}
                     </h3>
 
                     {/* Row 3: Meta info */}
-                    <div className="flex items-center gap-4 text-[12px] text-slate-500 dark:text-slate-400">
+                    <div className="flex items-center gap-4 text-[13px] text-slate-600 dark:text-slate-400 font-bold">
                       <span className="flex items-center gap-1 truncate">
-                        <Clock size={11} className="shrink-0" />
+                        <Clock size={12} className="shrink-0 text-blue-500" />
                         {task.assignee?.full_name || 'Chưa phân công'}
                       </span>
                       {task.due_date && (
-                        <span className={`flex items-center gap-1 whitespace-nowrap shrink-0 font-medium ${isOverdue ? 'text-red-600 dark:text-red-400' : ''}`}>
-                          <Calendar size={11} className="shrink-0" />
+                        <span className={`flex items-center gap-1 whitespace-nowrap shrink-0 font-black ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-slate-800 dark:text-slate-200'}`}>
+                          <Calendar size={12} className="shrink-0 text-amber-500" />
                           {fmtDate(task.due_date)}
                         </span>
                       )}

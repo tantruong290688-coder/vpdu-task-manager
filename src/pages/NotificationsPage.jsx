@@ -97,17 +97,17 @@ export default function NotificationsPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between mb-5 px-4 sm:px-0">
         <div>
-          <h1 className="text-[20px] sm:text-[24px] font-extrabold text-slate-800 dark:text-white flex items-center gap-2.5">
-            <Bell size={22} className="text-amber-500" />
+          <h1 className="text-[24px] sm:text-[28px] font-black text-slate-900 dark:text-white flex items-center gap-3">
+            <Bell size={28} className="text-amber-500" />
             Thông báo
             {unreadCount > 0 && (
-              <span className="px-2.5 py-0.5 bg-red-500 text-white text-[11px] font-bold rounded-full">
+              <span className="px-3 py-1 bg-red-600 text-white text-[12px] font-black rounded-full shadow-lg shadow-red-500/20">
                 {unreadCount}
               </span>
             )}
           </h1>
-          <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
-            Tổng {total} thông báo
+          <p className="text-[14px] font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wide">
+            Tổng cộng {total} thông báo
           </p>
         </div>
 
@@ -143,14 +143,14 @@ export default function NotificationsPage() {
           <button
             key={key}
             onClick={() => setActiveFilter(key)}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-bold whitespace-nowrap transition-all shrink-0
+            className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-[14px] font-black whitespace-nowrap transition-all shrink-0
               ${activeFilter === key
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
+                ? 'bg-blue-600 text-white shadow-md scale-105'
+                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
               }
             `}
           >
-            <Icon size={13} />
+            <Icon size={16} />
             {label}
           </button>
         ))}
@@ -215,22 +215,22 @@ export default function NotificationsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className={`text-[13px] sm:text-[14px] leading-snug break-words ${n.is_read ? 'font-medium text-slate-600 dark:text-slate-400' : 'font-semibold text-slate-800 dark:text-slate-100'}`}>
+                        <p className={`text-[16px] sm:text-[18px] leading-tight break-words ${n.is_read ? 'font-bold text-slate-700 dark:text-slate-300' : 'font-black text-slate-900 dark:text-white'}`}>
                           {displayTitle}
                         </p>
                         {displayBody && displayBody !== displayTitle && (
-                          <p className="text-[12px] text-slate-500 dark:text-slate-500 mt-1 leading-relaxed line-clamp-2">
+                          <p className={`text-[14px] sm:text-[15px] mt-1.5 leading-relaxed line-clamp-3 ${n.is_read ? 'text-slate-500 font-medium' : 'text-slate-600 dark:text-slate-400 font-bold'}`}>
                             {displayBody}
                           </p>
                         )}
-                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <div className="flex items-center gap-2 mt-3 flex-wrap">
                           {n.type && (
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold ${getTypeBadgeColor(n.type)}`}>
+                            <span className={`inline-flex items-center px-3 py-1 rounded-lg text-[11px] font-black uppercase tracking-wider ${getTypeBadgeColor(n.type)}`}>
                               {getTypeLabel(n.type)}
                             </span>
                           )}
                           {taskId && (
-                            <span className="inline-flex items-center px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-md text-[10px] font-bold">
+                            <span className="inline-flex items-center px-3 py-1 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-lg text-[11px] font-black uppercase tracking-wider shadow-sm">
                               Xem nhiệm vụ →
                             </span>
                           )}
@@ -238,11 +238,11 @@ export default function NotificationsPage() {
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {!n.is_read && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_5px_rgba(59,130,246,0.5)]" />
+                          <div className="w-3 h-3 bg-blue-600 rounded-full shadow-[0_0_10px_rgba(37,99,235,0.6)]" />
                         )}
                       </div>
                     </div>
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5 font-medium">
+                    <p className="text-[12px] text-slate-400 dark:text-slate-500 mt-2 font-bold italic">
                       {timeAgo(n.created_at)}
                     </p>
                   </div>

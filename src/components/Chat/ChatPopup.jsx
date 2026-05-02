@@ -35,6 +35,25 @@ export default function ChatPopup() {
     }
   }, [isChatOpen, user]);
 
+  // ── Xử lý nút Back cho Chat Popup ────────────────────────
+  useEffect(() => {
+    if (!isChatOpen) return;
+
+    const handlePopState = (e) => {
+      if (activeChatUserId || activeRoomId) {
+        setActiveChatUserId(null);
+        setActiveRoomId(null);
+        window.history.pushState(null, '', window.location.href);
+      } else {
+        closeChat();
+      }
+    };
+
+    window.history.pushState({ chatOpen: true }, '', window.location.href);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isChatOpen, activeChatUserId, activeRoomId, closeChat]);
+
   // Real-time for private messages
   useEffect(() => {
     if (!user || !isChatOpen) return;

@@ -74,6 +74,18 @@ export const MessageProvider = ({ children }) => {
     setIsMinimized(false);
     setActiveChatUserId(null);
     setActiveRoomId(null);
+    
+    // Làm sạch URL khi đóng chat để không bị tự động mở lại
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('chat') || url.searchParams.has('room')) {
+        url.searchParams.delete('chat');
+        url.searchParams.delete('room');
+        window.history.replaceState({}, '', url.pathname);
+      }
+    } catch (e) {
+      console.error('Error clearing URL params:', e);
+    }
   };
   const minimizeChat = () => setIsMinimized(true);
   const maximizeChat = () => setIsMinimized(false);

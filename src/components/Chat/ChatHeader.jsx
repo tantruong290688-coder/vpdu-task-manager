@@ -56,18 +56,18 @@ export default function ChatHeader({ activeUser, activeRoom, onBack }) {
           <Search size={18} />
         </button>
         <button
-          onPointerDown={(e) => { e.stopPropagation(); minimizeChat(); }}
+          onClick={(e) => { e.stopPropagation(); minimizeChat(); }}
           className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors hidden sm:flex touch-manipulation"
           aria-label="Thu nhỏ"
         >
           <Minus size={18} />
         </button>
         <button
-          onPointerDown={(e) => { e.stopPropagation(); closeChat(); }}
-          className="p-3 sm:p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 transition-colors touch-manipulation"
+          onClick={(e) => { e.stopPropagation(); closeChat(); }}
+          className="p-3 sm:p-2 rounded-full bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm active:scale-90"
           aria-label="Đóng chat"
         >
-          <X size={18} />
+          <X size={20} strokeWidth={3} />
         </button>
       </div>
     </div>

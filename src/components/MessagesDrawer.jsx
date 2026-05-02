@@ -225,10 +225,10 @@ export default function MessagesDrawer() {
               actorId: user.id,
               title: `Tin nhắn mới từ ${profile?.full_name || 'Đồng nghiệp'}`,
               body: content.length > 100 ? content.substring(0, 97) + '...' : content,
-              type: 'group_message',
+              type: 'message_group',
               entityType: 'message',
               entityId: savedMsg.id,
-              url: '/messages' // Hoặc URL mở drawer
+              url: '/notifications'
             })
           }).catch(err => console.error('Push error:', err));
         }
@@ -257,10 +257,10 @@ export default function MessagesDrawer() {
             actorId: user.id,
             title: `Tin nhắn mới từ ${profile?.full_name || 'Đồng nghiệp'}`,
             body: content.length > 100 ? content.substring(0, 97) + '...' : content,
-            type: 'new_message',
+            type: 'message_private',
             entityType: 'message',
             entityId: savedMsg.id,
-            url: '/messages'
+            url: '/notifications'
           })
         }).catch(err => console.error('Push error:', err));
       }

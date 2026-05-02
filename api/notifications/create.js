@@ -186,8 +186,14 @@ export default async function handler(req, res) {
           keys: { p256dh: sub.p256dh, auth: sub.auth },
         };
 
+        const options = {
+          TTL: 86400, // 24 giờ
+          urgency: 'high',
+          topic: 'notification'
+        };
+
         try {
-          await webpush.sendNotification(pushSub, pushPayload);
+          await webpush.sendNotification(pushSub, pushPayload, options);
           results.pushed++;
         } catch (pushErr) {
           overallPushStatus = 'failed';

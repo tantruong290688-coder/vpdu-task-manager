@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { RotateCcw, Search, Clock, ChevronDown, X } from 'lucide-react';
+import { RotateCcw, Search, Clock, ChevronDown, X, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const PAGE_SIZE = 20;
 
@@ -180,6 +181,37 @@ export default function Logs() {
               <RotateCcw size={15} className={loading ? 'animate-spin' : ''} />
               Làm mới log
             </button>
+
+            {/* Clear Logs - Only for super admin */}
+            {profile?.role === 'admin' && (
+              <button
+                onClick={async () => {
+                  if (window.confirm('CẢNH BÁO: Hành động này sẽ xóa VĨNH VIỄN toàn bộ nhật ký thao tác. Bạn có chắc chắn muốn tiếp tục?')) {
+                    if (window.confirm('Xác nhận lần cuối: Bạn thực sự muốn xóa sạch nhật ký?')) {
+                      try {
+                        const { error: delError } = await supabase
+                          .from('activity_logs')
+                          .delete()
+                          .neq('id', 0); // Xóa tất cả
+                        
+                        if (delError) throw delError;
+                        
+                        toast.success('Đã xóa sạch nhật ký thao tác');
+                        fetchLogs(true);
+                      } catch (err) {
+                        console.error('Clear logs error:', err);
+                        toast.error('Lỗi khi xóa nhật ký: ' + err.message);
+                      }
+                    }
+                  }
+                }}
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white text-[13px] font-bold rounded-xl transition-colors shadow-sm"
+              >
+                <Trash2 size={15} />
+                Xóa sạch log
+              </button>
+            )}
           </div>
         </div>
       </div>

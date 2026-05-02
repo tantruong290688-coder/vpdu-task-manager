@@ -29,6 +29,38 @@ export default function MessagesDrawer() {
     }
   }, [isDrawerOpen, user]);
 
+  // ── Xử lý nút Back vật lý trên điện thoại ─────────────────
+  useEffect(() => {
+    if (!isDrawerOpen) return;
+
+    const handlePopState = (e) => {
+      // Nếu đang mở ô chat chi tiết, quay lại danh sách
+      if (activeChatUserId || activeRoomId) {
+        setActiveChatUserId(null);
+        setActiveRoomId(null);
+        // Ngăn trình duyệt lùi trang thực sự bằng cách đẩy lại state
+        window.history.pushState(null, '', window.location.href);
+        
+        // Làm sạch URL
+        const url = new URL(window.location.href);
+        url.searchParams.delete('chat');
+        url.searchParams.delete('room');
+        window.history.replaceState({}, '', url.pathname);
+      } else {
+        // Nếu đang ở danh sách, đóng drawer
+        closeDrawer();
+      }
+    };
+
+    // Đẩy một state ảo để "chiếm" sự kiện Back
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isDrawerOpen, activeChatUserId, activeRoomId, closeDrawer, setActiveChatUserId]);
+
   // Realtime messages subscription
   useEffect(() => {
     if (!user || !isDrawerOpen) return;
@@ -376,12 +408,11 @@ export default function MessagesDrawer() {
                     if (activeChatUserId || activeRoomId) {
                       setActiveChatUserId(null); 
                       setActiveRoomId(null);
-                      // Nếu đang ở trang thông báo và bấm vào chát, nhấn back sẽ đóng chát để về lại danh sách thông báo
-                      if (window.location.search.includes('chat=') || window.location.search.includes('room=')) {
-                        closeDrawer();
-                        // Xóa param trên URL để sạch sẽ
-                        window.history.replaceState({}, '', window.location.pathname);
-                      }
+                      // Luôn làm sạch URL khi quay lại danh sách
+                      const url = new URL(window.location.href);
+                      url.searchParams.delete('chat');
+                      url.searchParams.delete('room');
+                      window.history.replaceState({}, '', url.pathname);
                     } else {
                       closeDrawer();
                     }
@@ -425,10 +456,11 @@ export default function MessagesDrawer() {
             )}
             <button 
               onClick={() => {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('chat');
+                url.searchParams.delete('room');
+                window.history.replaceState({}, '', url.pathname);
                 closeDrawer();
-                if (window.location.search.includes('chat=') || window.location.search.includes('room=')) {
-                  window.history.replaceState({}, '', window.location.pathname);
-                }
               }} 
               className="w-12 h-12 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 transition-colors active:scale-95"
             >

@@ -20,6 +20,40 @@ export default function Dashboard() {
   }, []);
 
   const fetchDashboardData = async () => {
+    try {
+      // Ưu tiên gọi RPC để tính toán trực tiếp trên Database (Tăng tốc độ, giảm RAM)
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_dashboard_stats');
+      
+      if (!rpcError && rpcData) {
+        const {
+          total, notStarted, inProgress, completed, overdue,
+          dueSoon, pendingEval, pendingFinal, workAreas
+        } = rpcData;
+        
+        const completionRate = total > 0 ? ((completed / total) * 100).toFixed(1) : 0;
+        const onTimeRate = completed > 0 ? 100 : 0;
+        
+        setStats({ total, notStarted, inProgress, completed, overdue, dueSoon, pendingEval, pendingFinal, completionRate, onTimeRate });
+
+        const pd = [
+          { name: 'Đang thực hiện', value: inProgress, color: '#3b82f6' },
+          { name: 'Hoàn thành', value: completed, color: '#22c55e' },
+          { name: 'Chưa bắt đầu', value: notStarted, color: '#f59e0b' },
+          { name: 'Quá hạn', value: overdue, color: '#ef4444' }
+        ].filter(d => d.value > 0);
+        setPieData(pd.length > 0 ? pd : [{ name: 'Trống', value: 1, color: '#e2e8f0' }]);
+
+        const bd = Object.keys(workAreas || {}).map(key => ({ name: key, value: workAreas[key] }));
+        setBarData(bd.length > 0 ? bd : [{ name: 'Chưa có', value: 0 }]);
+        return; // Thoát thành công
+      }
+      
+      console.warn("RPC get_dashboard_stats chưa sẵn sàng, dùng fallback (cần chạy migration SQL).", rpcError);
+    } catch (err) {
+      console.warn("Lỗi gọi RPC, chuyển sang fallback:", err);
+    }
+
+    // --- FALLBACK LOGIC CŨ (Phòng khi Admin chưa chạy script SQL) ---
     const { data: tasks, error } = await supabase.from('tasks').select('*');
     if (tasks) {
       const total = tasks.length;

@@ -10,6 +10,8 @@ import TaskModal from '../components/TaskModal';
 import AdvancedFilter from '../components/AdvancedFilter';
 import EvaluationModal from '../components/EvaluationModal';
 import TaskDetailDrawer from '../components/TaskDetailDrawer';
+import TaskTable from '../components/Tasks/TaskTable';
+import TaskMobileList from '../components/Tasks/TaskMobileList';
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { writeLog } from '../lib/logger';
@@ -38,66 +40,13 @@ const EMPTY_FILTERS = {
   isForMe: false,
 };
 
-// ── Helper Badges ─────────────────────────────────────────────────────────────
-
-function StatusBadge({ status, dueDate, evaluationScore }) {
-  const today = new Date();
-  const todayDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  const isOverdue = dueDate && dueDate < todayDateStr && status !== 'completed' && evaluationScore === null;
-  const map = {
-    pending:     { label: 'Chờ xử lý',     cls: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/40' },
-    in_progress: { label: 'Đang TH',        cls: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/40' },
-    completed:   { label: 'Hoàn thành',    cls: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/40' },
-    overdue:     { label: 'Quá hạn',       cls: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/40' },
-  };
-  const effective = isOverdue && status !== 'completed' ? 'overdue' : (status || 'pending');
-  const info = map[effective] || map.pending;
-  return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-md border ${info.cls} whitespace-nowrap`}>
-      {effective === 'completed' && <Check size={9} />}
-      {effective === 'overdue' && <AlertCircle size={9} />}
-      {info.label}
-    </span>
-  );
-}
-
-function PriorityBadge({ priority }) {
-  const map = {
-    high:   { label: 'Cao',  cls: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
-    normal: { label: 'TB',   cls: 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400' },
-    low:    { label: 'Thấp', cls: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' },
-  };
-  const info = map[priority] || map.normal;
-  return (
-    <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md whitespace-nowrap ${info.cls}`}>
-      {info.label}
-    </span>
-  );
-}
-
-function ScoreBadge({ score, rank }) {
-  const RANK_COLOR = {
-    'Xuất sắc': 'text-purple-700 bg-purple-50 dark:bg-purple-900/20 dark:text-purple-400',
-    'Tốt': 'text-blue-700 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400',
-    'Hoàn thành': 'text-green-700 bg-green-50 dark:bg-green-900/20 dark:text-green-400',
-    'Không hoàn thành': 'text-red-700 bg-red-50 dark:bg-red-900/20 dark:text-red-400',
-  };
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <span className="text-[13px] font-black text-blue-600 dark:text-blue-400">{score}</span>
-      {rank && (
-        <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded-md ${RANK_COLOR[rank] || ''}`}>{rank}</span>
-      )}
-    </div>
-  );
-}
-
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function Tasks() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Modals & Drawer
   const [isModalOpen, setIsModalOpen]       = useState(false);
@@ -166,7 +115,7 @@ export default function Tasks() {
 
       let query = supabase
         .from('tasks')
-        .select('*, assignee:profiles!tasks_assignee_id_fkey(id, full_name), assigner:profiles!tasks_assigned_by_fkey(id, full_name), task_collaborators(user_id, profiles(id, full_name))');
+        .select('*, assignee:profiles!tasks_assignee_id_fkey(id, full_name), assigner:profiles!tasks_assigned_by_fkey(id, full_name), task_collaborators(user_id, profiles(id, full_name))', { count: 'exact' });
 
       // Tối ưu lọc "Nhiệm vụ của tôi" trực tiếp qua query DB thay vì JS array filter
       if (isMyTasksPage) {
@@ -228,12 +177,31 @@ export default function Tasks() {
         query = query.eq('assignee_id', profile.id).eq('status', 'pending');
       }
 
-      const { data, error: fetchError } = await query.order('created_at', { ascending: false });
+      if (sortConfig.key) {
+        const orderAsc = sortConfig.direction === 'ascending';
+        const key = sortConfig.key;
+        if (key === 'assigner.full_name') {
+           query = query.order('assigned_by', { ascending: orderAsc });
+        } else if (key === 'assignee.full_name') {
+           query = query.order('assignee_id', { ascending: orderAsc });
+        } else {
+           query = query.order(key, { ascending: orderAsc });
+        }
+      } else {
+        query = query.order('created_at', { ascending: false });
+      }
+
+      const from = (currentPage - 1) * ROWS_PER_PAGE;
+      const to = from + ROWS_PER_PAGE - 1;
+      query = query.range(from, to);
+
+      const { data, count, error: fetchError } = await query;
       if (fetchError) throw fetchError;
 
       let result = data || [];
 
       setTasks(result);
+      if (count !== null) setTotalCount(count);
 
       // Sync selectedTask nếu drawer đang mở
       if (selectedTask) {
@@ -247,7 +215,7 @@ export default function Tasks() {
     } finally {
       setLoading(false);
     }
-  }, [activeFilters, filterParam, searchStr, location.pathname, profile?.id]);
+  }, [activeFilters, filterParam, searchStr, location.pathname, profile?.id, currentPage, sortConfig]);
 
   useEffect(() => {
     fetchTasks(activeFilters);
@@ -260,10 +228,10 @@ export default function Tasks() {
 
   // Đảm bảo không bị trang trống nếu xóa hết record ở trang cuối
   useEffect(() => {
-    if (tasks.length > 0 && Math.ceil(tasks.length / ROWS_PER_PAGE) < currentPage) {
-      setCurrentPage(Math.max(1, Math.ceil(tasks.length / ROWS_PER_PAGE)));
+    if (totalCount > 0 && Math.ceil(totalCount / ROWS_PER_PAGE) < currentPage) {
+      setCurrentPage(Math.max(1, Math.ceil(totalCount / ROWS_PER_PAGE)));
     }
-  }, [tasks.length, currentPage]);
+  }, [totalCount, currentPage]);
 
   // One-shot open from URL param
   useEffect(() => {
@@ -439,67 +407,8 @@ export default function Tasks() {
 
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—';
 
-  const sortedTasks = useMemo(() => {
-    let sortableItems = [...tasks];
-    if (sortConfig.key) {
-      sortableItems.sort((a, b) => {
-        let aVal, bVal;
-        switch (sortConfig.key) {
-          case 'code':
-            aVal = a.code || ''; bVal = b.code || ''; break;
-          case 'assigned_date':
-            aVal = a.assigned_date ? new Date(a.assigned_date).getTime() : 0;
-            bVal = b.assigned_date ? new Date(b.assigned_date).getTime() : 0; break;
-          case 'assigner.full_name':
-            aVal = a.assigner?.full_name || ''; bVal = b.assigner?.full_name || ''; break;
-          case 'assignee.full_name':
-            aVal = a.assignee?.full_name || ''; bVal = b.assignee?.full_name || ''; break;
-          case 'task_group':
-            aVal = a.task_group || ''; bVal = b.task_group || ''; break;
-          case 'work_area':
-            aVal = a.work_area || ''; bVal = b.work_area || ''; break;
-          case 'title':
-            aVal = a.title || ''; bVal = b.title || ''; break;
-          case 'priority': {
-            const map = { high: 3, normal: 2, low: 1 };
-            aVal = map[a.priority] || 2; bVal = map[b.priority] || 2; break;
-          }
-          case 'start_date':
-            aVal = a.start_date ? new Date(a.start_date).getTime() : 0;
-            bVal = b.start_date ? new Date(b.start_date).getTime() : 0; break;
-          case 'due_date':
-            aVal = a.due_date ? new Date(a.due_date).getTime() : Number.MAX_SAFE_INTEGER;
-            bVal = b.due_date ? new Date(b.due_date).getTime() : Number.MAX_SAFE_INTEGER; break;
-          case 'status': {
-            const map = { overdue: 1, pending: 2, in_progress: 3, completed: 4 };
-            const today = new Date();
-            const todayDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-            const aOverdue = a.due_date && a.due_date < todayDateStr && a.status !== 'completed' && a.evaluation_score === null;
-            const bOverdue = b.due_date && b.due_date < todayDateStr && b.status !== 'completed' && b.evaluation_score === null;
-            aVal = map[aOverdue ? 'overdue' : (a.status || 'pending')] || 2;
-            bVal = map[bOverdue ? 'overdue' : (b.status || 'pending')] || 2; break;
-          }
-          case 'evaluation_score':
-            aVal = a.evaluation_score ?? -1; bVal = b.evaluation_score ?? -1; break;
-          default:
-            return 0;
-        }
-
-        if (typeof aVal === 'string' && typeof bVal === 'string') {
-          const comp = aVal.localeCompare(bVal, 'vi', { numeric: true });
-          return sortConfig.direction === 'ascending' ? comp : -comp;
-        } else {
-          if (aVal < bVal) return sortConfig.direction === 'ascending' ? -1 : 1;
-          if (aVal > bVal) return sortConfig.direction === 'ascending' ? 1 : -1;
-          return 0;
-        }
-      });
-    }
-    return sortableItems;
-  }, [tasks, sortConfig]);
-
-  const totalPages = Math.ceil(sortedTasks.length / ROWS_PER_PAGE);
-  const paginatedTasks = sortedTasks.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
+  const paginatedTasks = tasks;
+  const totalPages = Math.ceil(totalCount / ROWS_PER_PAGE);
 
   const SortIcon = ({ columnKey }) => {
     if (sortConfig.key !== columnKey) return <ArrowUpDown size={12} className="opacity-20 hover:opacity-50 shrink-0" />;
@@ -533,6 +442,16 @@ export default function Tasks() {
       );
     }
     return pages;
+  };
+
+  const actions = {
+    openDrawer,
+    handleStatusChange,
+    setEvalModalTask,
+    openEditModal,
+    handleDelete,
+    setSelectedTask,
+    setIsDrawerOpen
   };
 
   return (
@@ -575,7 +494,7 @@ export default function Tasks() {
               {activeFilterCount > 0 && (
                 <div className="flex items-center gap-2">
                   <span className="text-[13px] font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-900 px-4 py-2 rounded-xl">
-                    🔍 Lọc nâng cao: {activeFilterCount} điều kiện — {tasks.length} kết quả
+                    🔍 Lọc nâng cao: {activeFilterCount} điều kiện — {totalCount} kết quả
                   </span>
                   <button
                     onClick={handleResetFilters}
@@ -592,7 +511,7 @@ export default function Tasks() {
                 <div className="flex items-center gap-2">
                   <span className="text-[13px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-900 px-4 py-2 rounded-xl flex items-center gap-1.5">
                     <Filter size={14} className="shrink-0" />
-                    {filterParam.startsWith('area_') ? `Lĩnh vực: ${filterParam.replace('area_', '')}` : getDashboardFilterTitle(filterParam)} — {tasks.length} kết quả
+                    {filterParam.startsWith('area_') ? `Lĩnh vực: ${filterParam.replace('area_', '')}` : getDashboardFilterTitle(filterParam)} — {totalCount} kết quả
                   </span>
                   <button
                     onClick={() => {
@@ -674,400 +593,35 @@ export default function Tasks() {
 
         {!loading && !error && (
           <>
-            {/* ── Desktop Table View ── */}
-            <div className="hidden md:block relative">
-              {/* Scroll container */}
-              <div className="overflow-x-auto">
-                <table
-                  className="w-full text-left border-collapse"
-                  style={{ minWidth: '1500px' }}
-                >
-                  <thead className="sticky top-0 z-10">
-                    <tr className="border-b-2 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 text-[10px] uppercase tracking-wider font-extrabold select-none">
-                      {/* Sticky first column */}
-                      <th className="sticky left-0 z-20 bg-slate-50 dark:bg-slate-900 p-3 w-[90px] min-w-[90px] border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)] cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('code')}>
-                        <div className="flex items-center justify-between gap-1">A. Mã NV <SortIcon columnKey="code" /></div>
-                      </th>
-                      <th className="p-3 w-[100px] min-w-[100px] whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('assigned_date')}>
-                        <div className="flex items-center justify-between gap-1">B. Ngày giao <SortIcon columnKey="assigned_date" /></div>
-                      </th>
-                      <th className="p-3 w-[130px] min-w-[120px] whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('assigner.full_name')}>
-                        <div className="flex items-center justify-between gap-1">C. Người giao <SortIcon columnKey="assigner.full_name" /></div>
-                      </th>
-                      <th className="p-3 w-[140px] min-w-[130px] whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('assignee.full_name')}>
-                        <div className="flex items-center justify-between gap-1">D. Người TH <SortIcon columnKey="assignee.full_name" /></div>
-                      </th>
-                      <th className="p-3 w-[150px] min-w-[130px] whitespace-nowrap">E. Phối hợp</th>
-                      <th className="p-3 w-[140px] min-w-[120px] whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('task_group')}>
-                        <div className="flex items-center justify-between gap-1">F. Nhóm NV <SortIcon columnKey="task_group" /></div>
-                      </th>
-                      <th className="p-3 w-[140px] min-w-[120px] whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('work_area')}>
-                        <div className="flex items-center justify-between gap-1">G. Lĩnh vực <SortIcon columnKey="work_area" /></div>
-                      </th>
-                      <th className="p-3 w-[220px] min-w-[180px] whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('title')}>
-                        <div className="flex items-center justify-between gap-1">H. Tên nhiệm vụ <SortIcon columnKey="title" /></div>
-                      </th>
-                      <th className="p-3 w-[200px] min-w-[160px] whitespace-nowrap">I. Nội dung</th>
-                      <th className="p-3 w-[160px] min-w-[130px] whitespace-nowrap">J. Sản phẩm</th>
-                      <th className="p-3 w-[80px] min-w-[75px] text-center whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('priority')}>
-                        <div className="flex items-center justify-center gap-1">K. UT <SortIcon columnKey="priority" /></div>
-                      </th>
-                      <th className="p-3 w-[100px] min-w-[95px] whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('start_date')}>
-                        <div className="flex items-center justify-between gap-1">L. Bắt đầu <SortIcon columnKey="start_date" /></div>
-                      </th>
-                      <th className="p-3 w-[110px] min-w-[105px] whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('due_date')}>
-                        <div className="flex items-center justify-between gap-1">M. Hạn HT <SortIcon columnKey="due_date" /></div>
-                      </th>
-                      <th className="p-3 w-[110px] min-w-[100px] text-center whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('status')}>
-                        <div className="flex items-center justify-center gap-1">N. Trạng thái <SortIcon columnKey="status" /></div>
-                      </th>
-                      <th className="p-3 w-[110px] min-w-[100px] text-center whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('evaluation_score')}>
-                        <div className="flex items-center justify-center gap-1">O. Đánh giá <SortIcon columnKey="evaluation_score" /></div>
-                      </th>
-                      <th className="p-3 w-[90px] min-w-[85px] text-center whitespace-nowrap">P. Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                    {paginatedTasks.map(task => {
-                      const today = new Date();
-                      const todayDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                      const isOverdue = task.due_date && task.due_date < todayDateStr && task.status !== 'completed' && task.evaluation_score === null;
-                      const isSelected = selectedTask?.id === task.id && isDrawerOpen;
-                      const canEditRow = canEditTask(profile, task);
+            <TaskTable
+              tasks={tasks}
+              paginatedTasks={paginatedTasks}
+              selectedTask={selectedTask}
+              isDrawerOpen={isDrawerOpen}
+              profile={profile}
+              sortConfig={sortConfig}
+              requestSort={requestSort}
+              filterParam={filterParam}
+              activeFilterCount={activeFilterCount}
+              searchStr={searchStr}
+              actions={actions}
+            />
 
-                      return (
-                        <tr
-                          key={task.id}
-                          onClick={(e) => openDrawer(task, e)}
-                          className={`
-                            cursor-pointer align-top group transition-colors
-                            ${isSelected
-                              ? 'bg-blue-50 dark:bg-blue-900/10 ring-inset ring-1 ring-blue-200 dark:ring-blue-800/40'
-                              : isOverdue
-                              ? 'bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 font-semibold [&_span]:!text-red-900 dark:[&_span]:!text-red-100 [&_td]:!text-red-900 dark:[&_td]:!text-red-100'
-                              : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/30'}
-                          `}
-                          title="Click để xem chi tiết"
-                        >
-                          {/* A: Mã NV – sticky */}
-                          <td className={`sticky left-0 z-[5] p-3 border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.06)] text-[12px] font-black font-mono whitespace-nowrap transition-colors ${
-                            isSelected ? 'bg-blue-50 dark:bg-blue-900/10 text-slate-700 dark:text-slate-200' :
-                            isOverdue ? 'bg-red-100 dark:bg-red-900/30 group-hover:bg-red-200 dark:group-hover:bg-red-900/50 text-red-900 dark:text-red-100' :
-                            'bg-white dark:bg-[#111827] group-hover:bg-slate-50/80 dark:group-hover:bg-slate-800/30 text-slate-700 dark:text-slate-200'
-                          }`}>
-                            {task.code || 'NV-000'}
-                          </td>
-
-                          {/* B: Ngày giao */}
-                          <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                            {fmtDate(task.assigned_date)}
-                          </td>
-
-                          {/* C: Người giao */}
-                          <td className="p-3 text-[12px] text-slate-600 dark:text-slate-400 max-w-[130px]">
-                            <span className="block truncate" title={task.assigner?.full_name}>
-                              {task.assigner?.full_name || '—'}
-                            </span>
-                          </td>
-
-                          {/* D: Người thực hiện */}
-                          <td className="p-3 text-[12px] max-w-[140px]">
-                            <span className="block truncate font-semibold text-slate-700 dark:text-slate-200" title={task.assignee?.full_name}>
-                              {task.assignee?.full_name || '—'}
-                            </span>
-                          </td>
-
-                          {/* E: Phối hợp */}
-                          <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 max-w-[150px]">
-                            {(() => {
-                              const names = (task.task_collaborators || []).map(c => c.profiles?.full_name).filter(Boolean);
-                              if (names.length === 0) return <span className="text-slate-300 dark:text-slate-700">—</span>;
-                              const display = names.slice(0, 2).join(', ');
-                              return (
-                                <span className="block truncate" title={names.join(', ')}>
-                                  {display}{names.length > 2 ? ` +${names.length - 2}` : ''}
-                                </span>
-                              );
-                            })()}
-                          </td>
-
-                          {/* F: Nhóm NV */}
-                          <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 max-w-[140px]">
-                            <span className="block truncate" title={task.task_group}>{task.task_group || '—'}</span>
-                          </td>
-
-                          {/* G: Lĩnh vực */}
-                          <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 max-w-[140px]">
-                            <span className="block truncate" title={task.work_area}>{task.work_area || '—'}</span>
-                          </td>
-
-                          {/* H: Tên NV */}
-                          <td className="p-3 text-[12px] max-w-[220px]">
-                            <span
-                              className="font-bold text-slate-800 dark:text-white leading-snug line-clamp-2"
-                              title={task.title}
-                            >
-                              {task.title}
-                            </span>
-                          </td>
-
-                          {/* I: Nội dung */}
-                          <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 max-w-[200px]">
-                            <span className="line-clamp-2 leading-relaxed" title={task.description}>
-                              {task.description || <span className="text-slate-300 dark:text-slate-700 italic">—</span>}
-                            </span>
-                          </td>
-
-                          {/* J: Sản phẩm */}
-                          <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 max-w-[160px]">
-                            <span className="line-clamp-2" title={task.expected_output}>
-                              {task.expected_output || <span className="text-slate-300 dark:text-slate-700 italic">—</span>}
-                            </span>
-                          </td>
-
-                          {/* K: Ưu tiên */}
-                          <td className="p-3 text-center">
-                            <PriorityBadge priority={task.priority} />
-                          </td>
-
-                          {/* L: Bắt đầu */}
-                          <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                            {fmtDate(task.start_date)}
-                          </td>
-
-                          {/* M: Hạn HT */}
-                          <td className="p-3 whitespace-nowrap">
-                            <span className={`text-[12px] font-semibold ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-slate-600 dark:text-slate-400'}`}>
-                              {fmtDate(task.due_date)}
-                              {isOverdue && (
-                                <span className="block text-[10px] bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded-md mt-0.5 font-bold w-fit">
-                                  Quá hạn
-                                </span>
-                              )}
-                            </span>
-                          </td>
-
-                          {/* N: Trạng thái */}
-                          <td className="p-3 text-center">
-                            <StatusBadge status={task.status} dueDate={task.due_date} evaluationScore={task.evaluation_score} />
-                          </td>
-
-                          {/* O: Đánh giá */}
-                          <td className="p-3 text-center">
-                            {task.status === 'completed' ? (
-                              task.evaluation_score !== null ? (
-                                <ScoreBadge score={task.evaluation_score} rank={task.evaluation_rank} />
-                              ) : (
-                                <span className="text-[10px] text-slate-400 dark:text-slate-500 italic font-medium">Chưa ĐG</span>
-                              )
-                            ) : (
-                              <span className="text-slate-300 dark:text-slate-700">—</span>
-                            )}
-                          </td>
-
-                          {/* P: Thao tác */}
-                          <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-center gap-1">
-                              {/* Xem chi tiết */}
-                              <button
-                                onClick={() => openDrawer(task)}
-                                title="Xem chi tiết"
-                                className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                              >
-                                <Eye size={14} />
-                              </button>
-                              {/* Hoàn thành */}
-                              {task.status !== 'completed' && canUpdateProgress(profile, task) && (
-                                <button
-                                  onClick={() => handleStatusChange(task.id, 'completed')}
-                                  title="Đánh dấu hoàn thành"
-                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
-                                >
-                                  <CheckCircle size={14} />
-                                </button>
-                              )}
-                              {/* Đánh giá */}
-                              {canEvaluate(profile, task) && (
-                                <button
-                                  onClick={() => setEvalModalTask(task)}
-                                  title={task.evaluation_score !== null ? 'Xem/Sửa đánh giá' : 'Đánh giá kết quả'}
-                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
-                                >
-                                  <Star size={14} className={task.evaluation_score !== null ? 'fill-amber-400 text-amber-500' : ''} />
-                                </button>
-                              )}
-                              {/* Sửa */}
-                              {canEditRow && (
-                                <button
-                                  onClick={() => openEditModal(task)}
-                                  title="Sửa nhiệm vụ"
-                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                                >
-                                  <Edit2 size={14} />
-                                </button>
-                              )}
-                              {/* Xóa */}
-                              {canEditRow && (
-                                <button
-                                  onClick={() => handleDelete(task.id)}
-                                  title="Xóa nhiệm vụ"
-                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-
-                    {/* Empty state */}
-                    {tasks.length === 0 && (
-                      <tr>
-                        <td colSpan={16} className="py-20 text-center">
-                          <div className="flex flex-col items-center gap-3 text-slate-400">
-                            <SlidersHorizontal size={40} className="opacity-20" />
-                            <p className="font-semibold text-[15px] text-slate-500 dark:text-slate-400">
-                              {filterParam ? getDashboardEmptyState(filterParam) : 'Không tìm thấy nhiệm vụ nào'}
-                            </p>
-                            <p className="text-[13px] text-slate-400 dark:text-slate-500">
-                              {activeFilterCount > 0 || filterParam || searchStr
-                                ? 'Thử điều chỉnh hoặc xóa bộ lọc để xem thêm kết quả.'
-                                : 'Chưa có nhiệm vụ nào được giao. Nhấn "+" để tạo mới.'}
-                            </p>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* ── Mobile Card View ── */}
-            <div className="md:hidden pb-6 divide-y divide-slate-100 dark:divide-slate-800">
-              {paginatedTasks.map(task => {
-                const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed' && task.evaluation_score === null;
-                return (
-                  <div
-                    key={task.id}
-                    onClick={() => { setSelectedTask(task); setIsDrawerOpen(true); }}
-                    className={`relative bg-white dark:bg-slate-800 p-4 cursor-pointer transition-all active:bg-slate-50 dark:active:bg-slate-900 ${
-                      isOverdue ? 'bg-red-50/10' : ''
-                    }`}
-                  >
-                    {/* Row 1: Mã + Priority + Status */}
-                    <div className="flex items-start justify-between gap-2 mb-2.5">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-mono font-black text-[12px] text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-md">
-                          {task.code || 'NV-000'}
-                        </span>
-                        <PriorityBadge priority={task.priority} />
-                        <StatusBadge status={task.status} dueDate={task.due_date} evaluationScore={task.evaluation_score} />
-                      </div>
-                    </div>
-
-                    {/* Row 2: Tên nhiệm vụ */}
-                    <h3 className="font-black text-[16px] text-slate-900 dark:text-white leading-snug mb-2.5 line-clamp-2">
-                      {task.title}
-                    </h3>
-
-                    {/* Row 3: Meta info */}
-                    <div className="flex items-center gap-4 text-[13px] text-slate-600 dark:text-slate-400 font-bold">
-                      <span className="flex items-center gap-1 truncate">
-                        <Clock size={12} className="shrink-0 text-blue-500" />
-                        {task.assignee?.full_name || 'Chưa phân công'}
-                      </span>
-                      {task.due_date && (
-                        <span className={`flex items-center gap-1 whitespace-nowrap shrink-0 font-black ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-slate-800 dark:text-slate-200'}`}>
-                          <Calendar size={12} className="shrink-0 text-amber-500" />
-                          {fmtDate(task.due_date)}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Evaluation score if available */}
-                    {task.status === 'completed' && task.evaluation_score !== null && (
-                      <div className="mt-2 flex items-center gap-1.5">
-                        <Star size={12} className="fill-amber-400 text-amber-500" />
-                        <span className="text-[12px] font-bold text-blue-600 dark:text-blue-400">{task.evaluation_score} điểm</span>
-                        <span className="text-[11px] text-slate-400">— {task.evaluation_rank}</span>
-                      </div>
-                    )}
-
-                    {/* Row 4: Actions */}
-                    <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                      {/* Xem chi tiết */}
-                      <button
-                        onClick={() => { setSelectedTask(task); setIsDrawerOpen(true); }}
-                        className="p-2 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors bg-slate-50 dark:bg-slate-800/50"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      
-                      {/* Hoàn thành */}
-                      {task.status !== 'completed' && canUpdateProgress(profile, task) && (
-                        <button
-                          onClick={() => handleStatusChange(task.id, 'completed')}
-                          className="p-2 rounded-lg flex items-center justify-center text-slate-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors bg-slate-50 dark:bg-slate-800/50"
-                        >
-                          <CheckCircle size={16} />
-                        </button>
-                      )}
-                      
-                      {/* Đánh giá */}
-                      {canEvaluate(profile, task) && (
-                        <button
-                          onClick={() => setEvalModalTask(task)}
-                          className="p-2 rounded-lg flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors bg-slate-50 dark:bg-slate-800/50"
-                        >
-                          <Star size={16} className={task.evaluation_score !== null ? 'fill-amber-400 text-amber-500' : ''} />
-                        </button>
-                      )}
-                      
-                      {/* Sửa */}
-                      {canEditTask(profile, task) && (
-                        <button
-                          onClick={() => openEditModal(task)}
-                          className="p-2 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors bg-slate-50 dark:bg-slate-800/50"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                      )}
-                      
-                      {/* Xóa */}
-                      {canEditTask(profile, task) && (
-                        <button
-                          onClick={() => handleDelete(task.id)}
-                          className="p-2 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors bg-slate-50 dark:bg-slate-800/50"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-
-              {tasks.length === 0 && (
-                <div className="py-14 text-center flex flex-col items-center gap-3 text-slate-400 border border-slate-200 dark:border-slate-700 rounded-2xl border-dashed mx-0">
-                  <SlidersHorizontal size={32} className="opacity-20" />
-                  <p className="font-semibold text-[14px]">
-                    {filterParam ? getDashboardEmptyState(filterParam) : 'Không có nhiệm vụ nào'}
-                  </p>
-                  <p className="text-[12px] text-slate-400 dark:text-slate-500 px-6">
-                    {activeFilterCount > 0 || filterParam ? 'Thử xóa bộ lọc để xem thêm.' : 'Chưa có nhiệm vụ. Nhấn + để tạo mới.'}
-                  </p>
-                </div>
-              )}
-            </div>
+            <TaskMobileList
+              tasks={tasks}
+              paginatedTasks={paginatedTasks}
+              profile={profile}
+              filterParam={filterParam}
+              activeFilterCount={activeFilterCount}
+              searchStr={searchStr}
+              actions={actions}
+            />
 
             {/* ── Pagination ── */}
-            {tasks.length > 0 && (
+            {totalCount > 0 && (
               <div className="px-5 md:px-8 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="text-[13px] text-slate-500 dark:text-slate-400 font-medium text-center sm:text-left w-full sm:w-auto">
-                  Hiển thị <span className="font-bold text-slate-700 dark:text-slate-300">{(currentPage - 1) * ROWS_PER_PAGE + 1}</span>–<span className="font-bold text-slate-700 dark:text-slate-300">{Math.min(currentPage * ROWS_PER_PAGE, tasks.length)}</span> / <span className="font-bold text-slate-700 dark:text-slate-300">{tasks.length}</span> nhiệm vụ
+                  Hiển thị <span className="font-bold text-slate-700 dark:text-slate-300">{(currentPage - 1) * ROWS_PER_PAGE + 1}</span>–<span className="font-bold text-slate-700 dark:text-slate-300">{Math.min(currentPage * ROWS_PER_PAGE, totalCount)}</span> / <span className="font-bold text-slate-700 dark:text-slate-300">{totalCount}</span> nhiệm vụ
                 </div>
                 
                 {totalPages > 1 && (

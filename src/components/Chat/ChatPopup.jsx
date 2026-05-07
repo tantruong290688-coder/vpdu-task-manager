@@ -303,7 +303,7 @@ export default function ChatPopup() {
 
   return (
     <div className={`
-      fixed inset-0 z-[150] flex flex-col bg-white dark:bg-slate-900 shadow-2xl transition-all duration-300 ease-in-out overflow-hidden
+      fixed top-0 right-0 h-[100dvh] w-full z-[150] flex flex-col bg-white dark:bg-slate-900 shadow-2xl transition-all duration-300 ease-in-out overflow-hidden
       sm:inset-auto sm:bottom-6 sm:right-6 sm:rounded-[24px] sm:w-[400px] sm:h-[600px] sm:max-h-[85vh] sm:border sm:border-slate-100 dark:sm:border-slate-800
       animate-in slide-in-from-bottom-5 fade-in
     `}>

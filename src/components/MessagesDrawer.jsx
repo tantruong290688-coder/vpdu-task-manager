@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { useMessage } from '../context/MessageContext';
 import { X, Search, Send, Loader2, ArrowLeft, Check, CheckCheck, Reply, Trash2, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ChatComposer from './Chat/ChatComposer';
+import MessageList from './Chat/MessageList';
 
 export default function MessagesDrawer() {
   const { user, profile, onlineUsers } = useAuth();
@@ -219,44 +221,71 @@ export default function MessagesDrawer() {
     }
   };
 
-  const handleSend = async (e) => {
-    e.preventDefault();
-    if (!newMessage.trim() || (!activeChatUserId && !activeRoomId)) return;
+  const handleSend = async (content, file = null) => {
+    if ((!content && !file) || (!activeChatUserId && !activeRoomId)) return;
 
-    const content = newMessage.trim();
-    setNewMessage('');
     const currentReplyTo = replyTo;
     setReplyTo(null);
     setSending(true);
 
     try {
+      let attachmentUrl = null;
+      let attachmentName = null;
+      let attachmentType = null;
+      let attachmentSize = null;
+
+      if (file) {
+        const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const fileName = `${Date.now()}_${safeName}`;
+        const filePath = activeRoomId ? `room_${activeRoomId}/${user.id}/${fileName}` : `private_${activeChatUserId}/${user.id}/${fileName}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('message-attachments')
+          .upload(filePath, file, {
+            contentType: file.type || 'application/octet-stream',
+            upsert: false
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage
+          .from('message-attachments')
+          .getPublicUrl(filePath);
+
+        attachmentUrl = publicUrlData.publicUrl;
+        attachmentName = file.name;
+        attachmentType = file.type;
+        attachmentSize = file.size;
+      }
+
+      const displayContent = content || (file ? (file.type.startsWith('image/') ? '[Hình ảnh]' : '[Tệp đính kèm]') : '');
+
       if (activeRoomId) {
         const msg = {
           room_id: activeRoomId,
           sender_id: user.id,
           sender_name: profile?.full_name || user.email.split('@')[0],
-          content,
-          reply_to_id: currentReplyTo?.id || null
+          content: displayContent,
+          reply_to_id: currentReplyTo?.id || null,
+          attachment_url: attachmentUrl,
+          attachment_name: attachmentName,
+          attachment_type: attachmentType,
+          attachment_size: attachmentSize
         };
         const { data: savedMsg, error } = await supabase.from('chat_messages').insert(msg).select().single();
         if (error) throw error;
 
-        // Gửi push notification cho các thành viên khác trong nhóm (giả định tất cả member đều cần nhận)
-        // Lưu ý: Trong thực tế nên lấy danh sách member của room, ở đây ta lấy tất cả profiles trừ bản thân
         const otherUserIds = Object.keys(profiles).filter(id => id !== user.id);
         if (otherUserIds.length > 0) {
           const { data: { session } } = await supabase.auth.getSession();
           fetch('/api/notifications/create', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session?.access_token}`
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
             body: JSON.stringify({
               userIds: otherUserIds,
               actorId: user.id,
               title: 'Tin nhắn nhóm CB,CC,NV',
-              body: `${profile?.full_name || 'Đồng nghiệp'}: ${content.length > 80 ? content.substring(0, 77) + '...' : content}`,
+              body: `${profile?.full_name || 'Đồng nghiệp'}: ${displayContent.length > 80 ? displayContent.substring(0, 77) + '...' : displayContent}`,
               type: 'message_group',
               entityType: 'message',
               entityId: savedMsg.id,
@@ -264,31 +293,30 @@ export default function MessagesDrawer() {
             })
           }).catch(err => console.error('Push error:', err));
         }
-
       } else {
         const msg = {
           sender_id: user.id,
           receiver_id: activeChatUserId,
-          content,
+          content: displayContent,
           is_read: false,
-          reply_to_id: currentReplyTo?.id || null
+          reply_to_id: currentReplyTo?.id || null,
+          attachment_url: attachmentUrl,
+          attachment_name: attachmentName,
+          attachment_type: attachmentType,
+          attachment_size: attachmentSize
         };
         const { data: savedMsg, error } = await supabase.from('messages').insert(msg).select().single();
         if (error) throw error;
 
-        // Gửi push cho người nhận
         const { data: { session } } = await supabase.auth.getSession();
         fetch('/api/notifications/create', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`
-          },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
           body: JSON.stringify({
             userId: activeChatUserId,
             actorId: user.id,
             title: 'Tin nhắn mới',
-            body: `${profile?.full_name || 'Đồng nghiệp'}: ${content.length > 80 ? content.substring(0, 77) + '...' : content}`,
+            body: `${profile?.full_name || 'Đồng nghiệp'}: ${displayContent.length > 80 ? displayContent.substring(0, 77) + '...' : displayContent}`,
             type: 'message_private',
             entityType: 'message',
             entityId: savedMsg.id,
@@ -298,7 +326,7 @@ export default function MessagesDrawer() {
       }
     } catch (err) {
       console.error(err);
-      toast.error('Không thể gửi tin nhắn');
+      toast.error('Không thể gửi tin nhắn hoặc tải tệp lên');
     } finally {
       setSending(false);
     }
@@ -396,7 +424,7 @@ export default function MessagesDrawer() {
   return (
     <>
       <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[60]" onClick={closeDrawer} />
-      <div className="fixed top-0 right-0 h-full w-full sm:w-[400px] md:w-[450px] bg-white dark:bg-[#111827] shadow-2xl z-[70] flex flex-col transform transition-transform duration-300">
+      <div className="fixed top-0 right-0 h-[100dvh] w-full sm:w-[400px] md:w-[450px] bg-white dark:bg-[#111827] shadow-2xl z-[70] flex flex-col transform transition-transform duration-300">
         
         {/* Header */}
         <div className="h-[calc(80px+env(safe-area-inset-top))] md:h-[90px] pt-[calc(env(safe-area-inset-top)+8px)] px-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-20">
@@ -562,170 +590,18 @@ export default function MessagesDrawer() {
           ) : (
             // Chat Interface
             <>
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50 dark:bg-slate-900/20">
-                {activeRoomId ? (
-                  roomMessages.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2">
-                       <p className="font-medium text-sm">Chưa có tin nhắn nào trong nhóm.</p>
-                    </div>
-                  ) : (
-                    roomMessages.map((m, i) => {
-                      const isMe = m.sender_id === user.id;
-                      const isAdmin = profile?.role === 'admin';
-                      const repliedMsg = m.reply_to_id ? roomMessages.find(rm => rm.id === m.reply_to_id) : null;
-                      
-                      return (
-                        <div key={m.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                          {/* Sender Name - color coded: Green for self, Blue for others */}
-                          {!m.is_deleted && (
-                            <span className={`text-[11px] font-bold mb-1 px-1 uppercase tracking-wider ${
-                              isMe ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
-                            }`}>
-                              {m.sender_name}
-                            </span>
-                          )}
-                          <div className={`flex gap-2 max-w-[85%] relative group ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                            <div className={`px-5 py-3 rounded-2xl text-[16px] font-medium leading-relaxed shadow-sm transition-all ${
-                              m.is_deleted 
-                                ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-400 italic' 
-                                : isMe 
-                                  ? 'bg-blue-600 text-white rounded-br-sm shadow-blue-500/10' 
-                                  : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-100 dark:border-slate-700 rounded-bl-sm'
-                            }`}>
-                              {repliedMsg && !m.is_deleted && (
-                                <div className={`text-[12px] p-2 mb-2 rounded-lg border-l-4 ${isMe ? 'bg-blue-700/50 border-blue-400 text-blue-100' : 'bg-slate-100 dark:bg-slate-700 border-slate-400 text-slate-500'} italic truncate`}>
-                                  <span className="font-bold mr-1 block">{repliedMsg.sender_name}:</span>
-                                  {repliedMsg.content}
-                                </div>
-                              )}
-                              {m.content}
-                            </div>
-                            
-                            {!m.is_deleted && (
-                              <div className={`flex gap-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all self-center ${isMe ? 'mr-1' : 'ml-1'}`}>
-                                <button onClick={() => setReplyTo(m)} title="Trả lời" className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 bg-slate-100/50 dark:bg-slate-800/50 md:bg-transparent">
-                                  <Reply size={15} />
-                                </button>
-                                {(isMe || isAdmin) && (
-                                  <button onClick={() => softDeleteMessage(m.id)} title="Xóa" className="p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 bg-red-50/50 dark:bg-red-900/10 md:bg-transparent">
-                                    <Trash2 size={15} />
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          <div className="mt-1 px-1">
-                            <span className="text-[10px] text-slate-400 font-medium tracking-tight">
-                              {formatTime(m.created_at)}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )
-                ) : (
-                  chatMessages.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2">
-                      <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-2">
-                        <Send size={24} className="text-slate-300 ml-1" />
-                      </div>
-                      <p className="font-medium text-sm">Bắt đầu cuộc trò chuyện với {activeUser?.full_name}</p>
-                    </div>
-                  ) : (
-                    chatMessages.map((m, i) => {
-                      const isMe = m.sender_id === user.id;
-                      const showAvatar = !isMe && (i === 0 || chatMessages[i-1].sender_id !== m.sender_id);
-                      
-                      return (
-                        <div key={m.id} className={`flex gap-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
-                          {!isMe && (
-                            <div className="w-8 shrink-0 flex flex-col justify-end">
-                              {showAvatar && (
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
-                                  {(activeUser?.full_name || '?').charAt(0).toUpperCase()}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          <div className={`max-w-[85%] flex relative group ${isMe ? 'flex-row-reverse items-end' : 'flex-row items-start'}`}>
-                            <div className="flex flex-col">
-                              <div className={`px-5 py-3 rounded-2xl text-[16px] font-medium leading-relaxed shadow-sm transition-all ${
-                                m.is_deleted 
-                                  ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-400 italic' 
-                                  : isMe 
-                                    ? 'bg-blue-600 text-white rounded-br-sm shadow-blue-500/10' 
-                                    : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-100 dark:border-slate-700 rounded-bl-sm'
-                              }`}>
-                                {m.reply_to_id && !m.is_deleted && (
-                                  <div className={`text-[12px] p-2 mb-2 rounded-lg border-l-4 ${isMe ? 'bg-blue-700/50 border-blue-400 text-blue-100' : 'bg-slate-100 dark:bg-slate-700 border-slate-400 text-slate-500'} italic truncate`}>
-                                    {chatMessages.find(rm => rm.id === m.reply_to_id)?.content || 'Tin nhắn gốc'}
-                                  </div>
-                                )}
-                                {m.content}
-                              </div>
-                              <div className={`flex items-center gap-1 mt-1 px-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                <span className="text-[10px] text-slate-400 font-medium">{formatTime(m.created_at)}</span>
-                                {isMe && !m.is_deleted && (
-                                  m.is_read ? <CheckCheck size={12} className="text-blue-500" /> : <Check size={12} className="text-slate-400" />
-                                )}
-                              </div>
-                            </div>
-
-                            {!m.is_deleted && (
-                              <div className={`flex gap-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all self-center ${isMe ? 'mr-1' : 'ml-1'}`}>
-                                <button 
-                                  onClick={() => setReplyTo({ ...m, sender_name: isMe ? 'Bạn' : activeUser?.full_name })} 
-                                  title="Trả lời" 
-                                  className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 bg-slate-100/50 dark:bg-slate-800/50 md:bg-transparent"
-                                >
-                                  <Reply size={15} />
-                                </button>
-                                {(isMe || profile?.role === 'admin') && (
-                                  <button onClick={() => softDeleteMessage(m.id)} title="Xóa" className="p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 bg-red-50/50 dark:bg-red-900/10 md:bg-transparent">
-                                    <Trash2 size={15} />
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })
-                  )
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-              
-              {/* Input Area */}
-              <div className="p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-4 bg-white dark:bg-[#111827] border-t border-slate-100 dark:border-slate-800 shrink-0">
-                {replyTo && (
-                  <div className="mb-3 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border-l-4 border-blue-500 flex justify-between items-start animate-in slide-in-from-bottom-2">
-                    <div className="overflow-hidden">
-                      <span className="text-[11px] font-bold text-blue-600 uppercase block mb-1">Đang trả lời {replyTo.sender_name}</span>
-                      <p className="text-[13px] text-slate-600 dark:text-slate-400 truncate">{replyTo.content}</p>
-                    </div>
-                    <button onClick={() => setReplyTo(null)} className="p-1 text-slate-400 hover:text-slate-600 transition-colors">
-                      <X size={16} />
-                    </button>
-                  </div>
-                )}
-                <form onSubmit={handleSend} className="flex gap-2 relative">
-                  <input
-                    type="text"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder={replyTo ? `Trả lời ${replyTo.sender_name}...` : "Nhập tin nhắn..."}
-                    className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full pl-6 pr-12 py-4 text-[16px] font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 dark:text-white transition-all"
-                  />
-                  <button 
-                    type="submit" 
-                    disabled={!newMessage.trim() || sending}
-                    className="absolute right-1.5 top-1.5 bottom-1.5 w-10 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-full flex items-center justify-center transition-colors shadow-sm"
-                  >
-                    {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} className="-ml-0.5 mt-0.5" />}
-                  </button>
-                </form>
-              </div>
+              <MessageList 
+                messages={(activeRoomId ? roomMessages : chatMessages).filter(m => !m.is_deleted)}
+                currentUser={user}
+                onReply={(m) => setReplyTo({ ...m, sender_name: m.sender_id === user.id ? 'Bạn' : m.sender_name || activeUser?.full_name })}
+                onDelete={softDeleteMessage}
+              />
+              <ChatComposer 
+                onSend={handleSend}
+                sending={sending}
+                replyTo={replyTo}
+                onCancelReply={() => setReplyTo(null)}
+              />
             </>
           )}
         </div>

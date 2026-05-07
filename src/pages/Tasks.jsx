@@ -150,15 +150,42 @@ export default function Tasks() {
     setLoading(true);
     setError(null);
     try {
+      // Lấy trước danh sách task_id mà người dùng hoặc người phối hợp tham gia
+      let myCollabTaskIds = [];
+      const isMyTasksPage = location.pathname === '/my-tasks' && profile;
+      if (isMyTasksPage) {
+        const { data } = await supabase.from('task_collaborators').select('task_id').eq('user_id', profile.id);
+        if (data) myCollabTaskIds = data.map(d => d.task_id);
+      }
+
+      let specificCollabTaskIds = [];
+      if (filters.collaboratorId) {
+        const { data } = await supabase.from('task_collaborators').select('task_id').eq('user_id', filters.collaboratorId);
+        if (data) specificCollabTaskIds = data.map(d => d.task_id);
+      }
+
       let query = supabase
         .from('tasks')
         .select('*, assignee:profiles!tasks_assignee_id_fkey(id, full_name), assigner:profiles!tasks_assigned_by_fkey(id, full_name), task_collaborators(user_id, profiles(id, full_name))');
 
-      // URL-based filters
-      if (location.pathname === '/my-tasks' && profile) {
-        // Lưu ý: Lọc phía server với OR qua bảng liên kết (task_collaborators) có thể gây lỗi "failed to parse logic tree".
-        // Chúng tôi sẽ thực hiện lọc chính xác ở phía client trong biến `result` phía dưới để đảm bảo tính ổn định.
+      // Tối ưu lọc "Nhiệm vụ của tôi" trực tiếp qua query DB thay vì JS array filter
+      if (isMyTasksPage) {
+        if (myCollabTaskIds.length > 0) {
+          query = query.or(`assignee_id.eq.${profile.id},id.in.(${myCollabTaskIds.join(',')})`);
+        } else {
+          query = query.eq('assignee_id', profile.id);
+        }
       }
+
+      if (filters.collaboratorId) {
+        if (specificCollabTaskIds.length > 0) {
+          query = query.in('id', specificCollabTaskIds);
+        } else {
+          query = query.eq('id', '00000000-0000-0000-0000-000000000000'); // Trả về rỗng nếu không có task
+        }
+      }
+
+      // URL-based filters
       if (filterParam) {
         if (filterParam.startsWith('area_')) {
           query = query.eq('work_area', filterParam.replace('area_', ''));
@@ -206,19 +233,6 @@ export default function Tasks() {
 
       let result = data || [];
 
-      // Logic riêng cho trang "Nhiệm vụ của tôi"
-      if (location.pathname === '/my-tasks' && profile) {
-        result = result.filter(t => 
-          t.assignee_id === profile.id || 
-          (t.task_collaborators || []).some(c => c.user_id === profile.id)
-        );
-      }
-
-      if (filters.collaboratorId) {
-        result = result.filter(t =>
-          (t.task_collaborators || []).some(c => c.user_id === filters.collaboratorId)
-        );
-      }
       setTasks(result);
 
       // Sync selectedTask nếu drawer đang mở
@@ -333,9 +347,23 @@ export default function Tasks() {
   const handleExport = async (filtersToExport) => {
     try {
       setIsExporting(true);
+      let specificCollabTaskIdsExport = [];
+      if (filtersToExport.collaboratorId) {
+        const { data } = await supabase.from('task_collaborators').select('task_id').eq('user_id', filtersToExport.collaboratorId);
+        if (data) specificCollabTaskIdsExport = data.map(d => d.task_id);
+      }
+
       let query = supabase
         .from('tasks')
         .select('*, assignee:profiles!tasks_assignee_id_fkey(full_name), assigner:profiles!tasks_assigned_by_fkey(full_name), task_collaborators(user_id, profiles(full_name))');
+
+      if (filtersToExport.collaboratorId) {
+        if (specificCollabTaskIdsExport.length > 0) {
+          query = query.in('id', specificCollabTaskIdsExport);
+        } else {
+          query = query.eq('id', '00000000-0000-0000-0000-000000000000'); // Trả về rỗng nếu không có task
+        }
+      }
 
       if (filtersToExport.keyword)         query = query.or(`title.ilike.%${filtersToExport.keyword}%,code.ilike.%${filtersToExport.keyword}%,description.ilike.%${filtersToExport.keyword}%`);
       if (filtersToExport.assignerId)      query = query.eq('assigned_by', filtersToExport.assignerId);
@@ -361,7 +389,6 @@ export default function Tasks() {
       if (error) throw error;
 
       let result = data || [];
-      if (filtersToExport.collaboratorId) result = result.filter(t => (t.task_collaborators || []).some(c => c.user_id === filtersToExport.collaboratorId));
 
       const excelData = result.map(t => ({
         'Mã nhiệm vụ': t.code || '',
@@ -939,7 +966,6 @@ export default function Tasks() {
                         <PriorityBadge priority={task.priority} />
                         <StatusBadge status={task.status} dueDate={task.due_date} evaluationScore={task.evaluation_score} />
                       </div>
-                      <Eye size={16} className="text-slate-300 dark:text-slate-600 shrink-0 mt-0.5" />
                     </div>
 
                     {/* Row 2: Tên nhiệm vụ */}
@@ -969,6 +995,57 @@ export default function Tasks() {
                         <span className="text-[11px] text-slate-400">— {task.evaluation_rank}</span>
                       </div>
                     )}
+
+                    {/* Row 4: Actions */}
+                    <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                      {/* Xem chi tiết */}
+                      <button
+                        onClick={() => { setSelectedTask(task); setIsDrawerOpen(true); }}
+                        className="p-2 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors bg-slate-50 dark:bg-slate-800/50"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      
+                      {/* Hoàn thành */}
+                      {task.status !== 'completed' && canUpdateProgress(profile, task) && (
+                        <button
+                          onClick={() => handleStatusChange(task.id, 'completed')}
+                          className="p-2 rounded-lg flex items-center justify-center text-slate-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors bg-slate-50 dark:bg-slate-800/50"
+                        >
+                          <CheckCircle size={16} />
+                        </button>
+                      )}
+                      
+                      {/* Đánh giá */}
+                      {canEvaluate(profile, task) && (
+                        <button
+                          onClick={() => setEvalModalTask(task)}
+                          className="p-2 rounded-lg flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors bg-slate-50 dark:bg-slate-800/50"
+                        >
+                          <Star size={16} className={task.evaluation_score !== null ? 'fill-amber-400 text-amber-500' : ''} />
+                        </button>
+                      )}
+                      
+                      {/* Sửa */}
+                      {canEditTask(profile, task) && (
+                        <button
+                          onClick={() => openEditModal(task)}
+                          className="p-2 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors bg-slate-50 dark:bg-slate-800/50"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                      )}
+                      
+                      {/* Xóa */}
+                      {canEditTask(profile, task) && (
+                        <button
+                          onClick={() => handleDelete(task.id)}
+                          className="p-2 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors bg-slate-50 dark:bg-slate-800/50"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })}

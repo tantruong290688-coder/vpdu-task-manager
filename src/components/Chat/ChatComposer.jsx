@@ -3,6 +3,7 @@ import { Send, Paperclip, Smile, Loader2, X, Camera, Image as ImageIcon, FolderO
 import toast from 'react-hot-toast';
 import AttachmentFileIcon from './AttachmentFileIcon';
 import { getFileTypeInfo } from '../../utils/fileType';
+import { validateAndCompressFile } from '../../utils/imageCompressor';
 
 export default function ChatComposer({ onSend, sending, replyTo, onCancelReply }) {
   const [text, setText] = useState('');
@@ -37,17 +38,22 @@ export default function ChatComposer({ onSend, sending, replyTo, onCancelReply }
     return () => document.removeEventListener('pointerdown', handleClickOutside);
   }, [showAttachMenu]);
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setShowAttachMenu(false);
 
-    // Check size (2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('Dung lượng tệp không được vượt quá 2 MB.');
+    const toastId = toast.loading('Đang kiểm tra và xử lý file...');
+
+    const { isValid, file: processedFile, error } = await validateAndCompressFile(file);
+
+    if (!isValid) {
+      toast.error(error, { id: toastId });
       e.target.value = '';
       return;
     }
+
+    toast.dismiss(toastId);
 
     // Check allowed types
     const allowedTypes = [
@@ -65,10 +71,10 @@ export default function ChatComposer({ onSend, sending, replyTo, onCancelReply }
       return;
     }
 
-    setSelectedFile(file);
+    setSelectedFile(processedFile);
     
-    if (file.type.startsWith('image/')) {
-      const url = URL.createObjectURL(file);
+    if (processedFile.type.startsWith('image/')) {
+      const url = URL.createObjectURL(processedFile);
       setPreviewUrl(url);
     } else {
       setPreviewUrl(null);
@@ -212,7 +218,7 @@ export default function ChatComposer({ onSend, sending, replyTo, onCancelReply }
                   key={i}
                   type="button"
                   onClick={() => { opt.action(); setShowAttachMenu(false); }}
-                  className="flex items-center gap-3 w-full px-4 py-4 sm:py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors touch-manipulation active:bg-slate-100 dark:active:bg-slate-700"
+                  className="flex items-center gap-4 w-full px-5 py-4 sm:py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors touch-manipulation active:bg-slate-100 dark:active:bg-slate-700"
                 >
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${opt.color}`}>
                     <opt.icon size={16} />
@@ -227,13 +233,13 @@ export default function ChatComposer({ onSend, sending, replyTo, onCancelReply }
             type="button"
             onClick={() => setShowAttachMenu(prev => !prev)}
             disabled={sending}
-            className={`p-3 sm:p-2 rounded-full transition-colors touch-manipulation disabled:opacity-50 ${
+            className={`p-3 sm:p-2.5 rounded-full transition-colors touch-manipulation disabled:opacity-50 ${
               showAttachMenu
                 ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-500'
                 : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-blue-500'
             }`}
           >
-            <Paperclip size={20} />
+            <Paperclip size={24} />
           </button>
         </div>
 

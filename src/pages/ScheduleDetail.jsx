@@ -279,16 +279,22 @@ export default function ScheduleDetail() {
                 setExporting(false);
               }} 
               disabled={exporting}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-bold shadow hover:bg-green-700 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-bold shadow hover:bg-green-700 transition-colors disabled:opacity-50"
+              title="Xuất Excel"
             >
-              <Download size={16} className={exporting ? 'animate-bounce' : ''} />
-              <span className="hidden sm:inline">{exporting ? 'Đang xuất Excel...' : 'Xuất Excel'}</span>
+              <Download size={18} className={exporting ? 'animate-bounce' : ''} />
+              <span className="hidden md:inline">{exporting ? 'Đang xuất...' : 'Xuất Excel'}</span>
             </button>
           )}
           {canEdit && (
-            <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow hover:bg-blue-700 disabled:opacity-50">
-              <Save size={16} />
-              {saving ? 'Đang lưu...' : 'Lưu dữ liệu'}
+            <button 
+              onClick={handleSave} 
+              disabled={saving} 
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow hover:bg-blue-700 disabled:opacity-50"
+              title="Lưu dữ liệu"
+            >
+              <Save size={18} />
+              <span className="hidden md:inline">{saving ? 'Đang lưu...' : 'Lưu dữ liệu'}</span>
             </button>
           )}
         </div>
@@ -297,22 +303,22 @@ export default function ScheduleDetail() {
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-4">
         {/* Meta Info */}
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 mb-4 flex gap-4">
-          <label className="flex flex-col gap-1">
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 mb-4 flex flex-wrap gap-4">
+          <label className="flex flex-col gap-1 flex-1 min-w-[80px]">
             <span className="text-xs font-bold text-slate-500">Tuần</span>
-            <input type="number" value={schedule.week} onChange={e => {setSchedule({...schedule, week: parseInt(e.target.value)}); setIsDirty(true);}} disabled={!canEdit} className="border p-2 rounded-lg w-24 text-sm" />
+            <input type="number" value={schedule.week} onChange={e => {setSchedule({...schedule, week: parseInt(e.target.value)}); setIsDirty(true);}} disabled={!canEdit} className="border p-2 rounded-lg w-full text-[16px] sm:text-sm bg-transparent" />
           </label>
-          <label className="flex flex-col gap-1">
+          <label className="flex flex-col gap-1 flex-1 min-w-[80px]">
             <span className="text-xs font-bold text-slate-500">Năm</span>
-            <input type="number" value={schedule.year} onChange={e => {setSchedule({...schedule, year: parseInt(e.target.value)}); setIsDirty(true);}} disabled={!canEdit} className="border p-2 rounded-lg w-24 text-sm" />
+            <input type="number" value={schedule.year} onChange={e => {setSchedule({...schedule, year: parseInt(e.target.value)}); setIsDirty(true);}} disabled={!canEdit} className="border p-2 rounded-lg w-full text-[16px] sm:text-sm bg-transparent" />
           </label>
-          <label className="flex flex-col gap-1">
+          <label className="flex flex-col gap-1 flex-1 min-w-[80px]">
             <span className="text-xs font-bold text-slate-500">Phiên bản</span>
-            <input type="number" value={schedule.version} onChange={e => {setSchedule({...schedule, version: parseInt(e.target.value)}); setIsDirty(true);}} disabled={!canEdit} className="border p-2 rounded-lg w-24 text-sm" />
+            <input type="number" value={schedule.version} onChange={e => {setSchedule({...schedule, version: parseInt(e.target.value)}); setIsDirty(true);}} disabled={!canEdit} className="border p-2 rounded-lg w-full text-[16px] sm:text-sm bg-transparent" />
           </label>
-          <label className="flex flex-col gap-1">
+          <label className="flex flex-col gap-1 flex-1 min-w-[120px]">
             <span className="text-xs font-bold text-slate-500">Trạng thái</span>
-            <select value={schedule.status} onChange={e => {setSchedule({...schedule, status: e.target.value}); setIsDirty(true);}} disabled={!canEdit} className="border p-2 rounded-lg text-sm bg-white">
+            <select value={schedule.status} onChange={e => {setSchedule({...schedule, status: e.target.value}); setIsDirty(true);}} disabled={!canEdit} className="border p-2 rounded-lg text-[16px] sm:text-sm bg-transparent">
               <option value="draft">Bản nháp</option>
               <option value="published">Đã ban hành</option>
             </select>
@@ -320,8 +326,8 @@ export default function ScheduleDetail() {
         </div>
 
         {/* Grid Items */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-x-auto shadow-sm">
-          <table className="w-full text-sm text-left min-w-[1000px]">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-x-auto shadow-sm custom-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <table className="w-full text-sm text-left min-w-[1200px] border-collapse">
             <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
               <tr>
                 <th className="py-2 px-3 font-bold w-32">Ngày</th>
@@ -340,28 +346,28 @@ export default function ScheduleDetail() {
               {items.map((item, index) => (
                 <tr key={item.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
                   <td className="p-2">
-                    <input type="date" value={item.date || ''} onChange={e => handleItemChange(item.id, 'date', e.target.value)} disabled={!canEdit} className="w-full border rounded p-1.5 text-xs bg-transparent" />
+                    <input type="date" value={item.date || ''} onChange={e => handleItemChange(item.id, 'date', e.target.value)} disabled={!canEdit} className="w-full border border-slate-200 dark:border-slate-700 rounded p-2 text-[16px] sm:text-xs bg-transparent" />
                   </td>
                   <td className="p-2">
-                    <input type="text" placeholder="Sáng/Chiều/Giờ" value={item.time || ''} onChange={e => handleItemChange(item.id, 'time', e.target.value)} disabled={!canEdit} className="w-full border rounded p-1.5 text-xs bg-transparent" />
+                    <input type="text" placeholder="Sáng/Chiều/Giờ" value={item.time || ''} onChange={e => handleItemChange(item.id, 'time', e.target.value)} disabled={!canEdit} className="w-full border border-slate-200 dark:border-slate-700 rounded p-2 text-[16px] sm:text-xs bg-transparent" />
                   </td>
                   <td className="p-2">
-                    <textarea rows="2" placeholder="Nội dung họp..." value={item.content || ''} onChange={e => handleItemChange(item.id, 'content', e.target.value)} disabled={!canEdit} className="w-full border rounded p-1.5 text-xs bg-transparent resize-none leading-tight"></textarea>
+                    <textarea rows="2" placeholder="Nội dung họp..." value={item.content || ''} onChange={e => handleItemChange(item.id, 'content', e.target.value)} disabled={!canEdit} className="w-full border border-slate-200 dark:border-slate-700 rounded p-2 text-[16px] sm:text-xs bg-transparent resize-none leading-snug min-h-[60px]"></textarea>
                   </td>
                   <td className="p-2">
-                    <input type="text" value={item.host || ''} onChange={e => handleItemChange(item.id, 'host', e.target.value)} disabled={!canEdit} className="w-full border rounded p-1.5 text-xs bg-transparent" />
+                    <input type="text" value={item.host || ''} onChange={e => handleItemChange(item.id, 'host', e.target.value)} disabled={!canEdit} className="w-full border border-slate-200 dark:border-slate-700 rounded p-2 text-[16px] sm:text-xs bg-transparent" />
                   </td>
                   <td className="p-2">
-                    <textarea rows="2" value={item.attendees || ''} onChange={e => handleItemChange(item.id, 'attendees', e.target.value)} disabled={!canEdit} className="w-full border rounded p-1.5 text-xs bg-transparent resize-none"></textarea>
+                    <textarea rows="2" value={item.attendees || ''} onChange={e => handleItemChange(item.id, 'attendees', e.target.value)} disabled={!canEdit} className="w-full border border-slate-200 dark:border-slate-700 rounded p-2 text-[16px] sm:text-xs bg-transparent resize-none min-h-[60px]"></textarea>
                   </td>
                   <td className="p-2">
-                    <input type="text" value={item.location || ''} onChange={e => handleItemChange(item.id, 'location', e.target.value)} disabled={!canEdit} className="w-full border rounded p-1.5 text-xs bg-transparent" />
+                    <input type="text" value={item.location || ''} onChange={e => handleItemChange(item.id, 'location', e.target.value)} disabled={!canEdit} className="w-full border border-slate-200 dark:border-slate-700 rounded p-2 text-[16px] sm:text-xs bg-transparent" />
                   </td>
                   <td className="p-2">
-                    <input type="text" value={item.prepare_by || ''} onChange={e => handleItemChange(item.id, 'prepare_by', e.target.value)} disabled={!canEdit} className="w-full border rounded p-1.5 text-xs bg-transparent" />
+                    <input type="text" value={item.prepare_by || ''} onChange={e => handleItemChange(item.id, 'prepare_by', e.target.value)} disabled={!canEdit} className="w-full border border-slate-200 dark:border-slate-700 rounded p-2 text-[16px] sm:text-xs bg-transparent" />
                   </td>
                   <td className="p-2">
-                    <select value={item.type || 'meeting'} onChange={e => handleItemChange(item.id, 'type', e.target.value)} disabled={!canEdit} className="w-full border rounded p-1.5 text-xs bg-transparent">
+                    <select value={item.type || 'meeting'} onChange={e => handleItemChange(item.id, 'type', e.target.value)} disabled={!canEdit} className="w-full border border-slate-200 dark:border-slate-700 rounded p-2 text-[16px] sm:text-xs bg-transparent">
                       <option value="meeting">Họp/Hội nghị</option>
                       <option value="office_work">Làm việc CQ</option>
                       <option value="other">Sự kiện/HĐ khác</option>

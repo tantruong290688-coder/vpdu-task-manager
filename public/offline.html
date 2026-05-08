@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ngoại tuyến – VPĐU Trà Bồng</title>
+  <style>
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Color tokens – sáng (mặc định) ── */
+    :root {
+      --bg:        #f8fafc;
+      --surface:   #ffffff;
+      --border:    #e2e8f0;
+      --text-main: #0f172a;
+      --text-sub:  #64748b;
+      --icon-bg:   #eff6ff;
+      --icon-ring: #bfdbfe;
+      --btn-bg:    #2563eb;
+      --btn-hover: #1d4ed8;
+      --btn-text:  #ffffff;
+      --signal-c1: #3b82f6;
+      --signal-c2: #93c5fd;
+      --signal-c3: #dbeafe;
+    }
+
+    /* ── Color tokens – tối ── */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:        #0b1121;
+        --surface:   #111827;
+        --border:    #1e293b;
+        --text-main: #f1f5f9;
+        --text-sub:  #94a3b8;
+        --icon-bg:   #1e3a5f;
+        --icon-ring: #1e40af;
+        --btn-bg:    #2563eb;
+        --btn-hover: #3b82f6;
+        --btn-text:  #ffffff;
+        --signal-c1: #60a5fa;
+        --signal-c2: #1e40af;
+        --signal-c3: #1e3a5f;
+      }
+    }
+
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                   'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+    }
+
+    /* ── Layout ── */
+    .page {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      gap: 0;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 48px 40px 40px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 4px 24px rgba(0,0,0,.06);
+    }
+
+    /* ── Wifi icon với animation ── */
+    .icon-wrap {
+      width: 88px;
+      height: 88px;
+      background: var(--icon-bg);
+      border: 2px solid var(--icon-ring);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 28px;
+      position: relative;
+    }
+
+    /* SVG wifi signal bars – animation fade tuần tự */
+    .signal { animation: pulse 2s ease-in-out infinite; }
+    .signal-1 { animation-delay: 0s; }
+    .signal-2 { animation-delay: 0.3s; }
+    .signal-3 { animation-delay: 0.6s; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.2; }
+    }
+
+    /* Gạch chéo "không có kết nối" */
+    .slash {
+      position: absolute;
+      width: 48px;
+      height: 2px;
+      background: #ef4444;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-45deg);
+      border-radius: 2px;
+    }
+
+    /* ── Text ── */
+    h1 {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.3px;
+      margin-bottom: 10px;
+      line-height: 1.3;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: var(--text-sub);
+      font-weight: 500;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    /* ── Nút thử lại ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 28px;
+      background: var(--btn-bg);
+      color: var(--btn-text);
+      font-size: 14px;
+      font-weight: 700;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+      box-shadow: 0 4px 14px rgba(37,99,235,.35);
+      width: 100%;
+      max-width: 220px;
+    }
+    .btn:hover  { background: var(--btn-hover); box-shadow: 0 6px 18px rgba(37,99,235,.45); }
+    .btn:active { transform: scale(0.97); }
+
+    /* ── Divider ── */
+    .divider {
+      width: 40px;
+      height: 3px;
+      background: var(--border);
+      border-radius: 99px;
+      margin: 28px auto 20px;
+    }
+
+    /* ── Tip text ── */
+    .tip {
+      font-size: 12px;
+      color: var(--text-sub);
+      font-weight: 500;
+      line-height: 1.7;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 32px;
+      font-size: 12px;
+      color: var(--text-sub);
+      font-weight: 500;
+      opacity: 0.7;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 480px) {
+      .card { padding: 36px 24px 28px; border-radius: 20px; }
+      h1    { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="card">
+
+      <!-- Icon wifi bị gạch -->
+      <div class="icon-wrap">
+        <svg width="44" height="36" viewBox="0 0 44 36" fill="none"
+             xmlns="http://www.w3.org/2000/svg">
+          <!-- Bar nhỏ nhất (gần nhất) -->
+          <path class="signal signal-3"
+            d="M22 30 C22 30 22 30 22 30 L18.5 26.5 C19.8 25.3 20.9 24.7 22 24.7
+               C23.1 24.7 24.2 25.3 25.5 26.5 Z"
+            fill="var(--signal-c1)" />
+          <!-- Bar giữa -->
+          <path class="signal signal-2"
+            d="M22 30 L14 22 C16.4 19.7 19.1 18.4 22 18.4
+               C24.9 18.4 27.6 19.7 30 22 Z"
+            fill="var(--signal-c2)" />
+          <!-- Bar lớn nhất -->
+          <path class="signal signal-1"
+            d="M22 30 L8 16 C12 12.2 16.8 10 22 10
+               C27.2 10 32 12.2 36 16 Z"
+            fill="var(--signal-c3)" />
+          <!-- Chấm tròn dưới cùng -->
+          <circle cx="22" cy="31" r="2.5" fill="var(--signal-c1)" />
+        </svg>
+        <!-- Gạch chéo đỏ -->
+        <div class="slash"></div>
+      </div>
+
+      <h1>Bạn đang ngoại tuyến</h1>
+      <p class="subtitle">
+        Không thể kết nối tới máy chủ.<br />
+        Vui lòng kiểm tra Wi-Fi hoặc dữ liệu di động của bạn.
+      </p>
+
+      <button class="btn" onclick="window.location.reload()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+          <path d="M21 3v5h-5"/>
+          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+          <path d="M8 16H3v5"/>
+        </svg>
+        Thử lại
+      </button>
+
+      <div class="divider"></div>
+
+      <p class="tip">
+        Dữ liệu bạn đã xem trước đó<br />
+        vẫn có thể truy cập được khi ngoại tuyến.
+      </p>
+    </div>
+
+    <p class="footer">VPĐU xã Trà Bồng – Hệ thống Quản trị Nhiệm vụ</p>
+  </div>
+</body>
+</html>

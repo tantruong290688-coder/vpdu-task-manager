@@ -12,6 +12,8 @@ import Logs from './pages/Logs';
 import Admin from './pages/Admin';
 import TodoPage from './pages/TodoPage';
 import NotificationsPage from './pages/NotificationsPage';
+import Schedules from './pages/Schedules';
+import ScheduleDetail from './pages/ScheduleDetail';
 
 // ── Error Boundary: bắt mọi lỗi render để không bị màn hình trắng ──
 class ErrorBoundary extends Component {
@@ -128,6 +130,16 @@ function App() {
           <Route path="tasks" element={
             <ErrorBoundary>
               <Tasks />
+            </ErrorBoundary>
+          } />
+          <Route path="schedules" element={
+            <ErrorBoundary>
+              <Schedules />
+            </ErrorBoundary>
+          } />
+          <Route path="schedules/:id" element={
+            <ErrorBoundary>
+              <ScheduleDetail />
             </ErrorBoundary>
           } />
           <Route path="all-tasks" element={

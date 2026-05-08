@@ -29,6 +29,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
   const [taskType, setTaskType] = useState('');
   const [originalDueDate, setOriginalDueDate] = useState('');
   const [progress, setProgress] = useState(0);
+  const [scheduleItemId, setScheduleItemId] = useState(null);
   
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -55,6 +56,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
     setTaskType('');
     setOriginalDueDate('');
     setProgress(0);
+    setScheduleItemId(null);
   };
 
   useEffect(() => {
@@ -82,6 +84,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
         } else {
           setCollaborators([]);
         }
+        setScheduleItemId(initialData.schedule_item_id || null);
       } else {
         // Restore from draft for new tasks
         const draftKey = getDraftKey(profile?.id);
@@ -205,7 +208,8 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
         evaluation_period: evaluationPeriod || null,
         task_type: taskType || null,
         original_due_date: originalDueDate || null,
-        progress: Number(progress) || 0
+        progress: Number(progress) || 0,
+        schedule_item_id: scheduleItemId || null
       };
 
       let taskId = null;

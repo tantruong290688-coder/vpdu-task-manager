@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Send, LayoutList, ClipboardList, History, Settings, X, MessageSquare, ListTodo, Bell } from 'lucide-react';
+import { LayoutDashboard, Send, LayoutList, ClipboardList, History, Settings, X, MessageSquare, ListTodo, Bell, Calendar } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useMessage } from '../context/MessageContext';
@@ -64,6 +64,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
   const menus = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+    { name: 'Lịch công tác', path: '/schedules', icon: Calendar },
     { name: 'Giao nhiệm vụ', path: '/tasks', icon: Send },
     { name: 'Tất cả nhiệm vụ', path: '/all-tasks', icon: LayoutList },
     { name: 'Nhiệm vụ của tôi', path: '/my-tasks', icon: ClipboardList },

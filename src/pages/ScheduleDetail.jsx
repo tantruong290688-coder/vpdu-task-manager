@@ -17,6 +17,7 @@ export default function ScheduleDetail() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   
   // State for TaskModal
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -79,14 +80,17 @@ export default function ScheduleDetail() {
       ...items,
       { id: `temp_${Date.now()}`, date: '', time: '', content: '', host: '', attendees: '', location: '', prepare_by: '', type: 'meeting' }
     ]);
+    setIsDirty(true);
   };
 
   const handleRemoveItem = (itemId) => {
     setItems(items.filter(item => item.id !== itemId));
+    setIsDirty(true);
   };
 
   const handleItemChange = (itemId, field, value) => {
     setItems(items.map(item => item.id === itemId ? { ...item, [field]: value } : item));
+    setIsDirty(true);
   };
 
   const handleSave = async () => {
@@ -157,6 +161,19 @@ export default function ScheduleDetail() {
 
       const itemsToUpdate = validItems.filter(item => !item.id.toString().startsWith('temp_'));
 
+      // 1. Fetch current items before any insertion
+      const { data: currentItemsInDb } = await supabase.from('schedule_items').select('id').eq('schedule_id', currentScheduleId);
+
+      // 2. Delete removed items first
+      if (currentItemsInDb) {
+        const validItemIds = itemsToUpdate.map(i => i.id);
+        const idsToDelete = currentItemsInDb.filter(dbItem => !validItemIds.includes(dbItem.id)).map(i => i.id);
+        if (idsToDelete.length > 0) {
+          await supabase.from('schedule_items').delete().in('id', idsToDelete);
+        }
+      }
+
+      // 3. Insert new items
       if (itemsToInsert.length > 0) {
         const { error } = await supabase.from('schedule_items').insert(itemsToInsert);
         if (error) throw error;
@@ -179,18 +196,8 @@ export default function ScheduleDetail() {
         if (error) throw error;
       }
 
-      // Delete removed items
-      // Khi user lưu, nếu có item nào trong DB mà không có trong validItems thì xóa
-      const { data: currentItemsInDb } = await supabase.from('schedule_items').select('id').eq('schedule_id', currentScheduleId);
-      if (currentItemsInDb) {
-        const validItemIds = itemsToUpdate.map(i => i.id);
-        const idsToDelete = currentItemsInDb.filter(dbItem => !validItemIds.includes(dbItem.id)).map(i => i.id);
-        if (idsToDelete.length > 0) {
-          await supabase.from('schedule_items').delete().in('id', idsToDelete);
-        }
-      }
-
       toast.success('Đã lưu lịch công tác');
+      setIsDirty(false);
       if (id === 'new') {
         navigate(`/schedules/${currentScheduleId}`, { replace: true });
       } else {
@@ -247,6 +254,10 @@ export default function ScheduleDetail() {
           {id !== 'new' && (
             <button 
               onClick={async () => {
+                if (isDirty || items.some(i => i.id.toString().startsWith('temp_'))) {
+                  toast.error('Có thay đổi chưa lưu. Vui lòng lưu dữ liệu trước khi xuất Excel.');
+                  return;
+                }
                 setExporting(true);
                 await exportScheduleToExcel(schedule, items);
                 setExporting(false);
@@ -273,19 +284,19 @@ export default function ScheduleDetail() {
         <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 mb-4 flex gap-4">
           <label className="flex flex-col gap-1">
             <span className="text-xs font-bold text-slate-500">Tuần</span>
-            <input type="number" value={schedule.week} onChange={e => setSchedule({...schedule, week: parseInt(e.target.value)})} disabled={!canEdit} className="border p-2 rounded-lg w-24 text-sm" />
+            <input type="number" value={schedule.week} onChange={e => {setSchedule({...schedule, week: parseInt(e.target.value)}); setIsDirty(true);}} disabled={!canEdit} className="border p-2 rounded-lg w-24 text-sm" />
           </label>
           <label className="flex flex-col gap-1">
             <span className="text-xs font-bold text-slate-500">Năm</span>
-            <input type="number" value={schedule.year} onChange={e => setSchedule({...schedule, year: parseInt(e.target.value)})} disabled={!canEdit} className="border p-2 rounded-lg w-24 text-sm" />
+            <input type="number" value={schedule.year} onChange={e => {setSchedule({...schedule, year: parseInt(e.target.value)}); setIsDirty(true);}} disabled={!canEdit} className="border p-2 rounded-lg w-24 text-sm" />
           </label>
           <label className="flex flex-col gap-1">
             <span className="text-xs font-bold text-slate-500">Phiên bản</span>
-            <input type="number" value={schedule.version} onChange={e => setSchedule({...schedule, version: parseInt(e.target.value)})} disabled={!canEdit} className="border p-2 rounded-lg w-24 text-sm" />
+            <input type="number" value={schedule.version} onChange={e => {setSchedule({...schedule, version: parseInt(e.target.value)}); setIsDirty(true);}} disabled={!canEdit} className="border p-2 rounded-lg w-24 text-sm" />
           </label>
           <label className="flex flex-col gap-1">
             <span className="text-xs font-bold text-slate-500">Trạng thái</span>
-            <select value={schedule.status} onChange={e => setSchedule({...schedule, status: e.target.value})} disabled={!canEdit} className="border p-2 rounded-lg text-sm bg-white">
+            <select value={schedule.status} onChange={e => {setSchedule({...schedule, status: e.target.value}); setIsDirty(true);}} disabled={!canEdit} className="border p-2 rounded-lg text-sm bg-white">
               <option value="draft">Bản nháp</option>
               <option value="published">Đã ban hành</option>
             </select>

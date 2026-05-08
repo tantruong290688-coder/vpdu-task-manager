@@ -38,6 +38,8 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
   const isAdmin = profile?.role === ROLES.ADMIN;
   const isManager = profile?.role === ROLES.MANAGER;
 
+  const isUpdating = initialData && initialData.id;
+
   const resetForm = () => {
     const today = new Date().toISOString().split('T')[0];
     setAssignedDate(today);
@@ -185,7 +187,8 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (initialData && !canEditTask(profile, initialData)) {
+
+    if (isUpdating && !canEditTask(profile, initialData)) {
       toast.error('Bạn không có quyền chỉnh sửa nhiệm vụ này');
       return;
     }
@@ -215,7 +218,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
       let taskId = null;
       let changeLog = [];
 
-      if (initialData) {
+      if (isUpdating) {
         // So sánh để tạo change log
         if (title !== initialData.title) changeLog.push(`Tên: "${initialData.title}" -> "${title}"`);
         if (description !== initialData.description) changeLog.push(`Cập nhật yêu cầu mới`);
@@ -298,7 +301,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
       }
 
       // Thông báo cập nhật cho người thực hiện và người phối hợp
-      if (initialData && changeLog.length > 0) {
+      if (isUpdating && changeLog.length > 0) {
         const recipients = [initialData.assignee_id, ...collaborators].filter(id => id && id !== profile?.id);
         if (recipients.length > 0) {
           createNotification({
@@ -319,7 +322,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
         await supabase.from('task_collaborators').insert(collabData);
         
         // Thông báo cho người phối hợp (push + in-app) - Chỉ khi tạo mới
-        if (!initialData) {
+        if (!isUpdating) {
           const collabTargets = collaborators.filter(cId => cId !== profile?.id && cId !== assigneeId);
           if (collabTargets.length > 0) {
             const dateStr = dueDate ? new Date(dueDate).toLocaleDateString('vi-VN') : 'chưa xác định';
@@ -370,7 +373,8 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
   const adminManagers = users.filter(u => u.role === 'admin' || u.role === 'manager');
 
   const handleCancel = () => {
-    if (!initialData) {
+    if (!isUpdating && !initialData) {
+      // Chỉ xóa draft nếu đây là tạo mới hoàn toàn (không pre-fill và không update)
       isClosingRef.current = true; // Block any further saves
       const draftKey = getDraftKey(profile?.id);
       if (draftKey) localStorage.removeItem(draftKey);
@@ -387,8 +391,12 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
         {/* Header */}
         <div className="px-4 py-4 md:px-8 md:py-6 pt-[calc(1rem+env(safe-area-inset-top))] sm:pt-4 md:pt-6 border-b border-slate-100 dark:border-slate-800 shrink-0 flex items-start sm:items-center justify-between gap-4 bg-white dark:bg-[#111827]">
           <div className="min-w-0">
-            <h2 className="text-[17px] sm:text-[18px] md:text-[20px] font-extrabold text-slate-800 dark:text-white leading-tight break-words">{initialData ? 'Chi tiết / Cập nhật nhiệm vụ' : 'Tạo mới nhiệm vụ'}</h2>
-            <p className="text-[12px] md:text-[13px] font-medium text-slate-500 dark:text-slate-400 mt-1 truncate">{initialData ? 'Chỉnh sửa thông tin nhiệm vụ hiện tại.' : 'Nhập đủ thông tin để giao nhiệm vụ mới.'}</p>
+            <h2 className="text-[17px] sm:text-[18px] md:text-[20px] font-extrabold text-slate-800 dark:text-white leading-tight break-words">
+              {initialData && initialData.id ? 'Chi tiết / Cập nhật nhiệm vụ' : 'Tạo mới nhiệm vụ'}
+            </h2>
+            <p className="text-[12px] md:text-[13px] font-medium text-slate-500 dark:text-slate-400 mt-1 truncate">
+              {initialData && initialData.id ? 'Chỉnh sửa thông tin nhiệm vụ hiện tại.' : 'Nhập đủ thông tin để giao nhiệm vụ mới.'}
+            </p>
           </div>
           <button onClick={handleCancel} className="w-8 h-8 md:w-10 md:h-10 shrink-0 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors">
             <X size={18} />

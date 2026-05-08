@@ -25,3 +25,10 @@ dist-ssr
 
 .vercel
 .env*.local
+
+# Environment files - KHÔNG commit key nhạy cảm
+.env
+.env.local
+.env.vercel
+.env.vercel.prod
+.env.vercel.pull.tmp

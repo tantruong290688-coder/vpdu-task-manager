@@ -161,15 +161,17 @@ export default function Tasks() {
       if (filters.dueDateFrom)       query = query.gte('due_date', filters.dueDateFrom);
       if (filters.dueDateTo)         query = query.lte('due_date', filters.dueDateTo);
       if (filters.isOverdue) {
-        const now = new Date().toISOString();
-        query = query.not('due_date', 'is', null).lt('due_date', now).neq('status', 'completed').is('evaluation_score', null);
+        const todayStr = new Date().toISOString().slice(0, 10);
+        query = query.not('due_date', 'is', null).lt('due_date', todayStr).neq('status', 'completed').is('evaluation_score', null);
       }
       if (filters.isDueSoon) {
         const today = new Date();
-        const threeDays = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000);
+        const todayStr = today.toISOString().slice(0, 10);
+        const threeDays = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3);
+        const threeDaysStr = threeDays.toISOString().slice(0, 10);
         query = query.not('due_date', 'is', null)
-          .gte('due_date', today.toISOString())
-          .lte('due_date', threeDays.toISOString())
+          .gte('due_date', todayStr)
+          .lte('due_date', threeDaysStr)
           .neq('status', 'completed')
           .is('evaluation_score', null);
       }
@@ -346,10 +348,16 @@ export default function Tasks() {
       if (filtersToExport.assignedDateTo)  query = query.lte('assigned_date', filtersToExport.assignedDateTo);
       if (filtersToExport.dueDateFrom)     query = query.gte('due_date', filtersToExport.dueDateFrom);
       if (filtersToExport.dueDateTo)       query = query.lte('due_date', filtersToExport.dueDateTo);
-      if (filtersToExport.isOverdue) { const now = new Date().toISOString(); query = query.not('due_date', 'is', null).lt('due_date', now).neq('status', 'completed').is('evaluation_score', null); }
+      if (filtersToExport.isOverdue) {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        query = query.not('due_date', 'is', null).lt('due_date', todayStr).neq('status', 'completed').is('evaluation_score', null);
+      }
       if (filtersToExport.isDueSoon) {
-        const today = new Date(), threeDays = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000);
-        query = query.not('due_date', 'is', null).gte('due_date', today.toISOString()).lte('due_date', threeDays.toISOString()).neq('status', 'completed').is('evaluation_score', null);
+        const today = new Date();
+        const todayStr = today.toISOString().slice(0, 10);
+        const threeDays = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3);
+        const threeDaysStr = threeDays.toISOString().slice(0, 10);
+        query = query.not('due_date', 'is', null).gte('due_date', todayStr).lte('due_date', threeDaysStr).neq('status', 'completed').is('evaluation_score', null);
       }
       if (filtersToExport.isForMe && profile) query = query.eq('assignee_id', profile.id).eq('status', 'pending');
 

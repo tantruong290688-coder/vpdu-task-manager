@@ -1,26 +1,35 @@
+// Hàm tiện ích tính date string YYYY-MM-DD không phụ thuộc timezone
+const toDateStr = (date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
 export function getDashboardFilter(query, filterType) {
   const today = new Date();
-  const todayDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  
+  const todayStr = toDateStr(today);
+  const threeDaysStr = toDateStr(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3));
+
   switch (filterType) {
     case 'overdue':
-      return query.not('due_date', 'is', null)
-                  .lt('due_date', todayDateStr)
-                  .neq('status', 'completed')
-                  .is('evaluation_score', null);
+      return query
+        .not('due_date', 'is', null)
+        .lt('due_date', todayStr)
+        .neq('status', 'completed')
+        .is('evaluation_score', null);
     case 'due_soon':
-      const threeDaysDate = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000);
-      const threeDaysStr = `${threeDaysDate.getFullYear()}-${String(threeDaysDate.getMonth() + 1).padStart(2, '0')}-${String(threeDaysDate.getDate()).padStart(2, '0')}`;
-      return query.not('due_date', 'is', null)
-                  .gte('due_date', todayDateStr)
-                  .lte('due_date', threeDaysStr)
-                  .neq('status', 'completed')
-                  .is('evaluation_score', null);
+      return query
+        .not('due_date', 'is', null)
+        .gte('due_date', todayStr)
+        .lte('due_date', threeDaysStr)
+        .neq('status', 'completed')
+        .is('evaluation_score', null);
     case 'pending_eval':
-      return query.eq('status', 'completed')
-                  .is('evaluation_score', null);
+      return query
+        .eq('status', 'completed')
+        .is('evaluation_score', null);
     case 'pending_final':
-      return query.not('evaluation_score', 'is', null);
+      // Chỉ nhiệm vụ đã hoàn thành VÀ đã có điểm đánh giá
+      return query
+        .eq('status', 'completed')
+        .not('evaluation_score', 'is', null);
     case 'pending':
       return query.eq('status', 'pending');
     case 'in_progress':
@@ -34,22 +43,22 @@ export function getDashboardFilter(query, filterType) {
 
 export function filterTasksLocal(tasks, filterType) {
   const today = new Date();
-  const todayDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  
-  const threeDaysDate = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000);
-  const threeDaysStr = `${threeDaysDate.getFullYear()}-${String(threeDaysDate.getMonth() + 1).padStart(2, '0')}-${String(threeDaysDate.getDate()).padStart(2, '0')}`;
+  const todayStr = toDateStr(today);
+  const threeDaysStr = toDateStr(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3));
 
   return tasks.filter(t => {
-    const taskDateStr = t.due_date; // YYYY-MM-DD
+    // due_date từ DB là YYYY-MM-DD, so sánh trực tiếp string là chính xác
+    const d = t.due_date ? t.due_date.slice(0, 10) : null;
     switch (filterType) {
       case 'overdue':
-        return taskDateStr && taskDateStr < todayDateStr && t.status !== 'completed' && t.evaluation_score === null;
+        return d && d < todayStr && t.status !== 'completed' && t.evaluation_score == null;
       case 'due_soon':
-        return taskDateStr && taskDateStr >= todayDateStr && taskDateStr <= threeDaysStr && t.status !== 'completed' && t.evaluation_score === null;
+        return d && d >= todayStr && d <= threeDaysStr && t.status !== 'completed' && t.evaluation_score == null;
       case 'pending_eval':
-        return t.status === 'completed' && t.evaluation_score === null;
+        return t.status === 'completed' && t.evaluation_score == null;
       case 'pending_final':
-        return t.evaluation_score !== null;
+        // Chỉ nhiệm vụ đã hoàn thành VÀ đã có điểm đánh giá
+        return t.status === 'completed' && t.evaluation_score != null;
       case 'pending':
         return t.status === 'pending';
       case 'in_progress':

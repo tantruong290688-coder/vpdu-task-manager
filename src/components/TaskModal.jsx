@@ -8,9 +8,10 @@ import { canEditTask, canDelegateToStaff, ROLES } from '../lib/permissions';
 import { createNotification } from '../hooks/useNotifications';
 
 // Key for local storage draft
-const getDraftKey = (userId, scheduleItemId = null) => {
+const getDraftKey = (userId, scheduleItemId) => {
   if (!userId) return null;
-  return scheduleItemId ? `task_create_draft_${userId}_schedule_${scheduleItemId}` : `task_create_draft_${userId}`;
+  if (scheduleItemId) return `schedule_task_draft_${userId}_${scheduleItemId}`;
+  return `task_create_draft_${userId}`;
 };
 
 export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData }) {
@@ -67,47 +68,10 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
   useEffect(() => {
     if (isOpen) {
       fetchUsers();
-      isClosingRef.current = false; // Reset flag when modal opens
-      if (initialData) {
-        // Thử khôi phục từ bản nháp trước nếu đây là tạo mới từ lịch công tác (không có id)
-        if (!initialData.id && initialData.schedule_item_id) {
-          const draftKey = getDraftKey(profile?.id, initialData.schedule_item_id);
-          const savedDraft = draftKey ? localStorage.getItem(draftKey) : null;
-          
-          if (savedDraft) {
-            try {
-              const draft = JSON.parse(savedDraft);
-              setAssignedDate(draft.assignedDate || initialData.assigned_date || '');
-              setStartDate(draft.startDate || initialData.start_date || '');
-              setAssignerId(draft.assignerId || initialData.assigned_by || '');
-              setAssigneeId(draft.assigneeId || initialData.assignee_id || '');
-              setTaskGroup(draft.taskGroup || initialData.task_group || '');
-              setWorkArea(draft.workArea || initialData.work_area || '');
-              setTitle(draft.title || initialData.title || '');
-              setDescription(draft.description || initialData.description || '');
-              setExpectedOutput(draft.expectedOutput || initialData.expected_output || '');
-              setPriority(draft.priority || initialData.priority || 'normal');
-              setEvaluationPeriod(draft.evaluationPeriod || initialData.evaluation_period || '');
-              setDueDate(draft.dueDate || initialData.due_date || '');
-              setTaskType(draft.taskType || initialData.task_type || '');
-              setOriginalDueDate(draft.originalDueDate || initialData.original_due_date || '');
-              setProgress(draft.progress || initialData.progress || 0);
-              if (draft.collaborators) {
-                setCollaborators(draft.collaborators);
-              } else if (initialData.task_collaborators) {
-                setCollaborators(initialData.task_collaborators.map(c => c.profiles?.id || c.user_id).filter(Boolean));
-              } else {
-                setCollaborators([]);
-              }
-              setScheduleItemId(initialData.schedule_item_id);
-              return; // Thoát ra nếu đã có bản nháp
-            } catch (e) {
-              console.error('Lỗi khôi phục bản nháp từ lịch:', e);
-            }
-          }
-        }
+      isClosingRef.current = false;
 
-        // Nếu không có bản nháp thì load dữ liệu khởi tạo mặc định
+      // Trường hợp EDIT TASK thực sự (có id rõ ràng)
+      if (initialData && initialData.id) {
         setAssignedDate(initialData.assigned_date || '');
         setStartDate(initialData.start_date || '');
         setAssignerId(initialData.assigned_by || '');
@@ -129,56 +93,86 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
           setCollaborators([]);
         }
         setScheduleItemId(initialData.schedule_item_id || null);
-      } else {
-        // Restore from draft for new tasks
-        const draftKey = getDraftKey(profile?.id);
-        const savedDraft = draftKey ? localStorage.getItem(draftKey) : null;
-        
-        if (savedDraft) {
-          try {
-            const draft = JSON.parse(savedDraft);
-            setAssignedDate(draft.assignedDate || new Date().toISOString().split('T')[0]);
-            setStartDate(draft.startDate || new Date().toISOString().split('T')[0]);
-            setAssignerId(draft.assignerId || profile?.id || '');
-            setAssigneeId(draft.assigneeId || '');
-            setCollaborators(draft.collaborators || []);
-            setTaskGroup(draft.taskGroup || '');
-            setWorkArea(draft.workArea || '');
-            setTitle(draft.title || '');
-            setDescription(draft.description || '');
-            setExpectedOutput(draft.expectedOutput || '');
-            setPriority(draft.priority || '');
-            setEvaluationPeriod(draft.evaluationPeriod || '');
-            setDueDate(draft.dueDate || '');
-            setTaskType(draft.taskType || '');
-            setOriginalDueDate(draft.originalDueDate || '');
-            setProgress(draft.progress || 0);
-          } catch (e) {
-            console.error('Lỗi khôi phục bản nháp:', e);
-            resetForm();
-          }
-        } else {
-          resetForm();
+        return;
+      }
+
+      // Trường hợp TẠO MỚI từ lịch công tác (initialData có nhưng không có .id) hoặc tạo thuần túy
+      const scheduleId = initialData?.schedule_item_id || null;
+      setScheduleItemId(scheduleId);
+
+      const draftKey = getDraftKey(profile?.id, scheduleId);
+      const savedDraft = draftKey ? localStorage.getItem(draftKey) : null;
+
+      if (savedDraft) {
+        try {
+          const draft = JSON.parse(savedDraft);
+          const today = new Date().toISOString().split('T')[0];
+          setAssignedDate(draft.assignedDate || today);
+          setStartDate(draft.startDate || today);
+          setAssignerId(draft.assignerId || profile?.id || '');
+          setAssigneeId(draft.assigneeId || '');
+          setCollaborators(draft.collaborators || []);
+          setTaskGroup(draft.taskGroup || initialData?.task_group || '');
+          setWorkArea(draft.workArea || initialData?.work_area || '');
+          setTitle(draft.title || initialData?.title || '');
+          setDescription(draft.description || initialData?.description || '');
+          setExpectedOutput(draft.expectedOutput || '');
+          setPriority(draft.priority || '');
+          setEvaluationPeriod(draft.evaluationPeriod || '');
+          setDueDate(draft.dueDate || initialData?.due_date || '');
+          setTaskType(draft.taskType || '');
+          setOriginalDueDate(draft.originalDueDate || '');
+          setProgress(draft.progress || 0);
+          if (scheduleId) toast.success('Đã khôi phục bản nhiệm vụ lưu tạm!', { duration: 2500 });
+        } catch (e) {
+          console.error('Lỗi khôi phục bản nháp:', e);
+          applyInitialData(initialData);
         }
+      } else {
+        applyInitialData(initialData);
       }
     }
   }, [isOpen, profile, initialData]);
 
+  // Áp dụng initialData cơ bản khi không có draft
+  const applyInitialData = (data) => {
+    const today = new Date().toISOString().split('T')[0];
+    if (data) {
+      setAssignedDate(data.assigned_date || today);
+      setStartDate(data.start_date || today);
+      setAssignerId(data.assigned_by || profile?.id || '');
+      setAssigneeId(data.assignee_id || '');
+      setTaskGroup(data.task_group || '');
+      setWorkArea(data.work_area || '');
+      setTitle(data.title || '');
+      setDescription(data.description || '');
+      setExpectedOutput(data.expected_output || '');
+      setPriority(data.priority || '');
+      setEvaluationPeriod(data.evaluation_period || '');
+      setDueDate(data.due_date || '');
+      setTaskType(data.task_type || '');
+      setOriginalDueDate(data.original_due_date || '');
+      setProgress(data.progress || 0);
+      setCollaborators([]);
+    } else {
+      resetForm();
+    }
+  };
+
   const saveDraft = () => {
-    if (!isOpen || isUpdating || !profile?.id || isClosingRef.current) return;
-    const draftKey = getDraftKey(profile.id, initialData?.schedule_item_id || scheduleItemId);
+    // Không lưu nếu là chế độ sửa (isUpdating) hoặc đang đóng
+    if (!isOpen || (initialData && initialData.id) || !profile?.id || isClosingRef.current) return;
+    const draftKey = getDraftKey(profile.id, scheduleItemId);
+    if (!draftKey) return;
     const draftData = {
       assignedDate, assignerId, assigneeId, collaborators,
       taskGroup, workArea, title, description, expectedOutput,
       priority, evaluationPeriod, startDate, dueDate,
       taskType, originalDueDate, progress
     };
-    
-    // Save if any key field is modified from empty state
-    const hasData = title || description || assigneeId || taskGroup || workArea || 
-                    expectedOutput || (collaborators && collaborators.length > 0) || 
+    const hasData = title || description || assigneeId || taskGroup || workArea ||
+                    expectedOutput || (collaborators && collaborators.length > 0) ||
                     priority || evaluationPeriod || taskType || progress > 0;
-
     if (hasData) {
       localStorage.setItem(draftKey, JSON.stringify(draftData));
     }
@@ -186,7 +180,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
 
   // Debounced Autosave Effect
   useEffect(() => {
-    if (!isOpen || isUpdating || !profile?.id) return;
+    if (!isOpen || initialData || !profile?.id) return;
     const timeoutId = setTimeout(saveDraft, 500);
     return () => {
       clearTimeout(timeoutId);
@@ -321,10 +315,13 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
         toast.success('Đã giao nhiệm vụ mới!');
 
         // Clear draft on success
-        const draftKey = getDraftKey(profile?.id, initialData?.schedule_item_id || scheduleItemId);
+        const draftKey = getDraftKey(profile?.id, scheduleItemId);
         if (draftKey) localStorage.removeItem(draftKey);
-        isClosingRef.current = true; // Block autosave on close
-        resetForm(); // Reset local state immediately
+        // Cũng xóa draft thường nếu có
+        const genericKey = getDraftKey(profile?.id, null);
+        if (genericKey) localStorage.removeItem(genericKey);
+        isClosingRef.current = true;
+        resetForm();
 
         // Thông báo cho người được giao (push + in-app)
         if (assigneeId && assigneeId !== profile?.id) {

@@ -16,32 +16,170 @@ const formatDateVN = (dateStr) => {
 
 function normalizeTime(input) {
   if (!input) return "";
+
   let value = String(input).trim().toLowerCase();
-  value = value.replace("h", ":");
-  if (/^\d{4}$/.test(value)) {
-    value = value.slice(0, 2) + ":" + value.slice(2);
+
+  value = value
+    .replace(/\s+/g, "")
+    .replace("giờ", "h")
+    .replace(":", "h");
+
+  if (/^\d{3}$/.test(value)) {
+    value = `0${value[0]}h${value.slice(1)}`;
   }
-  const match = value.match(/^(\d{1,2}):?(\d{2})?$/);
-  if (!match) return input;
+
+  if (/^\d{4}$/.test(value)) {
+    value = `${value.slice(0, 2)}h${value.slice(2)}`;
+  }
+
+  if (/^\d{1,2}$/.test(value)) {
+    value = `${value}h00`;
+  }
+
+  if (/^\d{1,2}h$/.test(value)) {
+    value = `${value}00`;
+  }
+
+  const match = value.match(/^(\d{1,2})h(\d{1,2})$/);
+  if (!match) return String(input).trim();
+
   const hour = String(match[1]).padStart(2, "0");
-  const minute = String(match[2] || "00").padStart(2, "0");
+  const minute = String(match[2]).padStart(2, "0");
+
   return `${hour}h${minute}`;
 }
 
-function getSessionFromTime(input) {
-  if (!input) return "";
-  const timeLower = input.toLowerCase();
-  if (timeLower.includes('sáng') && timeLower.includes('chiều')) return "Sáng/Chiều";
-  if (timeLower.includes('sáng')) return "Sáng";
-  if (timeLower.includes('chiều')) return "Chiều";
-  if (timeLower.includes('tối')) return "Tối";
-  
+function timeToMinutes(input) {
   const normalized = normalizeTime(input);
-  const hour = parseInt(normalized.slice(0, 2), 10);
-  if (Number.isNaN(hour)) return "Sáng"; 
-  if (hour < 12) return "Sáng";
-  if (hour < 18) return "Chiều";
-  return "Tối";
+  const match = normalized.match(/^(\d{2})h(\d{2})$/);
+
+  if (!match) return 9999;
+
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+
+  if (Number.isNaN(hour) || Number.isNaN(minute)) return 9999;
+
+  return hour * 60 + minute;
+}
+
+function getSessionFromTime(input) {
+  const minutes = timeToMinutes(input);
+
+  if (minutes === 9999) return "";
+
+  if (minutes < 12 * 60) return "Sáng";
+  return "Chiều";
+}
+
+function getLeaderPriority(value) {
+  const text = String(value || "").toLowerCase();
+
+  const isPhoBiThu =
+    text.includes("phó bí thư") ||
+    text.includes("pho bi thu") ||
+    text.includes("pbt");
+
+  const isBiThu =
+    text.includes("bí thư") ||
+    text.includes("bi thu") ||
+    text.includes("bt");
+
+  const isThuongTruc =
+    text.includes("ttđu") ||
+    text.includes("ttdu") ||
+    text.includes("thường trực") ||
+    text.includes("thuong truc");
+
+  if (isBiThu && !isPhoBiThu) return 1;
+  if (isPhoBiThu) return 2;
+  if (isThuongTruc) return 3;
+
+  return 9;
+}
+
+function getContentPriority(content) {
+  const text = String(content || "").toLowerCase();
+
+  if (text.includes("nghỉ")) return 9;
+
+  if (
+    text.includes("làm việc tại cơ quan") ||
+    text.includes("lam viec tai co quan")
+  ) {
+    return 8;
+  }
+
+  return 1;
+}
+
+function getScheduleDateValue(item) {
+  const rawDate = item.date || item.work_date || item.ngay || "";
+
+  const date = new Date(rawDate);
+  if (!Number.isNaN(date.getTime())) {
+    return date.getTime();
+  }
+
+  const match = String(rawDate).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (match) {
+    const day = Number(match[1]);
+    const month = Number(match[2]) - 1;
+    const year = Number(match[3]);
+    return new Date(year, month, day).getTime();
+  }
+
+  return 9999999999999;
+}
+
+function getSessionPriority(item) {
+  const time = item.time || item.start_time || item.thoiGian || "";
+  const session =
+    item.session ||
+    item.buoi ||
+    getSessionFromTime(time);
+
+  if (session === "Sáng") return 1;
+  if (session === "Chiều") return 2;
+  if (session === "Tối") return 3;
+
+  return 9;
+}
+
+function sortSchedulesForExport(schedules) {
+  return [...schedules]
+    .map((item, index) => {
+      const time = item.time || item.start_time || item.thoiGian || "";
+      const chair =
+        item.chair ||
+        item.leader ||
+        item.chuTri ||
+        item.host ||
+        "";
+
+      const content = item.content || item.noiDung || "";
+
+      return {
+        ...item,
+        _originalIndex: index,
+        _normalizedTime: normalizeTime(time),
+        _dateValue: getScheduleDateValue(item),
+        _sessionPriority: getSessionPriority(item),
+        _timeMinutes: timeToMinutes(time),
+        _leaderPriority: getLeaderPriority(chair),
+        _contentPriority: getContentPriority(content),
+      };
+    })
+    .sort((a, b) => {
+      return (
+        a._dateValue - b._dateValue ||
+        a._sessionPriority - b._sessionPriority ||
+        a._timeMinutes - b._timeMinutes ||
+        a._leaderPriority - b._leaderPriority ||
+        a._contentPriority - b._contentPriority ||
+        a._originalIndex - b._originalIndex
+      );
+    });
 }
 
 function copyRowStyleOnly(sourceRow, targetRow) {
@@ -201,14 +339,7 @@ export const exportScheduleToExcel = async (schedule, items) => {
     }
 
     // 5. Gom nhóm dữ liệu theo ngày
-    // Sort items by date and time
-    const sortedItems = [...items].sort((a, b) => {
-      const dateA = new Date(a.date || '9999-12-31');
-      const dateB = new Date(b.date || '9999-12-31');
-      if (dateA < dateB) return -1;
-      if (dateA > dateB) return 1;
-      return (a.time || '').localeCompare(b.time || '');
-    });
+    const sortedItems = sortSchedulesForExport(items);
 
     // Insert rows backwards to preserve row indices
     // Or insert forwards by keeping track of current row
@@ -223,17 +354,17 @@ export const exportScheduleToExcel = async (schedule, items) => {
       currentDate = item.date;
 
       // Xử lý nghỉ / làm việc CQ
-      let content = item.content;
-      if (item.type === 'holiday') content = `Nghỉ: ${item.content}`;
+      let content = item.content || "";
+      if (item.type === 'holiday') content = `Nghỉ: ${content}`;
       if (item.type === 'office_work' && !content) content = 'Làm việc tại cơ quan';
 
       // Logic Buổi & Thời gian
-      const session = getSessionFromTime(item.time);
-      const normTime = normalizeTime(item.time);
+      const session = item.session || getSessionFromTime(item.time);
+      const timeText = item._normalizedTime || normalizeTime(item.time);
 
       // Prepend time to content
-      if (normTime && normTime.match(/^\d{2}h\d{2}$/)) {
-        content = `${normTime}: ${content}`;
+      if (timeText && timeText.match(/^\d{2}h\d{2}$/)) {
+        content = `${timeText}: ${content}`;
       } else if (item.time && !item.time.toLowerCase().match(/^(sáng|chiều|tối|cả ngày)$/)) {
         content = `${item.time}: ${content}`;
       }

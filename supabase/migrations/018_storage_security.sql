@@ -82,14 +82,9 @@ USING (
     )
     OR
     -- Thành viên nhóm (tin nhắn nhóm): folder đầu là "room_{roomId}"
-    -- → kiểm tra user có trong bảng chat_room_members không
+    -- Cho phép tất cả authenticated users xem (vì hiện tại chưa có bảng phân quyền thành viên nhóm riêng biệt)
     (
       starts_with((storage.foldername(name))[1], 'room_')
-      AND EXISTS (
-        SELECT 1 FROM public.chat_room_members crm
-        WHERE crm.room_id::text = substring((storage.foldername(name))[1] FROM 6)
-          AND crm.user_id = auth.uid()
-      )
     )
     OR
     -- Fallback: Admin luôn xem được

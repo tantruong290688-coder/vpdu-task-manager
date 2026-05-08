@@ -206,6 +206,9 @@ export const exportScheduleToExcel = async (schedule, items) => {
     for (let i = 0; i < sortedItems.length; i++) {
       const item = sortedItems[i];
       
+      const isNewDate = item.date !== currentDate;
+      currentDate = item.date;
+
       // Xử lý nghỉ / làm việc CQ
       let content = item.content;
       if (item.type === 'holiday') content = `Nghỉ: ${item.content}`;

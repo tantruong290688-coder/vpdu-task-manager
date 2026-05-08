@@ -14,12 +14,23 @@ const formatDateVN = (dateStr) => {
   return `${dayName}, ngày ${date}/${month}`;
 };
 
+// Helper lấy chuỗi từ cell (hỗ trợ cả string thường và RichText)
+const getCellText = (cell) => {
+  if (!cell || !cell.value) return '';
+  if (typeof cell.value === 'string') return cell.value;
+  if (typeof cell.value === 'object' && cell.value.richText) {
+    return cell.value.richText.map(rt => rt.text).join('');
+  }
+  return cell.value.toString();
+};
+
 // Tìm ô chứa text để lấy tọa độ
 const findCell = (worksheet, text) => {
   let foundCell = null;
   worksheet.eachRow((row, rowNumber) => {
     row.eachCell((cell, colNumber) => {
-      if (cell.value && typeof cell.value === 'string' && cell.value.includes(text)) {
+      const cellText = getCellText(cell);
+      if (cellText.includes(text)) {
         foundCell = { row: rowNumber, col: colNumber, cell };
       }
     });
@@ -130,7 +141,7 @@ export const exportScheduleToExcel = async (schedule, items) => {
     // Lưu lại vị trí các cột dựa theo biến
     const colMap = {};
     templateRow.eachCell((cell, colNumber) => {
-      const val = cell.value?.toString() || '';
+      const val = getCellText(cell);
       if (val.includes('{THU_NGAY}')) colMap.date = colNumber;
       if (val.includes('{BUOI}')) colMap.session = colNumber;
       if (val.includes('{THOI_GIAN}')) colMap.time = colNumber;
@@ -141,6 +152,10 @@ export const exportScheduleToExcel = async (schedule, items) => {
       if (val.includes('{THANH_PHAN}')) colMap.attendees = colNumber;
       if (val.includes('{GHI_CHU}')) colMap.note = colNumber;
     });
+
+    if (Object.keys(colMap).length === 0) {
+      throw new Error('Không nhận diện được các cột trong dòng mẫu. Vui lòng kiểm tra lại các từ khóa {NOI_DUNG}, {THU_NGAY}...');
+    }
 
     // 5. Gom nhóm dữ liệu theo ngày
     // Sort items by date and time
@@ -167,13 +182,14 @@ export const exportScheduleToExcel = async (schedule, items) => {
       if (item.type === 'office_work' && !content) content = 'Làm việc tại cơ quan';
 
       // Duplicate format from template
-      const newRow = worksheet.insertRow(currentRowIndex, []);
+      // Chúng ta copy thủ công thay vì insertRow để tránh lỗi border của exceljs
+      const newRow = worksheet.getRow(currentRowIndex);
       newRow.height = templateRow.height;
       
-      // Copy styles
+      // Copy styles DEEP
       templateRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
         const newCell = newRow.getCell(colNumber);
-        newCell.style = Object.assign({}, cell.style);
+        newCell.style = JSON.parse(JSON.stringify(cell.style));
       });
 
       // Fill data
@@ -231,8 +247,13 @@ export const exportScheduleToExcel = async (schedule, items) => {
       currentRowIndex++;
     }
 
-    // Xóa dòng template gốc
-    worksheet.spliceRows(currentRowIndex, 1);
+    // Shift manually existing rows down by total items if user kept old rows
+    // Actually using insertRow pushes old rows down, but we used getRow to avoid border bugs.
+    // So if there are old rows below, we just leave them. The user should clear them in their template.
+    // Xóa dòng template gốc. Vì ta overwrite data lên dòng template gốc ở iteration đầu tiên!
+    // Tại iteration đầu, currentRowIndex === templateRowIndex.
+    // Nên dòng template đã bị ghi đè thành data thật.
+    // => Không cần xóa spliceRow nữa!
 
     // Merge cells cho cột Ngày (nếu cùng ngày)
     if (colMap.date && sortedItems.length > 0) {

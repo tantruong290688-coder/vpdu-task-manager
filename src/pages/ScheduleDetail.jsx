@@ -16,6 +16,7 @@ export default function ScheduleDetail() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
   
   // State for TaskModal
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -215,9 +216,17 @@ export default function ScheduleDetail() {
         
         <div className="flex items-center gap-2">
           {id !== 'new' && (
-            <button onClick={() => exportScheduleToExcel(schedule, items)} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-bold shadow hover:bg-green-700 transition-colors">
-              <Download size={16} />
-              <span className="hidden sm:inline">Xuất Excel</span>
+            <button 
+              onClick={async () => {
+                setExporting(true);
+                await exportScheduleToExcel(schedule, items);
+                setExporting(false);
+              }} 
+              disabled={exporting}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-bold shadow hover:bg-green-700 transition-colors disabled:opacity-50"
+            >
+              <Download size={16} className={exporting ? 'animate-bounce' : ''} />
+              <span className="hidden sm:inline">{exporting ? 'Đang xuất Excel...' : 'Xuất Excel'}</span>
             </button>
           )}
           {canEdit && (

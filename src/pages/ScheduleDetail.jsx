@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Plus, Save, Trash2, Calendar as CalendarIcon, CheckSquare, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import TaskModal from '../components/TaskModal';
-import { exportScheduleToExcel } from '../utils/exportSchedule';
+import { exportScheduleToExcel, sortSchedulesForExport } from '../utils/exportSchedule';
 
 export default function ScheduleDetail() {
   const { id } = useParams();
@@ -381,9 +381,18 @@ export default function ScheduleDetail() {
             </tbody>
           </table>
           {canEdit && (
-            <div className="p-3 bg-slate-50 border-t border-slate-200">
+            <div className="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
               <button onClick={handleAddItem} className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-bold px-3 py-1.5 bg-blue-50 rounded-lg">
                 <Plus size={16} /> Thêm dòng
+              </button>
+              <button onClick={() => {
+                const sorted = sortSchedulesForExport(items);
+                setItems(sorted);
+                setIsDirty(true);
+                toast.success('Đã tự động sắp xếp danh sách lịch');
+              }} className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 text-sm font-bold px-3 py-1.5 bg-indigo-50 rounded-lg">
+                <svg xmlns="http://www.0.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/></svg>
+                Tự động sắp xếp
               </button>
             </div>
           )}

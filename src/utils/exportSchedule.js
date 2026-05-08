@@ -146,7 +146,7 @@ function getSessionPriority(item) {
   return 9;
 }
 
-function sortSchedulesForExport(schedules) {
+export function sortSchedulesForExport(schedules) {
   return [...schedules]
     .map((item, index) => {
       const time = item.time || item.start_time || item.thoiGian || "";

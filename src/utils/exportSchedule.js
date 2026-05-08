@@ -44,6 +44,19 @@ function getSessionFromTime(input) {
   return "Tối";
 }
 
+function copyRowStyleOnly(sourceRow, targetRow) {
+  targetRow.height = sourceRow.height;
+
+  sourceRow.eachCell({ includeEmpty: true }, (sourceCell, colNumber) => {
+    const targetCell = targetRow.getCell(colNumber);
+
+    // Copy style sâu để không mất border
+    targetCell.style = JSON.parse(JSON.stringify(sourceCell.style || {}));
+    // Clear value để không bị dính chữ Ghi chú hay Placeholder từ dòng mẫu
+    targetCell.value = null;
+  });
+}
+
 // Helper lấy chuỗi từ cell (hỗ trợ cả string thường và RichText)
 const getCellText = (cell) => {
   if (!cell || !cell.value) return '';
@@ -225,18 +238,11 @@ export const exportScheduleToExcel = async (schedule, items) => {
         content = `${item.time}: ${content}`;
       }
 
-      // Chúng ta sử dụng insertRow thay vì getRow để đẩy các dòng Ghi chú mẫu xuống dưới
-      // chứ không ghi đè lên chúng.
+      // Chúng ta sử dụng insertRow để đẩy các dòng Ghi chú mẫu xuống dưới
       const newRow = worksheet.insertRow(currentRowIndex, []);
-      newRow.height = templateRow.height;
       
-      // Copy styles DEEP
-      templateRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-        const newCell = newRow.getCell(colNumber);
-        if (cell.style) {
-          newCell.style = JSON.parse(JSON.stringify(cell.style));
-        }
-      });
+      // Copy style và clear value đúng theo yêu cầu
+      copyRowStyleOnly(templateRow, newRow);
 
       if (colMap.date && isNewDate) {
         newRow.getCell(colMap.date).value = formatDateVN(item.date);
@@ -257,14 +263,13 @@ export const exportScheduleToExcel = async (schedule, items) => {
       if (colMap.attendees) newRow.getCell(colMap.attendees).value = item.attendees;
       if (colMap.note) newRow.getCell(colMap.note).value = item.type !== 'meeting' ? 'Không tạo NV' : '';
 
-      // Merge cells logic for date if there are multiple items per day
-      // (This requires merging after inserting all rows, let's just leave date empty for consecutive rows of same date, which looks clean)
+      // (This requires merging after inserting all rows)
 
       currentRowIndex++;
     }
 
-    // Sau khi insert các row dữ liệu, dòng mẫu ban đầu đã bị đẩy xuống dưới cùng
-    // Chúng ta phải xóa nó đi
+    // Sau khi insert các row dữ liệu, dòng mẫu ban đầu đã bị đẩy xuống vị trí currentRowIndex
+    // Chúng ta phải xóa nó đi để mất hoàn toàn các placeholder mẫu
     worksheet.spliceRows(currentRowIndex, 1);
 
     // Merge cells cho cột Ngày (nếu cùng ngày)

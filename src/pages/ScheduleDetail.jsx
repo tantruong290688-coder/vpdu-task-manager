@@ -89,7 +89,17 @@ export default function ScheduleDetail() {
   };
 
   const handleItemChange = (itemId, field, value) => {
-    setItems(items.map(item => item.id === itemId ? { ...item, [field]: value } : item));
+    setItems(items.map(item => {
+      if (item.id === itemId) {
+        const updatedItem = { ...item, [field]: value };
+        if (field === 'type' && value === 'holiday') {
+          updatedItem.content = 'Nghỉ';
+          updatedItem.time = 'Cả ngày';
+        }
+        return updatedItem;
+      }
+      return item;
+    }));
     setIsDirty(true);
   };
 

@@ -355,7 +355,9 @@ export const exportScheduleToExcel = async (schedule, items) => {
 
       // Xử lý nghỉ / làm việc CQ
       let content = item.content || "";
-      if (item.type === 'holiday') content = `Nghỉ: ${content}`;
+      if (item.type === 'holiday') {
+        content = content.toLowerCase() === 'nghỉ' ? content : `Nghỉ: ${content}`;
+      }
       if (item.type === 'office_work' && !content) content = 'Làm việc tại cơ quan';
 
       // Logic Buổi & Thời gian

@@ -124,10 +124,28 @@ export default function ScheduleDetail() {
         if (error) throw error;
       }
 
+      // Tiền xử lý dữ liệu: Loại bỏ các dòng trống hoàn toàn
+      const validItems = items.filter(item => item.date || item.content || item.host || item.location);
+
+      // Validate bắt buộc
+      const missingDate = validItems.find(item => !item.date);
+      if (missingDate) {
+        setSaving(false);
+        toast.error('Vui lòng chọn Ngày cho tất cả các nội dung công việc.');
+        return;
+      }
+      
+      const missingContent = validItems.find(item => !item.content);
+      if (missingContent) {
+        setSaving(false);
+        toast.error('Vui lòng nhập Nội dung cho tất cả các lịch công tác.');
+        return;
+      }
+
       // Save Items
-      const itemsToInsert = items.filter(item => item.id.toString().startsWith('temp_')).map(item => ({
+      const itemsToInsert = validItems.filter(item => item.id.toString().startsWith('temp_')).map(item => ({
         schedule_id: currentScheduleId,
-        date: item.date || null,
+        date: item.date,
         time: item.time || '',
         content: item.content || '',
         host: item.host || '',
@@ -137,7 +155,7 @@ export default function ScheduleDetail() {
         type: item.type || 'meeting'
       }));
 
-      const itemsToUpdate = items.filter(item => !item.id.toString().startsWith('temp_'));
+      const itemsToUpdate = validItems.filter(item => !item.id.toString().startsWith('temp_'));
 
       if (itemsToInsert.length > 0) {
         const { error } = await supabase.from('schedule_items').insert(itemsToInsert);
@@ -159,6 +177,17 @@ export default function ScheduleDetail() {
           })
           .eq('id', item.id);
         if (error) throw error;
+      }
+
+      // Delete removed items
+      // Khi user lưu, nếu có item nào trong DB mà không có trong validItems thì xóa
+      const { data: currentItemsInDb } = await supabase.from('schedule_items').select('id').eq('schedule_id', currentScheduleId);
+      if (currentItemsInDb) {
+        const validItemIds = itemsToUpdate.map(i => i.id);
+        const idsToDelete = currentItemsInDb.filter(dbItem => !validItemIds.includes(dbItem.id)).map(i => i.id);
+        if (idsToDelete.length > 0) {
+          await supabase.from('schedule_items').delete().in('id', idsToDelete);
+        }
       }
 
       toast.success('Đã lưu lịch công tác');

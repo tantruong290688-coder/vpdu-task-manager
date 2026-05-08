@@ -80,10 +80,14 @@ function getLeaderPriority(value) {
     text.includes("pho bi thu") ||
     text.includes("pbt");
 
+  const textWithoutPho = text
+    .replace("phó bí thư", "")
+    .replace("pho bi thu", "");
+
   const isBiThu =
-    text.includes("bí thư") ||
-    text.includes("bi thu") ||
-    text.includes("bt");
+    textWithoutPho.includes("bí thư") ||
+    textWithoutPho.includes("bi thu") ||
+    textWithoutPho.includes("bt");
 
   const isThuongTruc =
     text.includes("ttđu") ||
@@ -91,7 +95,7 @@ function getLeaderPriority(value) {
     text.includes("thường trực") ||
     text.includes("thuong truc");
 
-  if (isBiThu && !isPhoBiThu) return 1;
+  if (isBiThu) return 1;
   if (isPhoBiThu) return 2;
   if (isThuongTruc) return 3;
 

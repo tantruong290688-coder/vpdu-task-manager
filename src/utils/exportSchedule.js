@@ -180,19 +180,44 @@ export const exportScheduleToExcel = async (schedule, items) => {
       const isNewDate = item.date !== currentDate;
       currentDate = item.date;
 
-      // Logic Buổi
+      // Logic Buổi & Thời gian
       const timeStr = item.time?.toLowerCase() || '';
       let session = '';
-      if (timeStr.includes('sáng') || timeStr.match(/^(0?[0-9]|1[0-2])[h:]/)) session = 'Sáng';
-      else if (timeStr.includes('chiều') || timeStr.match(/^(1[3-9]|2[0-3])[h:]/)) session = 'Chiều';
-      else if (timeStr.includes('tối')) session = 'Tối';
+      if (timeStr.includes('sáng') && timeStr.includes('chiều')) {
+        session = 'Sáng/Chiều';
+      } else if (timeStr.includes('sáng') || timeStr.match(/^(0?[0-9]|1[0-2])[h:]/)) {
+        session = 'Sáng';
+      } else if (timeStr.includes('chiều') || timeStr.match(/^(1[3-9]|2[0-3])[h:]/)) {
+        session = 'Chiều';
+      } else if (timeStr.includes('tối') || timeStr.includes('đêm')) {
+        session = 'Tối';
+      } else {
+        session = item.time || '';
+      }
 
-      if (colMap.date && isNewDate) newRow.getCell(colMap.date).value = formatDateVN(item.date);
-      if (colMap.session) newRow.getCell(colMap.session).value = session;
+      // Prepend time numbers to content
+      if (item.time && /[0-9]/.test(item.time)) {
+        // Find something like "08h30" or "8h" or "14:00"
+        const timeMatch = item.time.match(/([0-9]{1,2}[h:p\.][0-9]{0,2})/i);
+        if (timeMatch) {
+          content = `- ${timeMatch[0]}: ${content}`;
+        } else {
+          content = `- ${item.time}: ${content}`;
+        }
+      }
+
+      if (colMap.date && isNewDate) {
+        newRow.getCell(colMap.date).value = formatDateVN(item.date);
+        newRow.getCell(colMap.date).alignment = { ...newRow.getCell(colMap.date).alignment, vertical: 'middle', horizontal: 'center', wrapText: true };
+      }
+      if (colMap.session) {
+        newRow.getCell(colMap.session).value = session;
+        newRow.getCell(colMap.session).alignment = { ...newRow.getCell(colMap.session).alignment, vertical: 'middle', horizontal: 'center', wrapText: true };
+      }
       if (colMap.time) newRow.getCell(colMap.time).value = item.time;
       if (colMap.content) {
         newRow.getCell(colMap.content).value = content;
-        newRow.getCell(colMap.content).alignment = { ...newRow.getCell(colMap.content).alignment, wrapText: true };
+        newRow.getCell(colMap.content).alignment = { ...newRow.getCell(colMap.content).alignment, wrapText: true, vertical: 'middle' };
       }
       if (colMap.host) newRow.getCell(colMap.host).value = item.host;
       if (colMap.location) newRow.getCell(colMap.location).value = item.location;

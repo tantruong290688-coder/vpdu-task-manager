@@ -354,6 +354,7 @@ export default function ScheduleDetail() {
                     <select value={item.type || 'meeting'} onChange={e => handleItemChange(item.id, 'type', e.target.value)} disabled={!canEdit} className="w-full border rounded p-1.5 text-xs bg-transparent">
                       <option value="meeting">Họp/Hội nghị</option>
                       <option value="office_work">Làm việc CQ</option>
+                      <option value="other">Sự kiện/HĐ khác</option>
                       <option value="holiday">Nghỉ</option>
                     </select>
                   </td>

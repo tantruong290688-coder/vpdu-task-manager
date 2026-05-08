@@ -128,8 +128,14 @@ export default function ScheduleDetail() {
         if (error) throw error;
       }
 
-      // Tiền xử lý dữ liệu: Loại bỏ các dòng trống hoàn toàn
-      const validItems = items.filter(item => item.date || item.content || item.host || item.location);
+      // Tiền xử lý dữ liệu: Loại bỏ các dòng mà người dùng chưa nhập BẤT KỲ ký tự nào
+      const validItems = items.filter(item => item.date || item.time || item.content || item.host || item.location || item.attendees || item.prepare_by);
+
+      if (validItems.length === 0 && items.length > 0) {
+        setSaving(false);
+        toast.error('Vui lòng nhập nội dung cho dòng lịch bạn vừa thêm.');
+        return;
+      }
 
       // Validate bắt buộc
       const missingDate = validItems.find(item => !item.date);

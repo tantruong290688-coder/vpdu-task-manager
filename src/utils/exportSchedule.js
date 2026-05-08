@@ -14,6 +14,36 @@ const formatDateVN = (dateStr) => {
   return `${dayName}, ngày ${date}/${month}`;
 };
 
+function normalizeTime(input) {
+  if (!input) return "";
+  let value = String(input).trim().toLowerCase();
+  value = value.replace("h", ":");
+  if (/^\d{4}$/.test(value)) {
+    value = value.slice(0, 2) + ":" + value.slice(2);
+  }
+  const match = value.match(/^(\d{1,2}):?(\d{2})?$/);
+  if (!match) return input;
+  const hour = String(match[1]).padStart(2, "0");
+  const minute = String(match[2] || "00").padStart(2, "0");
+  return `${hour}h${minute}`;
+}
+
+function getSessionFromTime(input) {
+  if (!input) return "";
+  const timeLower = input.toLowerCase();
+  if (timeLower.includes('sáng') && timeLower.includes('chiều')) return "Sáng/Chiều";
+  if (timeLower.includes('sáng')) return "Sáng";
+  if (timeLower.includes('chiều')) return "Chiều";
+  if (timeLower.includes('tối')) return "Tối";
+  
+  const normalized = normalizeTime(input);
+  const hour = parseInt(normalized.slice(0, 2), 10);
+  if (Number.isNaN(hour)) return "Sáng"; 
+  if (hour < 12) return "Sáng";
+  if (hour < 18) return "Chiều";
+  return "Tối";
+}
+
 // Helper lấy chuỗi từ cell (hỗ trợ cả string thường và RichText)
 const getCellText = (cell) => {
   if (!cell || !cell.value) return '';
@@ -181,46 +211,29 @@ export const exportScheduleToExcel = async (schedule, items) => {
       if (item.type === 'holiday') content = `Nghỉ: ${item.content}`;
       if (item.type === 'office_work' && !content) content = 'Làm việc tại cơ quan';
 
-      // Duplicate format from template
-      // Chúng ta copy thủ công thay vì insertRow để tránh lỗi border của exceljs
-      const newRow = worksheet.getRow(currentRowIndex);
+      // Logic Buổi & Thời gian
+      const session = getSessionFromTime(item.time);
+      const normTime = normalizeTime(item.time);
+
+      // Prepend time to content
+      if (normTime && normTime.match(/^\d{2}h\d{2}$/)) {
+        content = `${normTime}: ${content}`;
+      } else if (item.time && !item.time.toLowerCase().match(/^(sáng|chiều|tối|cả ngày)$/)) {
+        content = `${item.time}: ${content}`;
+      }
+
+      // Chúng ta sử dụng insertRow thay vì getRow để đẩy các dòng Ghi chú mẫu xuống dưới
+      // chứ không ghi đè lên chúng.
+      const newRow = worksheet.insertRow(currentRowIndex, []);
       newRow.height = templateRow.height;
       
       // Copy styles DEEP
       templateRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
         const newCell = newRow.getCell(colNumber);
-        newCell.style = JSON.parse(JSON.stringify(cell.style));
-      });
-
-      // Fill data
-      const isNewDate = item.date !== currentDate;
-      currentDate = item.date;
-
-      // Logic Buổi & Thời gian
-      const timeStr = item.time?.toLowerCase() || '';
-      let session = '';
-      if (timeStr.includes('sáng') && timeStr.includes('chiều')) {
-        session = 'Sáng/Chiều';
-      } else if (timeStr.includes('sáng') || timeStr.match(/^(0?[0-9]|1[0-2])[h:]/)) {
-        session = 'Sáng';
-      } else if (timeStr.includes('chiều') || timeStr.match(/^(1[3-9]|2[0-3])[h:]/)) {
-        session = 'Chiều';
-      } else if (timeStr.includes('tối') || timeStr.includes('đêm')) {
-        session = 'Tối';
-      } else {
-        session = item.time || '';
-      }
-
-      // Prepend time numbers to content
-      if (item.time && /[0-9]/.test(item.time)) {
-        // Find something like "08h30" or "8h" or "14:00"
-        const timeMatch = item.time.match(/([0-9]{1,2}[h:p\.][0-9]{0,2})/i);
-        if (timeMatch) {
-          content = `- ${timeMatch[0]}: ${content}`;
-        } else {
-          content = `- ${item.time}: ${content}`;
+        if (cell.style) {
+          newCell.style = JSON.parse(JSON.stringify(cell.style));
         }
-      }
+      });
 
       if (colMap.date && isNewDate) {
         newRow.getCell(colMap.date).value = formatDateVN(item.date);
@@ -247,13 +260,9 @@ export const exportScheduleToExcel = async (schedule, items) => {
       currentRowIndex++;
     }
 
-    // Shift manually existing rows down by total items if user kept old rows
-    // Actually using insertRow pushes old rows down, but we used getRow to avoid border bugs.
-    // So if there are old rows below, we just leave them. The user should clear them in their template.
-    // Xóa dòng template gốc. Vì ta overwrite data lên dòng template gốc ở iteration đầu tiên!
-    // Tại iteration đầu, currentRowIndex === templateRowIndex.
-    // Nên dòng template đã bị ghi đè thành data thật.
-    // => Không cần xóa spliceRow nữa!
+    // Sau khi insert các row dữ liệu, dòng mẫu ban đầu đã bị đẩy xuống dưới cùng
+    // Chúng ta phải xóa nó đi
+    worksheet.spliceRows(currentRowIndex, 1);
 
     // Merge cells cho cột Ngày (nếu cùng ngày)
     if (colMap.date && sortedItems.length > 0) {
@@ -270,6 +279,19 @@ export const exportScheduleToExcel = async (schedule, items) => {
          }
        }
     }
+
+    // Xóa toàn bộ placeholder còn sót lại trong file
+    replaceTextInSheet(worksheet, {
+      '{THU_NGAY}': '',
+      '{BUOI}': '',
+      '{THOI_GIAN}': '',
+      '{NOI_DUNG}': '',
+      '{CHU_TRI}': '',
+      '{DIA_DIEM}': '',
+      '{CHUAN_BI}': '',
+      '{THANH_PHAN}': '',
+      '{GHI_CHU}': ''
+    });
 
     // 6. Write and save
     const buffer = await workbook.xlsx.writeBuffer();

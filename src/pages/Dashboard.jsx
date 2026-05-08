@@ -27,11 +27,14 @@ export default function Dashboard() {
       if (!rpcError && rpcData) {
         const {
           total, notStarted, inProgress, completed, overdue,
-          dueSoon, pendingEval, pendingFinal, workAreas
+          dueSoon, pendingEval, pendingFinal, completedOnTime, workAreas
         } = rpcData;
-        
+
         const completionRate = total > 0 ? ((completed / total) * 100).toFixed(1) : 0;
-        const onTimeRate = completed > 0 ? 100 : 0;
+        // Tính tỷ lệ đúng hạn thực tế: số hoàn thành đúng hạn / tổng hoàn thành có deadline
+        const onTimeRate = completed > 0
+          ? ((completedOnTime / completed) * 100).toFixed(1)
+          : 0;
         
         setStats({ total, notStarted, inProgress, completed, overdue, dueSoon, pendingEval, pendingFinal, completionRate, onTimeRate });
 
@@ -54,8 +57,11 @@ export default function Dashboard() {
     }
 
     // --- FALLBACK LOGIC CŨ (Phòng khi Admin chưa chạy script SQL) ---
-    const { data: tasks, error } = await supabase.from('tasks').select('*');
+    const { data: tasks, error } = await supabase
+      .from('tasks')
+      .select('status, due_date, completed_at, evaluation_score, work_area');
     if (tasks) {
+      const today = new Date().toISOString().slice(0, 10);
       const total = tasks.length;
       const notStarted = filterTasksLocal(tasks, 'pending').length;
       const inProgress = filterTasksLocal(tasks, 'in_progress').length;
@@ -64,8 +70,19 @@ export default function Dashboard() {
       const dueSoon = filterTasksLocal(tasks, 'due_soon').length;
       const pendingEval = filterTasksLocal(tasks, 'pending_eval').length;
       const pendingFinal = filterTasksLocal(tasks, 'pending_final').length;
+
+      // Tính đúng hạn từ dữ liệu fallback
+      const completedTasks = tasks.filter(t => t.status === 'completed');
+      const completedOnTime = completedTasks.filter(t => {
+        if (!t.completed_at || !t.due_date) return false;
+        const completedDate = t.completed_at.slice(0, 10); // YYYY-MM-DD
+        return completedDate <= t.due_date;
+      }).length;
+
       const completionRate = total > 0 ? (completed / total * 100).toFixed(1) : 0;
-      const onTimeRate = completed > 0 ? 100 : 0;
+      const onTimeRate = completed > 0
+        ? ((completedOnTime / completed) * 100).toFixed(1)
+        : 0;
 
       setStats({ total, notStarted, inProgress, completed, overdue, dueSoon, pendingEval, pendingFinal, completionRate, onTimeRate });
 

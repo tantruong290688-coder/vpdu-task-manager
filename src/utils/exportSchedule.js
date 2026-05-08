@@ -280,7 +280,17 @@ export const exportScheduleToExcel = async (schedule, items) => {
          const currentItemDate = i < sortedItems.length ? sortedItems[i].date : null;
          if (currentItemDate !== lastDate) {
            if (i - 1 + templateRowIndex > startMergeRow) {
-             worksheet.mergeCells(startMergeRow, colMap.date, i - 1 + templateRowIndex, colMap.date);
+             try {
+               // Thử merge 1 cột dọc
+               worksheet.mergeCells(startMergeRow, colMap.date, i - 1 + templateRowIndex, colMap.date);
+             } catch (e) {
+               try {
+                 // Nếu lỗi (do template gốc đã merge ngang 2 cột A:B), thử merge khối 2 cột dọc
+                 worksheet.mergeCells(startMergeRow, colMap.date, i - 1 + templateRowIndex, colMap.date + 1);
+               } catch (e2) {
+                 console.warn('Không thể gộp ô ngày do xung đột định dạng merge của file mẫu', e2);
+               }
+             }
            }
            startMergeRow = i + templateRowIndex;
            lastDate = currentItemDate;

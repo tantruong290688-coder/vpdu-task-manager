@@ -8,7 +8,10 @@ import { canEditTask, canDelegateToStaff, ROLES } from '../lib/permissions';
 import { createNotification } from '../hooks/useNotifications';
 
 // Key for local storage draft
-const getDraftKey = (userId) => userId ? `task_create_draft_${userId}` : null;
+const getDraftKey = (userId, scheduleItemId = null) => {
+  if (!userId) return null;
+  return scheduleItemId ? `task_create_draft_${userId}_schedule_${scheduleItemId}` : `task_create_draft_${userId}`;
+};
 
 export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData }) {
   const { profile } = useAuth();
@@ -66,6 +69,45 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
       fetchUsers();
       isClosingRef.current = false; // Reset flag when modal opens
       if (initialData) {
+        // Thử khôi phục từ bản nháp trước nếu đây là tạo mới từ lịch công tác (không có id)
+        if (!initialData.id && initialData.schedule_item_id) {
+          const draftKey = getDraftKey(profile?.id, initialData.schedule_item_id);
+          const savedDraft = draftKey ? localStorage.getItem(draftKey) : null;
+          
+          if (savedDraft) {
+            try {
+              const draft = JSON.parse(savedDraft);
+              setAssignedDate(draft.assignedDate || initialData.assigned_date || '');
+              setStartDate(draft.startDate || initialData.start_date || '');
+              setAssignerId(draft.assignerId || initialData.assigned_by || '');
+              setAssigneeId(draft.assigneeId || initialData.assignee_id || '');
+              setTaskGroup(draft.taskGroup || initialData.task_group || '');
+              setWorkArea(draft.workArea || initialData.work_area || '');
+              setTitle(draft.title || initialData.title || '');
+              setDescription(draft.description || initialData.description || '');
+              setExpectedOutput(draft.expectedOutput || initialData.expected_output || '');
+              setPriority(draft.priority || initialData.priority || 'normal');
+              setEvaluationPeriod(draft.evaluationPeriod || initialData.evaluation_period || '');
+              setDueDate(draft.dueDate || initialData.due_date || '');
+              setTaskType(draft.taskType || initialData.task_type || '');
+              setOriginalDueDate(draft.originalDueDate || initialData.original_due_date || '');
+              setProgress(draft.progress || initialData.progress || 0);
+              if (draft.collaborators) {
+                setCollaborators(draft.collaborators);
+              } else if (initialData.task_collaborators) {
+                setCollaborators(initialData.task_collaborators.map(c => c.profiles?.id || c.user_id).filter(Boolean));
+              } else {
+                setCollaborators([]);
+              }
+              setScheduleItemId(initialData.schedule_item_id);
+              return; // Thoát ra nếu đã có bản nháp
+            } catch (e) {
+              console.error('Lỗi khôi phục bản nháp từ lịch:', e);
+            }
+          }
+        }
+
+        // Nếu không có bản nháp thì load dữ liệu khởi tạo mặc định
         setAssignedDate(initialData.assigned_date || '');
         setStartDate(initialData.start_date || '');
         setAssignerId(initialData.assigned_by || '');
@@ -123,8 +165,8 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
   }, [isOpen, profile, initialData]);
 
   const saveDraft = () => {
-    if (!isOpen || initialData || !profile?.id || isClosingRef.current) return;
-    const draftKey = getDraftKey(profile.id);
+    if (!isOpen || isUpdating || !profile?.id || isClosingRef.current) return;
+    const draftKey = getDraftKey(profile.id, initialData?.schedule_item_id || scheduleItemId);
     const draftData = {
       assignedDate, assignerId, assigneeId, collaborators,
       taskGroup, workArea, title, description, expectedOutput,
@@ -144,7 +186,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
 
   // Debounced Autosave Effect
   useEffect(() => {
-    if (!isOpen || initialData || !profile?.id) return;
+    if (!isOpen || isUpdating || !profile?.id) return;
     const timeoutId = setTimeout(saveDraft, 500);
     return () => {
       clearTimeout(timeoutId);
@@ -279,7 +321,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
         toast.success('Đã giao nhiệm vụ mới!');
 
         // Clear draft on success
-        const draftKey = getDraftKey(profile?.id);
+        const draftKey = getDraftKey(profile?.id, initialData?.schedule_item_id || scheduleItemId);
         if (draftKey) localStorage.removeItem(draftKey);
         isClosingRef.current = true; // Block autosave on close
         resetForm(); // Reset local state immediately

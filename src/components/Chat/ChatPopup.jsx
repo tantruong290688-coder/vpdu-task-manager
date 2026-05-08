@@ -186,11 +186,16 @@ export default function ChatPopup() {
           throw uploadError;
         }
 
-        const { data: publicUrlData } = supabase.storage
+        // Dùng createSignedUrl thay vì getPublicUrl
+        // Signed URL hết hạn sau 1 giờ – đủ để đọc tin nhắn, an toàn hơn public URL
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
           .from('message-attachments')
-          .getPublicUrl(filePath);
+          .createSignedUrl(filePath, 60 * 60); // 3600 giây = 1 giờ
 
-        attachmentUrl = publicUrlData.publicUrl;
+        if (signedUrlError) throw signedUrlError;
+
+        attachmentUrl = signedUrlData.signedUrl;
+
         attachmentName = file.name;
         attachmentType = file.type;
         attachmentSize = file.size;

@@ -14,6 +14,9 @@ import TodoPage from './pages/TodoPage';
 import NotificationsPage from './pages/NotificationsPage';
 import Schedules from './pages/Schedules';
 import ScheduleDetail from './pages/ScheduleDetail';
+import StaffPerformance from './pages/StaffPerformance';
+import GlobalSearchModal from './components/GlobalSearch/GlobalSearchModal';
+import { useState } from 'react';
 
 // ── Error Boundary: bắt mọi lỗi render để không bị màn hình trắng ──
 class ErrorBoundary extends Component {
@@ -66,8 +69,19 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
   // Đăng ký Service Worker + xử lý update + Offline Sync
   useEffect(() => {
+    // Shortcuts listener
+    const handleShortcuts = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleShortcuts);
+
     // 1. Service Worker registration
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
@@ -111,6 +125,7 @@ function App() {
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('keydown', handleShortcuts);
     };
   }, []);
 
@@ -161,8 +176,14 @@ function App() {
               <NotificationsPage />
             </ErrorBoundary>
           } />
+          <Route path="performance" element={
+            <ProtectedRoute>
+              <StaffPerformance />
+            </ProtectedRoute>
+          } />
         </Route>
       </Routes>
+      <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </Router>
   );
 }

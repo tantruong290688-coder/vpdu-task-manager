@@ -28,15 +28,15 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
   const calculateRank = (val) => {
     const s = parseInt(val, 10);
     if (isNaN(s)) return '';
-    if (s < 50) return 'Không hoàn thành';
+    if (s < 50) return 'Chưa hoàn thành';
     if (s < 70) return 'Hoàn thành';
-    if (s < 90) return 'Tốt';
-    return 'Xuất sắc';
+    if (s < 90) return 'Hoàn thành tốt';
+    return 'Hoàn thành xuất sắc';
   };
 
   const getRankColor = (rank) => {
-    if (rank === 'Xuất sắc') return 'text-purple-600 bg-purple-50 border-purple-200';
-    if (rank === 'Tốt') return 'text-blue-600 bg-blue-50 border-blue-200';
+    if (rank === 'Hoàn thành xuất sắc') return 'text-purple-600 bg-purple-50 border-purple-200';
+    if (rank === 'Hoàn thành tốt') return 'text-blue-600 bg-blue-50 border-blue-200';
     if (rank === 'Hoàn thành') return 'text-green-600 bg-green-50 border-green-200';
     return 'text-red-600 bg-red-50 border-red-200';
   };
@@ -153,15 +153,15 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
               <div>
                 <label className="block text-[13px] font-bold text-slate-800 dark:text-slate-200 mb-2">Xếp loại tự động</label>
                 <div className={`px-4 py-3 rounded-xl border font-bold text-[14px] flex items-center gap-2 ${
-                  currentRank === 'Xuất sắc' ? 'text-purple-600 bg-purple-50 border-purple-200 dark:bg-purple-900/20 dark:border-purple-800/50 dark:text-purple-400' :
-                  currentRank === 'Tốt' ? 'text-blue-600 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/50 dark:text-blue-400' :
+                  currentRank === 'Hoàn thành xuất sắc' ? 'text-purple-600 bg-purple-50 border-purple-200 dark:bg-purple-900/20 dark:border-purple-800/50 dark:text-purple-400' :
+                  currentRank === 'Hoàn thành tốt' ? 'text-blue-600 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/50 dark:text-blue-400' :
                   currentRank === 'Hoàn thành' ? 'text-green-600 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800/50 dark:text-green-400' :
                   'text-red-600 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800/50 dark:text-red-400'
                 }`}>
                   <Star size={18} />
                   {currentRank}
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 font-medium">0-49: Không hoàn thành | 50-69: Hoàn thành | 70-89: Tốt | 90-100: Xuất sắc</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 font-medium">0-49: Chưa hoàn thành | 50-69: Hoàn thành | 70-89: Hoàn thành tốt | 90-100: Hoàn thành xuất sắc</p>
               </div>
             )}
 

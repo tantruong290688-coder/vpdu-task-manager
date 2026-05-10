@@ -1,228 +1,208 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { useNavigate } from 'react-router-dom';
 import { RotateCcw, Filter, Pin, Hourglass, Rocket, CheckSquare, AlertCircle, AlertTriangle, Smartphone, Flag, PieChart, Clock } from 'lucide-react';
 import { PieChart as RechartsPie, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { useNavigate } from 'react-router-dom';
-
-import { filterTasksLocal } from '../lib/taskFilters';
+import { useDashboardStats } from '../hooks/useDashboardStats';
+import { useTasks } from '../hooks/useTasks';
+import { useNotifications } from '../hooks/useNotifications';
+import { useAuth } from '../context/AuthContext';
+import MyDayWidget from '../components/Dashboard/MyDayWidget';
+import RiskTasksWidget from '../components/Dashboard/RiskTasksWidget';
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({
-    total: 0, notStarted: 0, inProgress: 0, completed: 0, overdue: 0,
-    dueSoon: 0, pendingEval: 0, pendingFinal: 0, completionRate: 0, onTimeRate: 0
+  const navigate = useNavigate();
+  const { profile } = useAuth();
+  const { data: statsData, isLoading: isStatsLoading, refetch: refetchStats } = useDashboardStats();
+  
+  const { data: tasksData } = useTasks({ 
+    filters: {}, 
+    sortConfig: {}, 
+    currentPage: 1, 
+    pathname: profile?.role === 'admin' ? '/all-tasks' : '/my-tasks', // Admin xem tất cả, staff xem của mình
+    profileId: profile?.id 
   });
 
-  const [pieData, setPieData] = useState([{ name: 'Trống', value: 1, color: '#e2e8f0' }]);
-  const [barData, setBarData] = useState([{ name: 'Trống', value: 0 }]);
+  const { notifications } = useNotifications({ filter: 'unread', limit: 5 });
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  const stats   = statsData?.stats   ?? { total: 0, notStarted: 0, inProgress: 0, completed: 0, overdue: 0, dueSoon: 0, pendingEval: 0, pendingFinal: 0, completionRate: '0', onTimeRate: '0' };
+  const pieData = statsData?.pieData ?? [{ name: 'Trống', value: 1, color: '#e2e8f0' }];
+  const barData = statsData?.barData ?? [{ name: 'Trống', value: 0 }];
 
-  const fetchDashboardData = async () => {
-    try {
-      // Ưu tiên gọi RPC để tính toán trực tiếp trên Database (Tăng tốc độ, giảm RAM)
-      const { data: rpcData, error: rpcError } = await supabase.rpc('get_dashboard_stats');
-      
-      if (!rpcError && rpcData) {
-        const {
-          total, notStarted, inProgress, completed, overdue,
-          dueSoon, pendingEval, pendingFinal, completedOnTime, workAreas
-        } = rpcData;
+  const tasks = tasksData?.tasks ?? [];
 
-        const completionRate = total > 0 ? ((completed / total) * 100).toFixed(1) : 0;
-        // Tính tỷ lệ đúng hạn thực tế: số hoàn thành đúng hạn / tổng hoàn thành có deadline
-        const onTimeRate = completed > 0
-          ? ((completedOnTime / completed) * 100).toFixed(1)
-          : 0;
-        
-        setStats({ total, notStarted, inProgress, completed, overdue, dueSoon, pendingEval, pendingFinal, completionRate, onTimeRate });
-
-        const pd = [
-          { name: 'Đang thực hiện', value: inProgress, color: '#3b82f6' },
-          { name: 'Hoàn thành', value: completed, color: '#22c55e' },
-          { name: 'Chưa bắt đầu', value: notStarted, color: '#f59e0b' },
-          { name: 'Quá hạn', value: overdue, color: '#ef4444' }
-        ].filter(d => d.value > 0);
-        setPieData(pd.length > 0 ? pd : [{ name: 'Trống', value: 1, color: '#e2e8f0' }]);
-
-        const bd = Object.keys(workAreas || {}).map(key => ({ name: key, value: workAreas[key] }));
-        setBarData(bd.length > 0 ? bd : [{ name: 'Chưa có', value: 0 }]);
-        return; // Thoát thành công
-      }
-      
-      console.warn("RPC get_dashboard_stats chưa sẵn sàng, dùng fallback (cần chạy migration SQL).", rpcError);
-    } catch (err) {
-      console.warn("Lỗi gọi RPC, chuyển sang fallback:", err);
-    }
-
-    // --- FALLBACK LOGIC CŨ (Phòng khi Admin chưa chạy script SQL) ---
-    const { data: tasks, error } = await supabase
-      .from('tasks')
-      .select('status, due_date, completed_at, evaluation_score, work_area');
-    if (tasks) {
-      const today = new Date().toISOString().slice(0, 10);
-      const total = tasks.length;
-      const notStarted = filterTasksLocal(tasks, 'pending').length;
-      const inProgress = filterTasksLocal(tasks, 'in_progress').length;
-      const completed = filterTasksLocal(tasks, 'completed').length;
-      const overdue = filterTasksLocal(tasks, 'overdue').length;
-      const dueSoon = filterTasksLocal(tasks, 'due_soon').length;
-      const pendingEval = filterTasksLocal(tasks, 'pending_eval').length;
-      const pendingFinal = filterTasksLocal(tasks, 'pending_final').length;
-
-      // Tính đúng hạn từ dữ liệu fallback
-      const completedTasks = tasks.filter(t => t.status === 'completed');
-      const completedOnTime = completedTasks.filter(t => {
-        if (!t.completed_at || !t.due_date) return false;
-        const completedDate = t.completed_at.slice(0, 10); // YYYY-MM-DD
-        return completedDate <= t.due_date;
-      }).length;
-
-      const completionRate = total > 0 ? (completed / total * 100).toFixed(1) : 0;
-      const onTimeRate = completed > 0
-        ? ((completedOnTime / completed) * 100).toFixed(1)
-        : 0;
-
-      setStats({ total, notStarted, inProgress, completed, overdue, dueSoon, pendingEval, pendingFinal, completionRate, onTimeRate });
-
-      const pd = [
-        { name: 'Đang thực hiện', value: inProgress, color: '#3b82f6' },
-        { name: 'Hoàn thành', value: completed, color: '#22c55e' },
-        { name: 'Chưa bắt đầu', value: notStarted, color: '#f59e0b' },
-        { name: 'Quá hạn', value: overdue, color: '#ef4444' }
-      ].filter(d => d.value > 0);
-      setPieData(pd.length > 0 ? pd : [{ name: 'Trống', value: 1, color: '#e2e8f0' }]);
-
-      const workAreas = tasks.reduce((acc, task) => {
-        const area = task.work_area || 'Chưa phân loại';
-        acc[area] = (acc[area] || 0) + 1;
-        return acc;
-      }, {});
-      const bd = Object.keys(workAreas).map(key => ({ name: key, value: workAreas[key] }));
-      setBarData(bd.length > 0 ? bd : [{ name: 'Chưa có', value: 0 }]);
-    }
+  const handleRefresh = () => {
+    refetchStats();
   };
 
-  const navigate = useNavigate();
-
   const cardsTop = [
-    { label: 'Tổng số nhiệm vụ', value: stats.total, desc: 'Tổng số dòng nhiệm vụ trong phạm vi đang xem.', icon: Pin, iconBg: 'bg-cyan-50', iconColor: 'text-cyan-500', filter: '' },
-    { label: 'Chưa bắt đầu', value: stats.notStarted, desc: 'Những việc chưa khởi động.', icon: Hourglass, iconBg: 'bg-orange-50', iconColor: 'text-orange-500', filter: 'pending' },
-    { label: 'Đang thực hiện', value: stats.inProgress, desc: 'Nhiệm vụ đang được xử lý.', icon: Rocket, iconBg: 'bg-blue-50', iconColor: 'text-blue-500', filter: 'in_progress' },
-    { label: 'Hoàn thành', value: stats.completed, desc: 'Đã hoàn thành theo trạng thái.', icon: CheckSquare, iconBg: 'bg-green-50', iconColor: 'text-green-500', filter: 'completed' },
-    { label: 'Quá hạn', value: stats.overdue, desc: 'Cần ưu tiên xử lý.', icon: AlertCircle, iconBg: 'bg-red-50', iconColor: 'text-red-500', filter: 'overdue' },
+    { label: 'Tổng số nhiệm vụ', value: stats.total,      desc: 'Tổng số dòng nhiệm vụ trong phạm vi đang xem.', icon: Pin,          iconBg: 'bg-cyan-50',    iconColor: 'text-cyan-500',    filter: '' },
+    { label: 'Chưa bắt đầu',     value: stats.notStarted, desc: 'Những việc chưa khởi động.',                    icon: Hourglass,     iconBg: 'bg-orange-50',  iconColor: 'text-orange-500',  filter: 'pending' },
+    { label: 'Đang thực hiện',   value: stats.inProgress, desc: 'Nhiệm vụ đang được xử lý.',                     icon: Rocket,        iconBg: 'bg-blue-50',    iconColor: 'text-blue-500',    filter: 'in_progress' },
+    { label: 'Hoàn thành',       value: stats.completed,  desc: 'Đã hoàn thành theo trạng thái.',                icon: CheckSquare,   iconBg: 'bg-green-50',   iconColor: 'text-green-500',   filter: 'completed' },
+    { label: 'Quá hạn',          value: stats.overdue,    desc: 'Cần ưu tiên xử lý.',                            icon: AlertCircle,   iconBg: 'bg-red-50',     iconColor: 'text-red-500',     filter: 'overdue' },
   ];
 
   const cardsBottom = [
-    { label: 'Sắp đến hạn', value: stats.dueSoon, desc: 'Cần đôn đốc trong ngắn hạn.', icon: AlertTriangle, iconBg: 'bg-yellow-50', iconColor: 'text-yellow-500', filter: 'due_soon' },
-    { label: 'Chờ đánh giá', value: stats.pendingEval, desc: 'Đang chờ lãnh đạo nhận xét.', icon: Smartphone, iconBg: 'bg-amber-50', iconColor: 'text-amber-500', filter: 'pending_eval' },
-    { label: 'Đã đánh giá', value: stats.pendingFinal, desc: 'Nhiệm vụ đã có điểm đánh giá.', icon: Flag, iconBg: 'bg-purple-50', iconColor: 'text-purple-500', filter: 'pending_final' },
-    { label: 'Tỷ lệ hoàn thành', value: stats.completionRate + '%', desc: 'So với tổng nhiệm vụ hiện có.', icon: PieChart, iconBg: 'bg-emerald-50', iconColor: 'text-emerald-500', filter: '' },
-    { label: 'Tỷ lệ đúng hạn', value: stats.onTimeRate + '%', desc: 'Trên số nhiệm vụ đã hoàn thành.', icon: Clock, iconBg: 'bg-sky-50', iconColor: 'text-sky-500', filter: '' },
+    { label: 'Sắp đến hạn',   value: stats.dueSoon,                    desc: 'Cần đôn đốc trong ngắn hạn.',          icon: AlertTriangle, iconBg: 'bg-yellow-50',  iconColor: 'text-yellow-500',  filter: 'due_soon' },
+    { label: 'Chờ đánh giá',  value: stats.pendingEval,                desc: 'Đang chờ lãnh đạo nhận xét.',          icon: Smartphone,    iconBg: 'bg-amber-50',   iconColor: 'text-amber-500',   filter: 'pending_eval' },
+    { label: 'Đã đánh giá',   value: stats.pendingFinal,               desc: 'Nhiệm vụ đã có điểm đánh giá.',       icon: Flag,          iconBg: 'bg-purple-50',  iconColor: 'text-purple-500',  filter: 'pending_final' },
+    { label: 'Tỷ lệ hoàn thành', value: stats.completionRate + '%',    desc: 'So với tổng nhiệm vụ hiện có.',        icon: PieChart,      iconBg: 'bg-emerald-50', iconColor: 'text-emerald-500', filter: '' },
+    { label: 'Tỷ lệ đúng hạn',  value: stats.onTimeRate + '%',         desc: 'Trên số nhiệm vụ đã hoàn thành.',      icon: Clock,         iconBg: 'bg-sky-50',     iconColor: 'text-sky-500',     filter: '' },
   ];
 
   const handleCardClick = (filter) => {
-    if (filter) {
-      navigate(`/all-tasks?filter=${filter}`);
-    } else {
-      navigate('/all-tasks');
-    }
+    if (filter) navigate(`/all-tasks?filter=${filter}`);
+    else navigate('/all-tasks');
   };
 
   return (
     <div className="space-y-4 px-4 sm:px-0">
-      <div className="flex gap-2 md:gap-3 mb-2">
-        <button onClick={fetchDashboardData} className="flex-1 md:flex-none justify-center bg-[#2563eb] hover:bg-blue-700 text-white px-3 md:px-5 py-2.5 rounded-xl flex items-center gap-2 text-[13px] md:text-[14px] font-bold transition-colors shadow-sm">
-          <RotateCcw size={16} strokeWidth={2.5} />
+      {/* Ngày của tôi Widget */}
+      <MyDayWidget tasks={tasks} notifications={notifications} profile={profile} />
+
+      {/* Cảnh báo Rủi ro */}
+      <RiskTasksWidget tasks={tasks} profile={profile} />
+
+      {/* Chỉ báo Realtime đang hoạt động */}
+      <div className="flex gap-2 md:gap-3 mb-2 items-center">
+        <button onClick={handleRefresh} className="flex-1 md:flex-none justify-center bg-[#2563eb] hover:bg-blue-700 text-white px-3 md:px-5 py-2.5 rounded-xl flex items-center gap-2 text-[13px] md:text-[14px] font-bold transition-colors shadow-sm">
+          <RotateCcw size={16} strokeWidth={2.5} className={isStatsLoading ? 'animate-spin' : ''} />
           <span className="hidden sm:inline">Làm mới dashboard</span>
           <span className="sm:hidden">Làm mới</span>
         </button>
-        <button onClick={() => navigate('/all-tasks')} className="flex-1 md:flex-none justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 md:px-5 py-2.5 rounded-xl flex items-center gap-2 text-[13px] md:text-[14px] font-bold transition-colors shadow-sm">
-          <Filter size={16} strokeWidth={2.5} className="text-red-500" />
-          <span className="hidden sm:inline">Bộ lọc nâng cao</span>
-          <span className="sm:hidden">Lọc</span>
-        </button>
+        
+        <div className="flex-1 md:flex-none bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-3 md:px-4 py-2.5 rounded-xl flex items-center gap-2 overflow-hidden shadow-sm">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shrink-0" />
+          <span className="text-green-700 dark:text-green-400 text-[12px] md:text-[13px] font-bold truncate">Đã đồng bộ Realtime</span>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5">
-        {cardsTop.map((card, i) => (
-          <div key={i} onClick={() => handleCardClick(card.filter)} className="bg-white dark:bg-[#111827] rounded-xl md:rounded-[20px] shadow-sm border border-slate-100 dark:border-slate-800 p-3 md:p-5 flex flex-col min-h-[110px] md:min-h-[140px] hover:shadow-md hover:scale-[1.02] dark:hover:border-blue-500/50 hover:border-blue-500/30 transition-all cursor-pointer">
-            <div className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center mb-2 md:mb-4 ${card.iconBg}`}>
-              <card.icon size={14} className={`md:w-4 md:h-4 ${card.iconColor}`} strokeWidth={2.5} />
+      {/* Grid Thống kê */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 mb-4">
+        {cardsTop.map((card, idx) => (
+          <div 
+            key={idx} 
+            onClick={() => handleCardClick(card.filter)}
+            className="group bg-white dark:bg-[#111827] p-4 md:p-5 rounded-[24px] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800 transition-all cursor-pointer relative overflow-hidden"
+          >
+            <div className={`w-10 h-10 md:w-12 md:h-12 ${card.iconBg} rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform`}>
+              <card.icon size={22} className={card.iconColor} />
             </div>
-            <div className="mt-auto">
-              <p className="text-[28px] md:text-[36px] font-black text-[#111827] dark:text-white leading-none mb-1 md:mb-1.5 tracking-tighter">{card.value}</p>
-              <p className="text-[14px] md:text-[15px] font-black text-[#111827] dark:text-slate-200 leading-tight uppercase tracking-wide">{card.label}</p>
-              <p className="text-[11px] md:text-[12px] font-bold text-slate-500 dark:text-slate-500 mt-1.5 line-clamp-2 leading-snug hidden sm:block">{card.desc}</p>
+            <div className="flex items-baseline gap-1">
+               <h4 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white leading-tight">{card.value}</h4>
+               <span className="text-[12px] font-bold text-slate-400 uppercase tracking-wider">đầu việc</span>
             </div>
+            <p className="text-[13px] md:text-[14px] font-bold text-slate-600 dark:text-slate-400 mt-1">{card.label}</p>
+            <p className="text-[11px] md:text-[12px] text-slate-400 dark:text-slate-500 mt-2 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-4 left-5 right-5">
+              {card.desc}
+            </p>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5">
-        {cardsBottom.map((card, i) => (
-          <div key={i} onClick={() => handleCardClick(card.filter)} className="bg-white dark:bg-[#111827] rounded-xl md:rounded-[20px] shadow-sm border border-slate-100 dark:border-slate-800 p-3 md:p-5 flex flex-col min-h-[110px] md:min-h-[140px] hover:shadow-md hover:scale-[1.02] dark:hover:border-blue-500/50 hover:border-blue-500/30 transition-all cursor-pointer">
-            <div className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center mb-2 md:mb-4 ${card.iconBg}`}>
-              <card.icon size={14} className={`md:w-4 md:h-4 ${card.iconColor}`} strokeWidth={2.5} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
+        {cardsBottom.map((card, idx) => (
+          <div 
+            key={idx} 
+            onClick={() => handleCardClick(card.filter)}
+            className="group bg-white dark:bg-[#111827] p-4 md:p-5 rounded-[24px] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800 transition-all cursor-pointer overflow-hidden"
+          >
+            <div className={`w-10 h-10 md:w-12 md:h-12 ${card.iconBg} rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform`}>
+              <card.icon size={22} className={card.iconColor} />
             </div>
-            <div className="mt-auto">
-              <p className="text-[28px] md:text-[36px] font-black text-[#111827] dark:text-white leading-none mb-1 md:mb-1.5 tracking-tighter">{card.value}</p>
-              <p className="text-[14px] md:text-[15px] font-black text-[#111827] dark:text-slate-200 leading-tight uppercase tracking-wide">{card.label}</p>
-              <p className="text-[11px] md:text-[12px] font-bold text-slate-500 dark:text-slate-500 mt-1.5 line-clamp-2 leading-snug hidden sm:block">{card.desc}</p>
-            </div>
+            <h4 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white leading-tight">{card.value}</h4>
+            <p className="text-[13px] md:text-[14px] font-bold text-slate-600 dark:text-slate-400 mt-1">{card.label}</p>
+            <p className="text-[11px] md:text-[12px] text-slate-400 dark:text-slate-500 mt-2 leading-snug line-clamp-2">
+              {card.desc}
+            </p>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-2">
-        <div className="bg-white dark:bg-[#111827] rounded-[24px] shadow-sm border border-slate-100 dark:border-slate-800 p-6 h-[380px] flex flex-col">
-          <h3 className="font-bold text-[15px] text-[#111827] dark:text-white">Biểu đồ trạng thái nhiệm vụ</h3>
-          <p className="text-[12px] font-medium text-slate-400 dark:text-slate-500 mb-6">Phân bổ theo trạng thái thực hiện hiện tại.</p>
-          <div className="flex-1 min-h-0 relative">
+      {/* Biểu đồ */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
+        <div className="bg-white dark:bg-[#111827] p-5 md:p-8 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3 mb-6 md:mb-8">
+            <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+              <PieChart size={20} className="text-blue-600" />
+            </div>
+            <h3 className="text-[16px] md:text-[18px] font-black text-slate-800 dark:text-white uppercase tracking-tight">Tỷ lệ Trạng thái</h3>
+          </div>
+          <div className="h-[250px] md:h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <RechartsPie>
-                <Pie 
-                  data={pieData} 
-                  cx="50%" cy="50%" 
-                  innerRadius={0} outerRadius={110} 
-                  dataKey="value" stroke="none"
-                  onClick={(data) => {
-                    const filterMap = { 'Đang thực hiện': 'in_progress', 'Hoàn thành': 'completed', 'Chưa bắt đầu': 'pending', 'Quá hạn': 'overdue' };
-                    if (data && data.name) handleCardClick(filterMap[data.name] || '');
-                  }}
-                  className="cursor-pointer hover:opacity-80 transition-opacity"
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={window.innerWidth < 768 ? 60 : 80}
+                  outerRadius={window.innerWidth < 768 ? 90 : 120}
+                  paddingAngle={8}
+                  dataKey="value"
+                  stroke="none"
                 >
                   {pieData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                <Tooltip 
+                  contentStyle={{ 
+                    borderRadius: '16px', 
+                    border: 'none', 
+                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
+                    fontSize: '13px',
+                    fontWeight: '700'
+                  }} 
+                />
               </RechartsPie>
             </ResponsiveContainer>
           </div>
+          <div className="grid grid-cols-2 gap-3 mt-6">
+            {pieData.map((item, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                <span className="text-[12px] md:text-[13px] font-bold text-slate-600 dark:text-slate-400 truncate">{item.name}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="bg-white dark:bg-[#111827] rounded-[24px] shadow-sm border border-slate-100 dark:border-slate-800 p-6 h-[380px] flex flex-col">
-          <h3 className="font-bold text-[15px] text-[#111827] dark:text-white">Biểu đồ theo lĩnh vực</h3>
-          <p className="text-[12px] font-medium text-slate-400 dark:text-slate-500 mb-6">Số lượng nhiệm vụ theo lĩnh vực công tác.</p>
-          <div className="flex-1 min-h-0">
+        <div className="bg-white dark:bg-[#111827] p-5 md:p-8 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3 mb-6 md:mb-8">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
+              <BarChart size={20} className="text-indigo-600" />
+            </div>
+            <h3 className="text-[16px] md:text-[18px] font-black text-slate-800 dark:text-white uppercase tracking-tight">Nhiệm vụ theo Phân loại</h3>
+          </div>
+          <div className="h-[300px] md:h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+              <BarChart data={barData} margin={{ top: 20, right: 30, left: 0, bottom: 60 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" tick={{fontSize: 11, fill: '#64748b', fontWeight: 500}} axisLine={false} tickLine={false} dy={10} />
-                <YAxis tick={{fontSize: 11, fill: '#64748b', fontWeight: 500}} axisLine={false} tickLine={false} />
-                <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Bar 
-                  dataKey="value" 
-                  fill="#2563eb" 
-                  radius={[4, 4, 0, 0]} 
-                  barSize={28} 
-                  className="cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={(data) => {
-                    if (data && data.name && data.name !== 'Chưa có') handleCardClick('area_' + data.name);
-                  }}
+                <XAxis 
+                  dataKey="name" 
+                  angle={-45} 
+                  textAnchor="end" 
+                  interval={0} 
+                  height={80} 
+                  tick={{ fontSize: 11, fontWeight: 700, fill: '#94a3b8' }} 
+                  axisLine={false}
+                  tickLine={false}
                 />
+                <YAxis 
+                   tick={{ fontSize: 11, fontWeight: 700, fill: '#94a3b8' }} 
+                   axisLine={false}
+                   tickLine={false}
+                />
+                <Tooltip 
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{ 
+                    borderRadius: '16px', 
+                    border: 'none', 
+                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
+                    fontSize: '12px',
+                    fontWeight: '700'
+                  }} 
+                />
+                <Bar dataKey="value" fill="#6366f1" radius={[8, 8, 0, 0]} barSize={window.innerWidth < 768 ? 20 : 35} />
               </BarChart>
             </ResponsiveContainer>
           </div>

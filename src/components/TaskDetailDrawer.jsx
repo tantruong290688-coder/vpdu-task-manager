@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import {
   X, Edit2, Trash2, CheckCircle, Star, Clock, User, Users,
   Calendar, Flag, FileText, Tag, Layers, AlertCircle,
-  ChevronRight, Award, MessageSquare, Check, History
+  ChevronRight, Award, MessageSquare, Check, History, ListTodo,
+  Maximize2, Minimize2
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { writeLog } from '../lib/logger';
 import toast from 'react-hot-toast';
 import { canEditTask, canUpdateProgress as checkCanUpdateProgress, canEvaluate as checkCanEvaluate, ROLES } from '../lib/permissions';
+import TaskChecklist from './Tasks/TaskChecklist';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -144,6 +146,7 @@ export default function TaskDetailDrawer({
   const [completing, setCompleting] = useState(false);
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
 
   // Permissions
   const isAdmin       = profile?.role === ROLES.ADMIN;
@@ -262,7 +265,9 @@ export default function TaskDetailDrawer({
         role="dialog"
         aria-modal="true"
         aria-label="Chi tiết nhiệm vụ"
-        className={`fixed top-0 right-0 z-[201] h-full w-full sm:w-[560px] lg:w-[620px] bg-white dark:bg-[#0f172a] shadow-2xl flex flex-col transition-transform duration-300 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed top-0 right-0 z-[201] h-full transition-all duration-300 ease-out bg-white dark:bg-[#0f172a] shadow-2xl flex flex-col ${
+          isOpen ? 'translate-x-0' : 'translate-x-full'
+        } ${focusMode ? 'w-full lg:w-[850px]' : 'w-full sm:w-[560px] lg:w-[620px]'}`}
       >
         {/* ── Header ── */}
         <div className="shrink-0 flex items-start gap-3 px-5 py-4 pt-[calc(1rem+env(safe-area-inset-top))] sm:pt-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111827]">
@@ -292,13 +297,26 @@ export default function TaskDetailDrawer({
               {task.title}
             </h2>
           </div>
-          <button
-            onClick={onClose}
-            className="shrink-0 w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            aria-label="Đóng"
-          >
-            <X size={16} />
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setFocusMode(!focusMode)}
+              className={`w-8 h-8 rounded-full border flex items-center justify-center transition-colors ${
+                focusMode 
+                  ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/30' 
+                  : 'border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+              title={focusMode ? 'Thoát chế độ tập trung' : 'Chế độ tập trung'}
+            >
+              {focusMode ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Đóng"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         {/* ── Action Bar ── */}
@@ -365,49 +383,52 @@ export default function TaskDetailDrawer({
         <div className="flex-1 overflow-y-auto p-5 space-y-6">
 
           {/* SECTION 1: Thông tin giao việc */}
-          <section>
-            <SectionHeader icon={User} label="Thông tin giao việc" />
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
-              <FieldRow label="Mã nhiệm vụ" value={
-                <span className="font-mono font-black text-slate-800 dark:text-white">{task.code || '—'}</span>
-              } />
-              <FieldRow label="Ngày giao" value={
-                <span className="flex items-center gap-1.5">
-                  <Calendar size={13} className="text-slate-400" />
-                  {fmtDate(task.assigned_date)}
-                </span>
-              } />
-              <FieldRow label="Người giao" value={
-                <span className="flex items-center gap-1.5 font-semibold">
-                  <User size={13} className="text-slate-400 shrink-0" />
-                  {task.assigner?.full_name || '—'}
-                </span>
-              } />
-              <FieldRow label="Người thực hiện chính" value={
-                <span className="flex items-center gap-1.5 font-semibold text-blue-700 dark:text-blue-400">
-                  <User size={13} className="shrink-0" />
-                  {task.assignee?.full_name || '—'}
-                </span>
-              } />
-              <div className="col-span-2">
-                <dt className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1.5">Người phối hợp</dt>
-                <dd>
-                  {collaboratorNames.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {collaboratorNames.map((name, i) => (
-                        <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[12px] font-semibold rounded-lg">
-                          <Users size={11} className="text-slate-400" />
-                          {name}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-[13px] text-slate-300 dark:text-slate-600 italic">Không có</span>
-                  )}
-                </dd>
-              </div>
-            </dl>
-          </section>
+          {/* SECTION 1: Thông tin giao việc (Ẩn trong Focus Mode) */}
+          {!focusMode && (
+            <section className="animate-in fade-in duration-300">
+              <SectionHeader icon={User} label="Thông tin giao việc" />
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
+                <FieldRow label="Mã nhiệm vụ" value={
+                  <span className="font-mono font-black text-slate-800 dark:text-white">{task.code || '—'}</span>
+                } />
+                <FieldRow label="Ngày giao" value={
+                  <span className="flex items-center gap-1.5">
+                    <Calendar size={13} className="text-slate-400" />
+                    {fmtDate(task.assigned_date)}
+                  </span>
+                } />
+                <FieldRow label="Người giao" value={
+                  <span className="flex items-center gap-1.5 font-semibold">
+                    <User size={13} className="text-slate-400 shrink-0" />
+                    {task.assigner?.full_name || '—'}
+                  </span>
+                } />
+                <FieldRow label="Người thực hiện chính" value={
+                  <span className="flex items-center gap-1.5 font-semibold text-blue-700 dark:text-blue-400">
+                    <User size={13} className="shrink-0" />
+                    {task.assignee?.full_name || '—'}
+                  </span>
+                } />
+                <div className="col-span-2">
+                  <dt className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1.5">Người phối hợp</dt>
+                  <dd>
+                    {collaboratorNames.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {collaboratorNames.map((name, i) => (
+                          <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[12px] font-semibold rounded-lg">
+                            <Users size={11} className="text-slate-400" />
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-[13px] text-slate-300 dark:text-slate-600 italic">Không có</span>
+                    )}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+          )}
 
           {/* SECTION 2: Phân loại & Nội dung */}
           <section>
@@ -438,15 +459,25 @@ export default function TaskDetailDrawer({
                 label="Nội dung yêu cầu"
                 value={task.description}
                 fullWidth
-                className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-3 border border-slate-100 dark:border-slate-800 text-[13px]"
+                className={`${focusMode ? 'text-[15px] sm:text-[16px] p-5 shadow-inner' : 'text-[13px] p-3'} bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800 transition-all`}
               />
               <FieldRow
                 label="Sản phẩm đầu ra"
                 value={task.expected_output}
                 fullWidth
-                className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-3 border border-slate-100 dark:border-slate-800 text-[13px]"
+                className={`${focusMode ? 'text-[15px] sm:text-[16px] p-5 shadow-inner' : 'text-[13px] p-3'} bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800 transition-all`}
               />
             </dl>
+          </section>
+
+          {/* SECTION 2.5: Danh sách việc cần làm (Checklist) */}
+          <section>
+            <SectionHeader icon={ListTodo} label="Danh sách việc cần làm (Sub-tasks)" />
+            <TaskChecklist 
+              taskId={task.id} 
+              onProgressUpdated={onRefresh} 
+              canEdit={canUpdateProgress && task.status !== 'completed'} 
+            />
           </section>
 
           {/* SECTION 3: Tiến độ & Thời hạn */}
@@ -543,41 +574,44 @@ export default function TaskDetailDrawer({
           )}
 
           {/* SECTION 5: Lịch sử điều phối & Cập nhật */}
-          <section>
-            <SectionHeader icon={History} label="Lịch sử điều phối & Cập nhật" />
-            <div className="space-y-4">
-              {loadingHistory ? (
-                <div className="flex items-center gap-2 text-slate-400 py-4 animate-pulse">
-                  <div className="w-4 h-4 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-[12px] font-medium">Đang tải lịch sử...</span>
-                </div>
-              ) : history.length > 0 ? (
-                <div className="relative border-l-2 border-slate-100 dark:border-slate-800 ml-2 pl-6 space-y-6 py-2">
-                  {history.map((h, i) => (
-                    <div key={i} className="relative group">
-                      <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 border-blue-500 bg-white dark:bg-[#0f172a] shadow-sm z-10 group-hover:scale-110 transition-transform" />
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200">{h.profiles?.full_name || 'Hệ thống'}</span>
-                          <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded uppercase tracking-tighter">
-                            {h.action}
+          {/* SECTION 5: Lịch sử điều phối (Ẩn trong Focus Mode) */}
+          {!focusMode && (
+            <section className="animate-in fade-in duration-300">
+              <SectionHeader icon={History} label="Lịch sử điều phối & Cập nhật" />
+              <div className="space-y-4">
+                {loadingHistory ? (
+                  <div className="flex items-center gap-2 text-slate-400 py-4 animate-pulse">
+                    <div className="w-4 h-4 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-[12px] font-medium">Đang tải lịch sử...</span>
+                  </div>
+                ) : history.length > 0 ? (
+                  <div className="relative border-l-2 border-slate-100 dark:border-slate-800 ml-2 pl-6 space-y-6 py-2">
+                    {history.map((h, i) => (
+                      <div key={i} className="relative group">
+                        <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 border-blue-500 bg-white dark:bg-[#0f172a] shadow-sm z-10 group-hover:scale-110 transition-transform" />
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200">{h.profiles?.full_name || 'Hệ thống'}</span>
+                            <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded uppercase tracking-tighter">
+                              {h.action}
+                            </span>
+                          </div>
+                          <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-relaxed italic">
+                            {h.details || 'Không có chi tiết'}
+                          </p>
+                          <span className="text-[10px] text-slate-300 dark:text-slate-600 mt-1 block font-medium">
+                            {fmtDateTime(h.created_at)}
                           </span>
                         </div>
-                        <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-relaxed italic">
-                          {h.details || 'Không có chi tiết'}
-                        </p>
-                        <span className="text-[10px] text-slate-300 dark:text-slate-600 mt-1 block font-medium">
-                          {fmtDateTime(h.created_at)}
-                        </span>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-[12px] text-slate-400 italic py-2">Chưa có lịch sửa cập nhật.</div>
-              )}
-            </div>
-          </section>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-[12px] text-slate-400 italic py-2">Chưa có lịch sửa cập nhật.</div>
+                )}
+              </div>
+            </section>
+          )}
 
           {/* Khoảng đệm cuối trang */}
           <div className="h-4" />

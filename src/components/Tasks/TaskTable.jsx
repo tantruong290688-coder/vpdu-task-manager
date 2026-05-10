@@ -1,4 +1,5 @@
-import { SlidersHorizontal, ArrowUp, ArrowDown, ArrowUpDown, Eye, CheckCircle, Star, Edit2, Trash2 } from 'lucide-react';
+import { SlidersHorizontal, ArrowUp, ArrowDown, ArrowUpDown, Eye, CheckCircle, Star, Edit2, Trash2, AlertTriangle, Flag as FlagIcon } from 'lucide-react';
+import { getTaskRisk } from '../../utils/taskAnalytics';
 import { StatusBadge, PriorityBadge, ScoreBadge } from './TaskBadges';
 import { canEditTask, canUpdateProgress, canEvaluate } from '../../lib/permissions';
 import { getDashboardEmptyState } from '../../lib/taskFilters';
@@ -36,8 +37,18 @@ export default function TaskTable({
         >
           <thead className="sticky top-0 z-10">
             <tr className="border-b-2 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 text-[10px] uppercase tracking-wider font-extrabold select-none">
+              <th className="sticky left-0 z-20 bg-slate-50 dark:bg-slate-900 p-3 w-[45px] min-w-[45px] border-r border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-center">
+                  <input 
+                    type="checkbox" 
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    checked={paginatedTasks.length > 0 && paginatedTasks.every(t => actions.selectedIds?.includes(t.id))}
+                    onChange={(e) => actions.onSelectAll(e.target.checked)}
+                  />
+                </div>
+              </th>
               {/* Sticky first column */}
-              <th className="sticky left-0 z-20 bg-slate-50 dark:bg-slate-900 p-3 w-[90px] min-w-[90px] border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)] cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('code')}>
+              <th className="sticky left-[45px] z-20 bg-slate-50 dark:bg-slate-900 p-3 w-[90px] min-w-[90px] border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)] cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('code')}>
                 <div className="flex items-center justify-between gap-1">A. Mã NV <SortIcon columnKey="code" /></div>
               </th>
               <th className="p-3 w-[100px] min-w-[100px] whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('assigned_date')}>
@@ -97,16 +108,50 @@ export default function TaskTable({
                       ? 'bg-blue-50 dark:bg-blue-900/10 ring-inset ring-1 ring-blue-200 dark:ring-blue-800/40'
                       : isOverdue
                       ? 'bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 font-semibold [&_span]:!text-red-900 dark:[&_span]:!text-red-100 [&_td]:!text-red-900 dark:[&_td]:!text-red-100'
+                      : actions.selectedIds?.includes(task.id)
+                      ? 'bg-blue-50/50 dark:bg-blue-900/5'
                       : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/30'}
                   `}
                   title="Click để xem chi tiết"
                 >
-                  <td className={`sticky left-0 z-[5] p-3 border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.06)] text-[12px] font-black font-mono whitespace-nowrap transition-colors ${
+                  <td className={`sticky left-0 z-[5] p-3 border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.06)] transition-colors ${
+                    isSelected ? 'bg-blue-50 dark:bg-blue-900/10' :
+                    isOverdue ? 'bg-red-100 dark:bg-red-900/30 group-hover:bg-red-200 dark:group-hover:bg-red-900/50' :
+                    actions.selectedIds?.includes(task.id) ? 'bg-blue-50 dark:bg-blue-900/10' :
+                    'bg-white dark:bg-[#111827] group-hover:bg-slate-50/80 dark:group-hover:bg-slate-800/30'
+                  }`} onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-center">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        checked={actions.selectedIds?.includes(task.id)}
+                        onChange={() => actions.onSelectToggle(task.id)}
+                      />
+                    </div>
+                  </td>
+                  <td className={`sticky left-[45px] z-[5] p-3 border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.06)] text-[12px] font-black font-mono whitespace-nowrap transition-colors ${
                     isSelected ? 'bg-blue-50 dark:bg-blue-900/10 text-slate-700 dark:text-slate-200' :
                     isOverdue ? 'bg-red-100 dark:bg-red-900/30 group-hover:bg-red-200 dark:group-hover:bg-red-900/50 text-red-900 dark:text-red-100' :
+                    actions.selectedIds?.includes(task.id) ? 'bg-blue-50 dark:bg-blue-900/10 text-slate-700 dark:text-slate-200' :
                     'bg-white dark:bg-[#111827] group-hover:bg-slate-50/80 dark:group-hover:bg-slate-800/30 text-slate-700 dark:text-slate-200'
                   }`}>
-                    {task.code || 'NV-000'}
+                    <div className="flex items-center gap-2">
+                      {task.code || 'NV-000'}
+                      {(() => {
+                        const risk = getTaskRisk(task);
+                        if (risk.isRisk) {
+                          return (
+                            <div className="relative group/risk" title={risk.reason}>
+                              <FlagIcon size={12} className="text-red-500 fill-red-500 animate-pulse" />
+                              <div className="absolute bottom-full left-0 mb-2 hidden group-hover/risk:block bg-slate-900 text-white text-[10px] p-2 rounded-lg shadow-xl whitespace-nowrap z-[100]">
+                                {risk.reason}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
                   </td>
                   <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
                     {fmtDate(task.assigned_date)}

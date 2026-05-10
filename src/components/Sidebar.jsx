@@ -38,14 +38,18 @@ export default function Sidebar({ isOpen, onClose }) {
     const channel = supabase.channel(`sidebar_notif_${user.id}`);
     sidebarNotifRef.current = channel;
     
-    channel
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
-        () => { if (mounted) setNotifUnread(prev => prev + 1); }
-      )
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
-        () => { fetch(); }
-      )
-      .subscribe();
+    try {
+      channel
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+          () => { if (mounted) setNotifUnread(prev => prev + 1); }
+        )
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+          () => { fetch(); }
+        )
+        .subscribe();
+    } catch (err) {
+      console.warn('[Realtime] Sidebar notification error (safe to ignore):', err);
+    }
 
     return () => { 
       mounted = false; 

@@ -89,35 +89,37 @@ export function useNotifications({ filter = 'all', page = 1, limit = 20 } = {}) 
     // Cleanup old channel
     if (channelRef.current) supabase.removeChannel(channelRef.current);
 
-    const uniqueId = Math.random().toString(36).substring(7);
-    const channel = supabase
-      .channel(`notifications_hook_${user.id}_${uniqueId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications' }, // Realtime doesn't support complex filters like OR, so we filter in callback
-        (payload) => {
-          if (payload.new.recipient_id === user.id || payload.new.user_id === user.id) {
-            setNotifications((prev) => [payload.new, ...prev]);
-            setUnreadCount((prev) => prev + 1);
-            setTotal((prev) => prev + 1);
+    try {
+      const channel = supabase
+        .channel(`notifications_hook_${user.id}_${uniqueId}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'notifications' }, // Realtime doesn't support complex filters like OR, so we filter in callback
+          (payload) => {
+            if (payload.new.recipient_id === user.id || payload.new.user_id === user.id) {
+              setNotifications((prev) => [payload.new, ...prev]);
+              setUnreadCount((prev) => prev + 1);
+              setTotal((prev) => prev + 1);
+            }
           }
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'notifications' },
-        (payload) => {
-          if (payload.new.recipient_id === user.id || payload.new.user_id === user.id) {
-            setNotifications((prev) =>
-              prev.map((n) => n.id === payload.new.id ? { ...n, ...payload.new } : n)
-            );
-            fetchUnreadCount();
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'notifications' },
+          (payload) => {
+            if (payload.new.recipient_id === user.id || payload.new.user_id === user.id) {
+              setNotifications((prev) =>
+                prev.map((n) => n.id === payload.new.id ? { ...n, ...payload.new } : n)
+              );
+              fetchUnreadCount();
+            }
           }
-        }
-      )
-      .subscribe();
-
-    channelRef.current = channel;
+        )
+        .subscribe();
+      channelRef.current = channel;
+    } catch (err) {
+      console.warn('[Realtime] Notifications hook subscription error:', err);
+    }
 
     return () => {
       if (channelRef.current) {

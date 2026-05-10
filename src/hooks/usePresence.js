@@ -23,24 +23,28 @@ export function usePresence() {
 
     channelRef.current = channel;
 
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        // sync logic
-      })
-      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        updateOnlineStatus(key, true);
-      })
-      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        updateOnlineStatus(key, false);
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.track({
-            online_at: new Date().toISOString(),
-            full_name: profile.full_name,
-          });
-        }
-      });
+    try {
+      channel
+        .on('presence', { event: 'sync' }, () => {
+          // sync logic
+        })
+        .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+          updateOnlineStatus(key, true);
+        })
+        .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+          updateOnlineStatus(key, false);
+        })
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            await channel.track({
+              online_at: new Date().toISOString(),
+              full_name: profile.full_name,
+            });
+          }
+        });
+    } catch (err) {
+      console.warn('[Realtime] Presence subscription error (safe to ignore if already subscribed):', err);
+    }
 
     return () => {
       if (channelRef.current) {

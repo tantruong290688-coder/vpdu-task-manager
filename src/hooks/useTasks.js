@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { getDashboardFilter } from '../lib/taskFilters';
@@ -149,28 +149,38 @@ export function useTasks({ filters, sortConfig, currentPage, filterParam, search
   });
 
   // ── Supabase Realtime: tự động invalidate cache khi bảng tasks thay đổi ────
+  const tasksChannelRef = useRef(null);
+  const isTasksSubscribedRef = useRef(false);
+
   useEffect(() => {
-    const channel = supabase
-      .channel('tasks-table-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'tasks' },
-        (payload) => {
-          console.log('[Realtime] Tasks changed:', payload.eventType);
-          // Vô hiệu hóa tất cả queries có prefix 'tasks' để refetch
-          queryClient.invalidateQueries({ queryKey: ['tasks'] });
-          // Đồng thời cập nhật dashboard stats nếu đang cache
-          queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('[Realtime] Đang lắng nghe thay đổi bảng tasks...');
-        }
-      });
+    if (isTasksSubscribedRef.current) return;
+    isTasksSubscribedRef.current = true;
+
+    const channel = supabase.channel('tasks-table-changes');
+    tasksChannelRef.current = channel;
+
+    try {
+      channel
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'tasks' },
+          (payload) => {
+            console.log('[Realtime] Tasks changed:', payload.eventType);
+            queryClient.invalidateQueries({ queryKey: ['tasks'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+          }
+        )
+        .subscribe();
+    } catch (err) {
+      console.warn('[Realtime] Tasks subscription error:', err);
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      if (tasksChannelRef.current) {
+        supabase.removeChannel(tasksChannelRef.current);
+        tasksChannelRef.current = null;
+        isTasksSubscribedRef.current = false;
+      }
     };
   }, [queryClient]);
 

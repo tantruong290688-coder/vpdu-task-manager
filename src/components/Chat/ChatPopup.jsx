@@ -52,47 +52,79 @@ export default function ChatPopup() {
   }, [location.search, navigate, closeChat]);
 
   // Real-time for private messages
+  const privateChatRef = useRef(null);
+  const isPrivateSubscribedRef = useRef(false);
+
   useEffect(() => {
-    if (!user || !isChatOpen) return;
+    if (!user || !isChatOpen || isPrivateSubscribedRef.current) return;
+    isPrivateSubscribedRef.current = true;
 
-    const channel = supabase.channel('chat:private')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
-        const msg = payload.new;
-        if (payload.eventType === 'INSERT') {
-          if (msg.sender_id === user.id || msg.receiver_id === user.id) {
-            setMessages(prev => [...prev.filter(m => m.id !== msg.id), msg]);
-            if (msg.receiver_id === user.id && msg.sender_id === activeChatUserId) {
-              markAsRead(msg.sender_id);
-            } else if (msg.receiver_id === user.id) {
-              fetchUnreadCount();
+    try {
+      const channel = supabase.channel('chat:private')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
+          const msg = payload.new;
+          if (payload.eventType === 'INSERT') {
+            if (msg.sender_id === user.id || msg.receiver_id === user.id) {
+              setMessages(prev => [...prev.filter(m => m.id !== msg.id), msg]);
+              if (msg.receiver_id === user.id && msg.sender_id === activeChatUserId) {
+                markAsRead(msg.sender_id);
+              } else if (msg.receiver_id === user.id) {
+                fetchUnreadCount();
+              }
             }
+          } else if (payload.eventType === 'UPDATE') {
+            setMessages(prev => prev.map(m => m.id === msg.id ? msg : m));
           }
-        } else if (payload.eventType === 'UPDATE') {
-          setMessages(prev => prev.map(m => m.id === msg.id ? msg : m));
-        }
-      })
-      .subscribe();
+        })
+        .subscribe();
+      
+      privateChatRef.current = channel;
+    } catch (err) {
+      console.warn('[Chat] Private channel error:', err);
+    }
 
-    return () => supabase.removeChannel(channel);
-  }, [user, isChatOpen, activeChatUserId]);
+    return () => {
+      if (privateChatRef.current) {
+        supabase.removeChannel(privateChatRef.current);
+        privateChatRef.current = null;
+        isPrivateSubscribedRef.current = false;
+      }
+    };
+  }, [user?.id, isChatOpen, activeChatUserId]);
 
   // Real-time for room messages
+  const roomChatRef = useRef(null);
+  const isRoomSubscribedRef = useRef(false);
+
   useEffect(() => {
-    if (!user || !isChatOpen || !activeRoomId) return;
+    if (!user || !isChatOpen || !activeRoomId || isRoomSubscribedRef.current) return;
+    isRoomSubscribedRef.current = true;
 
-    const channel = supabase.channel(`chat:room:${activeRoomId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages', filter: `room_id=eq.${activeRoomId}` }, (payload) => {
-        const msg = payload.new;
-        if (payload.eventType === 'INSERT') {
-          setRoomMessages(prev => [...prev.filter(m => m.id !== msg.id), msg]);
-        } else if (payload.eventType === 'UPDATE') {
-          setRoomMessages(prev => prev.map(m => m.id === msg.id ? msg : m));
-        }
-      })
-      .subscribe();
+    try {
+      const channel = supabase.channel(`chat:room:${activeRoomId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages', filter: `room_id=eq.${activeRoomId}` }, (payload) => {
+          const msg = payload.new;
+          if (payload.eventType === 'INSERT') {
+            setRoomMessages(prev => [...prev.filter(m => m.id !== msg.id), msg]);
+          } else if (payload.eventType === 'UPDATE') {
+            setRoomMessages(prev => prev.map(m => m.id === msg.id ? msg : m));
+          }
+        })
+        .subscribe();
+      
+      roomChatRef.current = channel;
+    } catch (err) {
+      console.warn('[Chat] Room channel error:', err);
+    }
 
-    return () => supabase.removeChannel(channel);
-  }, [user, isChatOpen, activeRoomId]);
+    return () => {
+      if (roomChatRef.current) {
+        supabase.removeChannel(roomChatRef.current);
+        roomChatRef.current = null;
+        isRoomSubscribedRef.current = false;
+      }
+    };
+  }, [user?.id, isChatOpen, activeRoomId]);
 
   // Mark as read when active chat changes
   useEffect(() => {

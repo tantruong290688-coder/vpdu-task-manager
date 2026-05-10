@@ -45,7 +45,7 @@ const EMPTY_FILTERS = {
   completedDateTo: ''
 };
 
-const ROWS_PER_PAGE = 20;
+const ROWS_PER_PAGE = 10;
 
 // ── Component ─────────────────────────────────────────────────────────────────
 

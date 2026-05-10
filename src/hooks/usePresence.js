@@ -16,30 +16,30 @@ export function usePresence() {
       },
     });
 
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const newState = channel.presenceState();
-        // console.log('sync', newState);
-      })
-      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        // console.log('join', key, newPresences);
-        updateOnlineStatus(key, true);
-      })
-      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        // console.log('leave', key, leftPresences);
-        updateOnlineStatus(key, false);
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.track({
-            online_at: new Date().toISOString(),
-            full_name: profile.full_name,
-          });
-        }
-      });
+    // Chỉ thiết lập nếu kênh chưa được subscribe
+    if (channel.state === 'closed' || channel.state === 'joined') {
+      channel
+        .on('presence', { event: 'sync' }, () => {
+          // const newState = channel.presenceState();
+        })
+        .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+          updateOnlineStatus(key, true);
+        })
+        .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+          updateOnlineStatus(key, false);
+        })
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            await channel.track({
+              online_at: new Date().toISOString(),
+              full_name: profile.full_name,
+            });
+          }
+        });
+    }
 
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [user?.id, profile?.id]);
 

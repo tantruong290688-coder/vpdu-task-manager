@@ -5,10 +5,10 @@ import { filterTasksLocal } from '../lib/taskFilters';
 
 // ── Hàm fetch dashboard stats qua RPC ────────────────────────────────────────
 async function fetchDashboardStats(profileId, role) {
-  const isAdmin = role === 'admin';
-  const targetId = isAdmin ? null : profileId;
+  const isFullView = role === 'admin' || role === 'manager';
+  const targetId = isFullView ? null : profileId;
 
-  // Ưu tiên gọi RPC để tính toán tại phía Database
+  // 1. Ưu tiên gọi RPC
   try {
     const { data: rpcData, error: rpcError } = await supabase.rpc('get_dashboard_stats', {
       p_user_id: targetId
@@ -23,7 +23,6 @@ async function fetchDashboardStats(profileId, role) {
       const completionRate = total > 0 ? ((completed / total) * 100).toFixed(1) : '0';
       const onTimeRate = completed > 0 ? ((completedOnTime / completed) * 100).toFixed(1) : '0';
 
-      // Dữ liệu biểu đồ tròn
       const pieData = [
         { name: 'Đang thực hiện', value: inProgress, color: '#3b82f6' },
         { name: 'Hoàn thành',     value: completed,  color: '#22c55e' },
@@ -31,7 +30,6 @@ async function fetchDashboardStats(profileId, role) {
         { name: 'Quá hạn',       value: overdue,    color: '#ef4444' },
       ].filter(d => d.value > 0);
 
-      // Dữ liệu biểu đồ cột
       const barData = Object.keys(workAreas || {}).map(key => ({ name: key, value: workAreas[key] }));
 
       return {
@@ -40,22 +38,30 @@ async function fetchDashboardStats(profileId, role) {
         barData: barData.length > 0 ? barData : [{ name: 'Chưa có', value: 0 }],
       };
     }
-
-    console.warn('[Dashboard] RPC chưa sẵn sàng, dùng fallback JS.', rpcError);
+    console.warn('[Dashboard] RPC error, using fallback:', rpcError);
   } catch (err) {
-    console.warn('[Dashboard] Lỗi gọi RPC:', err);
+    console.warn('[Dashboard] RPC failed:', err);
   }
 
-  // ── Fallback: tính toán bằng JS nếu RPC chưa khả dụng ──────────────────────
+  // 2. Fallback: JS calculation (Cải tiến để đồng bộ với RPC)
   const { data: tasks, error } = await supabase
     .from('tasks')
-    .select('status, due_date, completed_at, evaluation_score, work_area, assignee_id');
+    .select(`
+      status, due_date, completed_at, evaluation_score, work_area, 
+      assignee_id, assigned_by, created_by,
+      task_collaborators(user_id)
+    `);
 
   if (error) throw error;
 
-  const filteredTasks = !isAdmin && targetId 
-    ? tasks.filter(t => t.assignee_id === targetId)
-    : tasks;
+  const filteredTasks = isFullView || !targetId
+    ? tasks
+    : tasks.filter(t => 
+        t.assignee_id === targetId || 
+        t.assigned_by === targetId || 
+        t.created_by === targetId ||
+        (t.task_collaborators || []).some(c => c.user_id === targetId)
+      );
 
   const total = filteredTasks.length;
   const notStarted = filterTasksLocal(filteredTasks, 'pending').length;
@@ -103,7 +109,8 @@ export function useDashboardStats(profileId, role) {
   const query = useQuery({
     queryKey: ['dashboard-stats', profileId, role],
     queryFn: () => fetchDashboardStats(profileId, role),
-    staleTime: 1 * 60 * 1000, 
+    staleTime: 0, 
+    refetchOnWindowFocus: true,
     enabled: !!profileId,
     placeholderData: {
       stats: {
@@ -125,6 +132,7 @@ export function useDashboardStats(profileId, role) {
         { event: '*', schema: 'public', table: 'tasks' },
         () => {
           // Invalidate để refetch stats mới nhất
+          queryClient.invalidateQueries({ queryKey: ['tasks'] });
           queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
         }
       )

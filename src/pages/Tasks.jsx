@@ -141,7 +141,8 @@ export default function Tasks() {
         actorId: profile.id, actorName: profile.full_name, actorRole: profile.role,
         action: 'DELETE_TASK', note: `Xóa nhiệm vụ ID: ${id}`
       });
-      queryClient.invalidateQueries(['tasks']);
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setSelectedTaskIds(prev => prev.filter(tid => tid !== id));
     }
   };
@@ -165,6 +166,7 @@ export default function Tasks() {
       });
       toast.success('Cập nhật trạng thái thành công');
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
     } catch (err) {
       toast.error('Lỗi khi cập nhật trạng thái: ' + err.message);
     }
@@ -203,7 +205,8 @@ export default function Tasks() {
       toast.error('Lỗi khi cập nhật hàng loạt: ' + error.message);
     } else {
       toast.success(`Đã cập nhật ${selectedTaskIds.length} nhiệm vụ`);
-      queryClient.invalidateQueries(['tasks']);
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setSelectedTaskIds([]);
     }
   };
@@ -220,7 +223,8 @@ export default function Tasks() {
       toast.error('Lỗi khi xóa hàng loạt: ' + error.message);
     } else {
       toast.success(`Đã xóa ${selectedTaskIds.length} nhiệm vụ`);
-      queryClient.invalidateQueries(['tasks']);
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setSelectedTaskIds([]);
     }
   };
@@ -479,7 +483,11 @@ export default function Tasks() {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         initialData={editingTask}
-        onTaskAdded={() => { refetch(); setSelectedTaskIds([]); }}
+        onTaskAdded={() => { 
+          queryClient.invalidateQueries({ queryKey: ['tasks'] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+          setSelectedTaskIds([]); 
+        }}
       />
 
       <AdvancedFilter
@@ -493,7 +501,11 @@ export default function Tasks() {
       <EvaluationModal
         task={evalModalTask}
         onClose={() => setEvalModalTask(null)}
-        onSuccess={() => { refetch(); setEvalModalTask(null); }}
+        onSuccess={() => { 
+          queryClient.invalidateQueries({ queryKey: ['tasks'] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+          setEvalModalTask(null); 
+        }}
       />
 
       <TaskDetailDrawer
@@ -507,12 +519,18 @@ export default function Tasks() {
           setIsDrawerOpen(false);
           setTimeout(() => { setEditingTask(task); setIsModalOpen(true); }, 150);
         }}
-        onDelete={() => queryClient.invalidateQueries({ queryKey: ['tasks'] })}
+        onDelete={() => {
+          queryClient.invalidateQueries({ queryKey: ['tasks'] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+        }}
         onEvaluate={(task) => {
           setIsDrawerOpen(false);
           setTimeout(() => setEvalModalTask(task), 150);
         }}
-        onRefresh={() => refetch()}
+        onRefresh={() => {
+          queryClient.invalidateQueries({ queryKey: ['tasks'] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+        }}
         profile={profile}
       />
     </div>

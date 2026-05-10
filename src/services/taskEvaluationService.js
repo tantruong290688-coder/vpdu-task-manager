@@ -69,8 +69,10 @@ export const taskEvaluationService = {
   /**
    * 3. Admin chốt điểm cuối cùng hoặc điều chỉnh điểm đã chốt
    */
-  async finalizeByAdmin({ evaluationId, score, comment, adjustmentReason, progressLevel, progressScore, finalizedBy, oldScore, taskId, adjustedByName }) {
+  async finalizeByAdmin({ evaluationId, userId, score, comment, adjustmentReason, progressLevel, progressScore, finalizedBy, oldScore, taskId, adjustedByName }) {
     const payload = {
+      task_id: taskId,
+      evaluated_user_id: userId,
       final_score: score,
       final_comment: comment,
       final_adjustment_reason: adjustmentReason,
@@ -82,12 +84,16 @@ export const taskEvaluationService = {
       updated_at: new Date().toISOString()
     };
 
-    const { data, error } = await supabase
-      .from('task_evaluations')
-      .update(payload)
-      .eq('id', evaluationId)
-      .select()
-      .single();
+    // Nếu có evaluationId thì update theo Id cho chắc chắn, 
+    // Nếu chưa có thì upsert dựa trên task_id + evaluated_user_id
+    let query;
+    if (evaluationId) {
+      query = supabase.from('task_evaluations').update(payload).eq('id', evaluationId);
+    } else {
+      query = supabase.from('task_evaluations').upsert(payload, { onConflict: 'task_id,evaluated_user_id' });
+    }
+
+    const { data, error } = await query.select().single();
 
     if (error) throw error;
 
@@ -95,7 +101,7 @@ export const taskEvaluationService = {
     if (oldScore !== undefined && oldScore !== null && Number(oldScore) !== Number(score)) {
       await supabase.from('evaluation_adjustment_logs').insert({
         task_id: taskId || data.task_id,
-        evaluation_id: evaluationId,
+        evaluation_id: data.id,
         old_score: oldScore,
         new_score: score,
         reason: adjustmentReason || 'Điều chỉnh điểm sau khi chốt',
@@ -103,9 +109,6 @@ export const taskEvaluationService = {
         adjusted_by: finalizedBy,
         adjusted_by_name: adjustedByName
       });
-
-      // Ghi thêm vào nhật ký hệ thống (writeLog/task_logs nếu có)
-      // Tùy theo cấu trúc dự án, ở đây ta ưu tiên lưu vào bảng log chuyên dụng vừa tạo
     }
 
     return data;

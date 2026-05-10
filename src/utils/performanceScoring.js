@@ -121,35 +121,57 @@ export function calculateStaffPerformance(primaryTasks, collaboratorTasks, evalu
     ? primaryResults.reduce((a, b) => a + b.total, 0) / primaryResults.length 
     : 0;
 
+  // 2. Điểm trung bình nhiệm vụ phối hợp (30%)
+  const collabResults = validCollab.map(t => calculateTaskScore(t, getEval(t.id)));
+  const avgCollabScore = collabResults.length > 0
+    ? collabResults.reduce((a, b) => a + b.total, 0) / collabResults.length
+    : 0;
+
+  // 3. Điểm khối lượng trung bình (Để hiển thị tham khảo)
+  const avgWorkload = primaryResults.length > 0
+    ? primaryResults.reduce((a, b) => a + b.breakdown.workload, 0) / primaryResults.length
+    : 0;
+
+  // 4. Điểm chất lượng trung bình (Để hiển thị tham khảo)
+  const avgQuality = primaryResults.length > 0
+    ? primaryResults.reduce((a, b) => a + b.breakdown.quality, 0) / primaryResults.length
+    : 0;
+
   // Điểm tiến độ trung bình (để vẽ Radar)
   const avgProgress = primaryResults.length > 0
     ? primaryResults.reduce((a, b) => a + b.breakdown.progress, 0) / primaryResults.length
     : 0;
 
-  // 2. Điểm phối hợp (10%)
-  const collabScores = validCollab.map(t => calculateTaskScore(t, getEval(t.id)).total * 0.5);
-  const avgCollabScore = collabScores.length > 0
-    ? collabScores.reduce((a, b) => a + b, 0) / collabScores.length
-    : 0;
+  // TỔNG ĐIỂM HIỆU SUẤT CÁN BỘ (Theo trọng số 70/30 hoặc trung bình cộng)
+  // Công thức: (TB Chủ trì × 70%) + (TB Phối hợp × 30%)
+  let finalStaffScore = 0;
+  if (validPrimary.length > 0 && validCollab.length > 0) {
+    finalStaffScore = (avgPrimaryScore * 0.70) + (avgCollabScore * 0.30);
+  } else if (validPrimary.length > 0) {
+    finalStaffScore = avgPrimaryScore;
+  } else if (validCollab.length > 0) {
+    finalStaffScore = avgCollabScore;
+  }
 
-  // 3. Điểm khối lượng (20%)
-  // Mốc chuẩn: 5 nhiệm vụ chính/tháng = 100 điểm khối lượng
-  const workloadVolume = validPrimary.length + (validCollab.length * 0.3);
-  const workloadScore = Math.min(100, (workloadVolume / 5) * 100);
-
-  // TỔNG ĐIỂM HIỆU SUẤT CÁN BỘ
-  let finalStaffScore = (avgPrimaryScore * 0.70) + (avgCollabScore * 0.10) + (workloadScore * 0.20);
   finalStaffScore = Math.max(0, Math.min(100, finalStaffScore));
+
+  // Tỷ lệ hoàn thành trung bình (để tie-break)
+  const avgCompletion = primaryResults.length > 0
+    ? primaryResults.reduce((a, b) => a + (b.breakdown.completion || 0), 0) / primaryResults.length
+    : 0;
 
   return {
     finalScore: Math.round(finalStaffScore),
     avgPrimary: Math.round(avgPrimaryScore),
     avgCollab: Math.round(avgCollabScore),
     avgProgress: Math.round(avgProgress),
-    workload: Math.round(workloadScore),
+    avgWorkload: Math.round(avgWorkload),
+    avgQuality: Math.round(avgQuality),
+    avgCompletion: Math.round(avgCompletion),
     taskCount: {
       primary: validPrimary.length,
-      collab: validCollab.length
+      collab: validCollab.length,
+      total: validPrimary.length + validCollab.length
     },
     isInsufficient: validPrimary.length < 2
   };

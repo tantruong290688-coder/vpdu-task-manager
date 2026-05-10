@@ -167,7 +167,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
   };
 
   // 3. Admin chốt điểm
-  const handleAdminFinalize = async (evalId, proposedScore, selectedProgressLevel, currentFinalScore, newScore, newComment, newReason) => {
+  const handleAdminFinalize = async (evalId, userId, proposedScore, selectedProgressLevel, currentFinalScore, newScore, newComment, newReason) => {
     const scoreVal = parseInt(newScore || finalScore);
     if (isNaN(scoreVal)) {
       toast.error('Vui lòng nhập điểm cuối cùng');
@@ -177,7 +177,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
     const commentVal = newComment !== undefined ? newComment : finalComment;
     const reasonVal = newReason !== undefined ? newReason : adjReason;
 
-    if (scoreVal !== proposedScore && !reasonVal) {
+    if (proposedScore > 0 && scoreVal !== proposedScore && !reasonVal) {
       toast.error('Vui lòng nhập lý do điều chỉnh điểm');
       return;
     }
@@ -186,8 +186,9 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
 
     setLoading(true);
     try {
-      await taskEvaluationService.finalizeByAdmin({
+      const result = await taskEvaluationService.finalizeByAdmin({
         evaluationId: evalId,
+        userId: userId,
         score: scoreVal,
         comment: commentVal,
         adjustmentReason: reasonVal,
@@ -199,9 +200,10 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         adjustedByName: profile.full_name
       });
 
+      const actualEvalId = evalId || result.id;
+
       // Nếu là đánh giá người thực hiện chính, cập nhật luôn vào bảng tasks để tương thích cũ
-      const ev = evaluations.find(e => e.id === evalId);
-      if (ev?.evaluated_user_id === task.assignee_id) {
+      if (userId === task.assignee_id) {
         const now = new Date();
         const currentPeriod = `${now.getFullYear()}-M${String(now.getMonth() + 1).padStart(2, '0')}`;
         
@@ -852,7 +854,7 @@ function AdminRow({ user, roleLabel, roleCls, evaluation, onFinalize, loading })
                   />
                   <div className="flex gap-2">
                      <button 
-                       onClick={() => onFinalize(evaluation.id, proposedScore, progressLevel, evaluation?.final_score, score, comment, reason).then(() => setIsEditing(false))}
+                       onClick={() => onFinalize(evaluation?.id, user.id, proposedScore, progressLevel, evaluation?.final_score, score, comment, reason).then(() => setIsEditing(false))}
                        className="flex-1 py-2 bg-emerald-600 text-white rounded-xl text-[11px] font-black"
                      >Lưu</button>
                      <button 

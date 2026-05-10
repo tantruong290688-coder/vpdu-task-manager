@@ -65,16 +65,17 @@ export default function StaffPerformance() {
   const handleExportExcel = () => {
     if (!filteredData.length) return;
 
-    const exportData = filteredData.map((p, idx) => ({
-      'STT': idx + 1,
+    const exportData = filteredData.map((p) => ({
+      'Hạng': p.rank,
       'Họ và tên': p.full_name,
       'Chức vụ/Vai trò': p.role,
-      'Nhiệm vụ chủ trì': p.stats.taskCount.primary,
-      'Nhiệm vụ phối hợp': p.stats.taskCount.collab,
-      'Điểm chất lượng TB': p.stats.avgPrimary,
-      'Điểm khối lượng': p.stats.workload,
+      'Số nhiệm vụ chủ trì': p.stats.taskCount.primary,
+      'Số nhiệm vụ phối hợp': p.stats.taskCount.collab,
+      'Điểm TB chủ trì (70%)': p.stats.avgPrimary,
+      'Điểm TB phối hợp (30%)': p.stats.avgCollab,
+      'Điểm khối lượng (TB)': p.stats.avgWorkload,
       'Tổng điểm hiệu suất': p.displayScore,
-      'Gợi ý xếp loại': getPerformanceRank(p.displayScore).label,
+      'Xếp loại': getPerformanceRank(p.displayScore).label,
       'Nhận xét hệ thống': generateAutoComment(p.stats),
       'Nhận xét lãnh đạo': p.officialReview?.leader_comment || ''
     }));
@@ -261,17 +262,18 @@ export default function StaffPerformance() {
 
                <div className="overflow-x-auto">
                  <table className="w-full text-left">
-                   <thead>
-                      <tr className="text-[10px] uppercase font-black text-slate-400 tracking-widest bg-slate-50/50 dark:bg-slate-900/30">
-                         <th className="px-8 py-4 w-16">Hạng</th>
-                         <th className="px-4 py-4">Họ và tên</th>
-                         <th className="px-4 py-4 text-center">Chủ trì</th>
-                         <th className="px-4 py-4 text-center">Phối hợp</th>
-                         <th className="px-4 py-4 text-center">Khối lượng</th>
-                         <th className="px-4 py-4 text-center">Chất lượng</th>
-                         <th className="px-8 py-4 text-right">Tổng điểm</th>
-                      </tr>
-                   </thead>
+                    <thead>
+                       <tr className="text-[10px] uppercase font-black text-slate-400 tracking-widest bg-slate-50/50 dark:bg-slate-900/30">
+                          <th className="px-8 py-4 w-16">Hạng</th>
+                          <th className="px-4 py-4">Cán bộ</th>
+                          <th className="px-4 py-4 text-center">Chủ trì</th>
+                          <th className="px-4 py-4 text-center">Phối hợp</th>
+                          <th className="px-4 py-4 text-center">TB Chủ trì</th>
+                          <th className="px-4 py-4 text-center">TB Phối hợp</th>
+                          <th className="px-4 py-4 text-center">Khối lượng</th>
+                          <th className="px-8 py-4 text-right">Tổng điểm</th>
+                       </tr>
+                    </thead>
                    <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                       {filteredData.map((staff, idx) => {
                         const rank = getPerformanceRank(staff.displayScore);
@@ -284,13 +286,18 @@ export default function StaffPerformance() {
                             className="group cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors"
                           >
                             <td className="px-8 py-5">
-                               <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-[13px] font-black ${
-                                 idx === 0 ? 'bg-amber-100 text-amber-600' : 
-                                 idx === 1 ? 'bg-slate-100 text-slate-600' :
-                                 idx === 2 ? 'bg-orange-100 text-orange-600' : 'bg-slate-50 text-slate-400'
-                               }`}>
-                                 {idx + 1}
-                               </span>
+                                <div className="flex items-center gap-3">
+                                   <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-[13px] font-black ${
+                                     staff.rank === 1 ? 'bg-amber-100 text-amber-600' : 
+                                     staff.rank === 2 ? 'bg-slate-100 text-slate-600' :
+                                     staff.rank === 3 ? 'bg-orange-100 text-orange-600' : 'bg-slate-50 text-slate-400'
+                                   }`}>
+                                     {staff.rank}
+                                   </span>
+                                   {staff.rank === 1 && (
+                                     <span className="bg-amber-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md animate-bounce uppercase tracking-tighter">Hạng 1</span>
+                                   )}
+                                </div>
                             </td>
                             <td className="px-4 py-5">
                                <div className="flex flex-col">
@@ -315,38 +322,41 @@ export default function StaffPerformance() {
                                  {staff.stats.taskCount.collab}
                                </span>
                             </td>
-                            <td className="px-4 py-5 text-center">
-                               <div className="flex flex-col items-center gap-1">
-                                 <span className="text-[13px] font-black text-slate-700 dark:text-slate-300">{staff.stats.workload}</span>
-                                 <div className="w-10 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                    <div className="bg-blue-500 h-full" style={{ width: `${staff.stats.workload}%` }} />
-                                 </div>
-                               </div>
-                            </td>
-                            <td className="px-4 py-5 text-center">
-                               <div className="flex flex-col items-center">
-                                 <span className="text-[13px] font-black text-indigo-600 dark:text-indigo-400">
-                                   {staff.stats.avgPrimary}
-                                 </span>
-                               </div>
-                            </td>
-                            <td className="px-8 py-5 text-right">
-                               <div className="flex items-center justify-end gap-3">
-                                  <div className="text-right">
-                                     <div className={`text-[18px] font-black ${
-                                       rank.color === 'green' ? 'text-emerald-600' :
-                                       rank.color === 'blue' ? 'text-blue-600' :
-                                       rank.color === 'orange' ? 'text-amber-600' : 'text-rose-600'
-                                     }`}>
-                                       {staff.displayScore}
-                                     </div>
-                                     <div className="text-[9px] font-black uppercase tracking-tighter text-slate-400">
-                                       {rank.label.split(' ')[0]} {rank.label.split(' ')[1]}
-                                     </div>
+                             <td className="px-4 py-5 text-center">
+                                <span className={`text-[13px] font-black ${staff.stats.avgPrimary >= 80 ? 'text-indigo-600' : 'text-slate-600'}`}>
+                                  {staff.stats.avgPrimary}
+                                </span>
+                             </td>
+                             <td className="px-4 py-5 text-center">
+                                <span className="text-[13px] font-bold text-slate-500">
+                                  {staff.stats.avgCollab}
+                                </span>
+                             </td>
+                             <td className="px-4 py-5 text-center">
+                                <div className="flex flex-col items-center gap-1">
+                                  <span className="text-[13px] font-black text-slate-700 dark:text-slate-300">{staff.stats.avgWorkload}</span>
+                                  <div className="w-10 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                     <div className="bg-blue-500 h-full" style={{ width: `${staff.stats.avgWorkload}%` }} />
                                   </div>
-                                  <ChevronRight size={16} className="text-slate-300 group-hover:text-indigo-500 transition-colors" />
-                               </div>
-                            </td>
+                                </div>
+                             </td>
+                             <td className="px-8 py-5 text-right">
+                                <div className="flex items-center justify-end gap-3">
+                                   <div className="text-right">
+                                      <div className={`text-[18px] font-black ${
+                                        rank.color === 'green' ? 'text-emerald-600' :
+                                        rank.color === 'blue' ? 'text-blue-600' :
+                                        rank.color === 'orange' ? 'text-amber-600' : 'text-rose-600'
+                                      }`}>
+                                        {staff.displayScore}
+                                      </div>
+                                      <div className="text-[9px] font-black uppercase tracking-tighter text-slate-400">
+                                        {rank.label.split(' ')[0]} {rank.label.split(' ')[1]}
+                                      </div>
+                                   </div>
+                                   <ChevronRight size={16} className="text-slate-300 group-hover:text-indigo-500 transition-colors" />
+                                </div>
+                             </td>
                           </tr>
                         );
                       })}
@@ -400,8 +410,7 @@ export default function StaffPerformance() {
                 <div className="space-y-3">
                    {[
                      { label: 'Nhiệm vụ chủ trì (TB)', weight: '70%', color: 'bg-indigo-500' },
-                     { label: 'Khối lượng công việc', weight: '20%', color: 'bg-amber-500' },
-                     { label: 'Nhiệm vụ phối hợp', weight: '10%', color: 'bg-blue-500' }
+                     { label: 'Nhiệm vụ phối hợp (TB)', weight: '30%', color: 'bg-blue-500' }
                    ].map((item, i) => (
                      <div key={i} className="flex items-center justify-between group">
                         <div className="flex items-center gap-2">
@@ -415,7 +424,10 @@ export default function StaffPerformance() {
                 <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
                    <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-tighter mb-1">Công thức tổng hợp</p>
                    <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                     Điểm tổng hợp = (TB điểm chủ trì × 70%) + (TB điểm phối hợp × 10%) + (Điểm khối lượng × 20%)
+                     Điểm tổng hợp = (TB điểm chủ trì × 70%) + (TB điểm phối hợp × 30%)
+                   </p>
+                   <p className="text-[10px] text-slate-400 mt-2 leading-tight">
+                     * Nếu chỉ có một loại nhiệm vụ, lấy điểm trung bình loại đó làm điểm tổng hợp.
                    </p>
                 </div>
                 <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">

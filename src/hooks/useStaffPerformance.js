@@ -93,10 +93,24 @@ export function useStaffPerformance(period = null) {
         };
       });
 
-      const result = performanceData.sort((a, b) => b.displayScore - a.displayScore);
+      performanceData.sort((a, b) => {
+        // 1. Điểm tổng hợp
+        if (b.displayScore !== a.displayScore) return b.displayScore - a.displayScore;
+        // 2. Số nhiệm vụ chủ trì
+        if (b.stats.taskCount.primary !== a.stats.taskCount.primary) return b.stats.taskCount.primary - a.stats.taskCount.primary;
+        // 3. Tỷ lệ hoàn thành trung bình
+        if (b.stats.avgCompletion !== a.stats.avgCompletion) return b.stats.avgCompletion - a.stats.avgCompletion;
+        // 4. Tên A-Z
+        return a.full_name.localeCompare(b.full_name, 'vi');
+      });
+
+      const rankedData = performanceData.map((item, index) => ({
+        ...item,
+        rank: index + 1
+      }));
       
       return {
-        performanceData: result,
+        performanceData: rankedData,
         debug: {
           totalTasksFetched: tasks?.length || 0,
           tasksInPeriod: filteredTasks?.length || 0,

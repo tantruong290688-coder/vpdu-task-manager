@@ -299,7 +299,10 @@ export default function Tasks() {
               </div>
               <div>
                 <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight leading-none mb-1">
-                  {filterParam ? getDashboardFilterTitle(filterParam) : 'Quản trị Nhiệm vụ'}
+                  {filterParam 
+                    ? getDashboardFilterTitle(filterParam) 
+                    : (location.pathname === '/my-tasks' ? 'Nhiệm vụ của tôi' : 'Quản trị Nhiệm vụ')
+                  }
                 </h1>
                 <p className="text-[13px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Hệ thống VPĐU xã Trà Bồng</p>
               </div>
@@ -385,7 +388,7 @@ export default function Tasks() {
             <div className="flex flex-col items-center justify-center py-12 gap-3 text-red-500">
               <AlertCircle size={36} className="opacity-60" />
               <p className="font-semibold text-[15px]">Không thể tải dữ liệu</p>
-              <p className="text-[13px] text-slate-500 dark:text-slate-400">{error}</p>
+              <p className="text-[13px] text-slate-500 dark:text-slate-400">{error?.message || 'Lỗi không xác định'}</p>
               <button
                 onClick={() => refetch()}
                 className="px-4 py-2 bg-blue-600 text-white rounded-xl text-[13px] font-bold hover:bg-blue-700 transition-colors mt-1"

@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
-import { useNotifications } from '../../hooks/useNotifications';
+import { useNotification } from '../../context/NotificationContext';
 import { useMessage } from '../../context/MessageContext';
 
 export default function AppBadgeSync() {
-  const { unreadCount: notifUnread } = useNotifications();
+  const { unreadCount: notifUnread } = useNotification();
   const { unreadCount: msgUnread } = useMessage();
 
   useEffect(() => {

@@ -4,6 +4,7 @@ import App from './App.jsx'
 import './index.css'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
+import { NotificationProvider } from './context/NotificationContext.jsx'
 import { MessageProvider } from './context/MessageContext.jsx'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
@@ -25,9 +26,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <MessageProvider>
-            <App />
-          </MessageProvider>
+          <NotificationProvider>
+            <MessageProvider>
+              <App />
+            </MessageProvider>
+          </NotificationProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

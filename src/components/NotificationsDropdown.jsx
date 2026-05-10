@@ -5,7 +5,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bell, Check, BellOff, X, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useNotifications, getNotifDisplay } from '../hooks/useNotifications';
+import { getNotifDisplay } from '../hooks/useNotifications';
+import { useNotification } from '../context/NotificationContext';
 import EnablePushButton from './Notifications/EnablePushButton';
 
 function timeAgo(dateStr) {
@@ -31,7 +32,7 @@ export default function NotificationsDropdown() {
     markAsRead,
     markAllAsRead,
     fetchNotifications,
-  } = useNotifications({ limit: 20 });
+  } = useNotification();
 
   // Đóng khi click bên ngoài
   useEffect(() => {

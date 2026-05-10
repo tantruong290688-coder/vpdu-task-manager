@@ -3,6 +3,7 @@ import { LayoutDashboard, Send, LayoutList, ClipboardList, History, Settings, X,
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useMessage } from '../context/MessageContext';
+import { useNotification } from '../context/NotificationContext';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import partyLogo from '../assets/bieu-tuong-vp-cap-uy.png';
@@ -12,75 +13,8 @@ export default function Sidebar({ isOpen, onClose }) {
   const { profile, user } = useAuth();
   const { theme } = useTheme();
   const { unreadCount, toggleDrawer } = useMessage();
+  const { unreadCount: notifUnread } = useNotification();
   const themeLabel = { light: 'Sáng', dark: 'Tối', system: 'Theo hệ thống' }[theme] || 'Sáng';
-
-  const sidebarNotifRef = useRef(null);
-  const isSidebarSubscribedRef = useRef(false);
-
-  // Lấy số thông báo chưa đọc (dùng query đơn giản, không tạo realtime channel mới)
-  const [notifUnread, setNotifUnread] = useState(0);
-  useEffect(() => {
-    if (!user?.id || isSidebarSubscribedRef.current) return;
-    
-    isSidebarSubscribedRef.current = true;
-    let mounted = true;
-    const fetch = async () => {
-      const { count } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('is_read', false);
-      if (mounted) setNotifUnread(count || 0);
-    };
-    fetch();
-
-    // Lắng nghe thông báo mới qua channel riêng
-    const channel = supabase.channel(`sidebar_notif_${user.id}`);
-    sidebarNotifRef.current = channel;
-    
-    try {
-      channel
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
-          () => { if (mounted) setNotifUnread(prev => prev + 1); }
-        )
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
-          () => { fetch(); }
-        )
-        .subscribe();
-    } catch (err) {
-      console.warn('[Realtime] Sidebar notification error (safe to ignore):', err);
-    }
-
-    return () => { 
-      mounted = false; 
-      if (sidebarNotifRef.current) {
-        supabase.removeChannel(sidebarNotifRef.current);
-        sidebarNotifRef.current = null;
-        isSidebarSubscribedRef.current = false;
-      }
-    };
-  }, [user?.id]);
-
-  // Cập nhật App Badge (PWA) và Title tab
-  useEffect(() => {
-    const totalUnread = notifUnread + (unreadCount || 0);
-
-    // Cập nhật Title tab để dễ theo dõi
-    if (totalUnread > 0) {
-      document.title = `(${totalUnread}) Quản trị nhiệm vụ`;
-    } else {
-      document.title = 'Quản trị nhiệm vụ - VPĐU Trà Bồng';
-    }
-
-    // Cập nhật PWA App Badge (icon trên màn hình chính / taskbar)
-    if ('setAppBadge' in navigator) {
-      if (totalUnread > 0) {
-        navigator.setAppBadge(totalUnread).catch(console.error);
-      } else if ('clearAppBadge' in navigator) {
-        navigator.clearAppBadge().catch(console.error);
-      }
-    }
-  }, [notifUnread, unreadCount]);
 
   const menus = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },

@@ -18,37 +18,62 @@ async function fetchTasksFromDB({ filters, sortConfig, currentPage, filterParam,
       { count: 'exact' }
     );
 
-  // Nếu không phải admin, lọc theo quyền hạn tham gia (cho cả My Tasks và All Tasks)
-  if (!isAdmin && profileId && (isMyTasksPage || isAllTasksPage)) {
-    const { data: collabData } = await supabase
-      .from('task_collaborators')
-      .select('task_id')
-      .eq('user_id', profileId);
-    const myCollabTaskIds = collabData?.map(d => d.task_id) || [];
+  // 1. Lọc theo quyền hạn tham gia (cho cả My Tasks và All Tasks)
+  if (profileId && (isMyTasksPage || (!isAdmin && isAllTasksPage))) {
+    try {
+      const { data: collabData, error: collabErr } = await supabase
+        .from('task_collaborators')
+        .select('task_id')
+        .eq('user_id', profileId);
+      
+      if (collabErr) {
+        console.error('[useTasks] Collab fetch error:', collabErr);
+      }
+      
+      const myCollabTaskIds = (collabData?.map(d => d.task_id) || []).filter(Boolean);
 
-    if (isMyTasksPage) {
-      // "Nhiệm vụ của tôi": Chỉ tính nơi mình trực tiếp thực hiện hoặc phối hợp
-      if (myCollabTaskIds.length > 0) {
-        query = query.or(`assignee_id.eq.${profileId},id.in.(${myCollabTaskIds.join(',')})`);
+      if (isMyTasksPage) {
+        // "Nhiệm vụ của tôi": Chỉ tính nơi mình trực tiếp thực hiện hoặc phối hợp
+        if (myCollabTaskIds.length > 0) {
+          // PostgREST syntax for OR with IN: column.in.(val1,val2)
+          const idList = myCollabTaskIds.join(',');
+          query = query.or(`assignee_id.eq.${profileId},id.in.(${idList})`);
+        } else {
+          query = query.eq('assignee_id', profileId);
+        }
       } else {
-        query = query.eq('assignee_id', profileId);
+        // "Tất cả nhiệm vụ" (Dành cho Staff/Manager): Bao gồm cả nơi mình giao hoặc tạo
+        let orFilter = `assignee_id.eq.${profileId},assigned_by.eq.${profileId},created_by.eq.${profileId}`;
+        if (myCollabTaskIds.length > 0) {
+          orFilter += `,id.in.(${myCollabTaskIds.join(',')})`;
+        }
+        query = query.or(orFilter);
       }
-    } else {
-      // "Tất cả nhiệm vụ": Bao gồm cả nơi mình giao hoặc tạo (Giống RPC Dashboard)
-      let orFilter = `assignee_id.eq.${profileId},assigned_by.eq.${profileId},created_by.eq.${profileId}`;
-      if (myCollabTaskIds.length > 0) {
-        orFilter += `,id.in.(${myCollabTaskIds.join(',')})`;
-      }
-      query = query.or(orFilter);
+    } catch (err) {
+      console.error('[useTasks] Logic error:', err);
     }
   }
 
-  // Lọc theo người phối hợp
+  // Lọc theo người phối hợp (Bộ lọc nâng cao)
   if (filters.collaboratorId) {
-    if (specificCollabTaskIds.length > 0) {
-      query = query.in('id', specificCollabTaskIds);
-    } else {
-      query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+    try {
+      const { data: collabTasks, error: cErr } = await supabase
+        .from('task_collaborators')
+        .select('task_id')
+        .eq('user_id', filters.collaboratorId);
+      
+      if (cErr) throw cErr;
+      
+      const specificCollabTaskIds = collabTasks?.map(d => d.task_id) || [];
+      
+      if (specificCollabTaskIds.length > 0) {
+        query = query.in('id', specificCollabTaskIds);
+      } else {
+        // Nếu filter theo người phối hợp mà người đó không có task nào -> trả về rỗng
+        query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+      }
+    } catch (err) {
+      console.error('[useTasks] Collaborator filter error:', err);
     }
   }
 

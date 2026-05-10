@@ -63,57 +63,50 @@ export default function Dashboard() {
       <RiskTasksWidget tasks={tasks} profile={profile} />
 
       {/* Chỉ báo Realtime đang hoạt động */}
-      <div className="flex gap-2 md:gap-3 mb-2 items-center">
-        <button onClick={handleRefresh} className="flex-1 md:flex-none justify-center bg-[#2563eb] hover:bg-blue-700 text-white px-3 md:px-5 py-2.5 rounded-xl flex items-center gap-2 text-[13px] md:text-[14px] font-bold transition-colors shadow-sm">
-          <RotateCcw size={16} strokeWidth={2.5} className={isStatsLoading ? 'animate-spin' : ''} />
-          <span className="hidden sm:inline">Làm mới dashboard</span>
-          <span className="sm:hidden">Làm mới</span>
+      <div className="flex gap-2 items-center mb-1">
+        <button onClick={handleRefresh} className="flex-1 md:flex-none justify-center bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl flex items-center gap-2 text-[12px] md:text-[14px] font-bold transition-colors shadow-sm">
+          <RotateCcw size={14} strokeWidth={3} className={isStatsLoading ? 'animate-spin' : ''} />
+          <span>Làm mới</span>
         </button>
         
-        <div className="flex-1 md:flex-none bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-3 md:px-4 py-2.5 rounded-xl flex items-center gap-2 overflow-hidden shadow-sm">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shrink-0" />
-          <span className="text-green-700 dark:text-green-400 text-[12px] md:text-[13px] font-bold truncate">Đã đồng bộ Realtime</span>
+        <div className="flex-[1.5] md:flex-none bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 px-3 py-2 rounded-xl flex items-center gap-2 overflow-hidden shadow-sm">
+          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shrink-0" />
+          <span className="text-green-700 dark:text-green-400 text-[11px] md:text-[13px] font-bold truncate">Đồng bộ Realtime</span>
         </div>
       </div>
 
       {/* Grid Thống kê */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-2.5 md:gap-4 mb-3">
         {cardsTop.map((card, idx) => (
           <div 
             key={idx} 
             onClick={() => handleCardClick(card.filter)}
-            className="group bg-white dark:bg-[#111827] p-4 md:p-5 rounded-[24px] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800 transition-all cursor-pointer relative overflow-hidden"
+            className="group bg-white dark:bg-[#111827] p-3.5 md:p-5 rounded-[22px] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800 transition-all cursor-pointer relative overflow-hidden"
           >
-            <div className={`w-10 h-10 md:w-12 md:h-12 ${card.iconBg} rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform`}>
-              <card.icon size={22} className={card.iconColor} />
+            <div className={`w-9 h-9 md:w-12 md:h-12 ${card.iconBg} rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 group-hover:scale-110 transition-transform`}>
+              <card.icon size={18} className={card.iconColor} />
             </div>
             <div className="flex items-baseline gap-1">
-               <h4 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white leading-tight">{card.value}</h4>
-               <span className="text-[12px] font-bold text-slate-400 uppercase tracking-wider">đầu việc</span>
+               <h4 className="text-xl md:text-3xl font-black text-slate-800 dark:text-white leading-tight">{card.value}</h4>
+               <span className="text-[10px] md:text-[12px] font-bold text-slate-400 uppercase tracking-tight">Việc</span>
             </div>
-            <p className="text-[13px] md:text-[14px] font-bold text-slate-600 dark:text-slate-400 mt-1">{card.label}</p>
-            <p className="text-[11px] md:text-[12px] text-slate-400 dark:text-slate-500 mt-2 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-4 left-5 right-5">
-              {card.desc}
-            </p>
+            <p className="text-[12px] md:text-[14px] font-black text-slate-600 dark:text-slate-400 mt-0.5 truncate">{card.label}</p>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-2.5 md:gap-4">
         {cardsBottom.map((card, idx) => (
           <div 
             key={idx} 
             onClick={() => handleCardClick(card.filter)}
-            className="group bg-white dark:bg-[#111827] p-4 md:p-5 rounded-[24px] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800 transition-all cursor-pointer overflow-hidden"
+            className="group bg-white dark:bg-[#111827] p-3.5 md:p-5 rounded-[22px] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800 transition-all cursor-pointer overflow-hidden"
           >
-            <div className={`w-10 h-10 md:w-12 md:h-12 ${card.iconBg} rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform`}>
-              <card.icon size={22} className={card.iconColor} />
+            <div className={`w-9 h-9 md:w-12 md:h-12 ${card.iconBg} rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 group-hover:scale-110 transition-transform`}>
+              <card.icon size={18} className={card.iconColor} />
             </div>
             <h4 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white leading-tight">{card.value}</h4>
-            <p className="text-[13px] md:text-[14px] font-bold text-slate-600 dark:text-slate-400 mt-1">{card.label}</p>
-            <p className="text-[11px] md:text-[12px] text-slate-400 dark:text-slate-500 mt-2 leading-snug line-clamp-2">
-              {card.desc}
-            </p>
+            <p className="text-[12px] md:text-[14px] font-black text-slate-600 dark:text-slate-400 mt-0.5 truncate">{card.label}</p>
           </div>
         ))}
       </div>

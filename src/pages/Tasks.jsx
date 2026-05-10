@@ -401,6 +401,15 @@ export default function Tasks() {
                       profile={profile}
                       actions={actions}
                     />
+                    <TaskMobileList 
+                      tasks={tasks}
+                      paginatedTasks={tasks}
+                      profile={profile}
+                      filterParam={filterParam}
+                      activeFilterCount={activeFilterCount}
+                      searchStr={searchStr}
+                      actions={actions}
+                    />
                   </div>
 
                   {/* Pagination */}

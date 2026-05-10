@@ -477,8 +477,8 @@ export default function Tasks() {
       <TaskModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        task={editingTask}
-        onSuccess={() => { refetch(); setSelectedTaskIds([]); }}
+        initialData={editingTask}
+        onTaskAdded={() => { refetch(); setSelectedTaskIds([]); }}
       />
 
       <AdvancedFilter

@@ -339,16 +339,19 @@ export default function TaskDetailDrawer({
           )}
 
           {/* Đánh giá */}
-          {task.status === 'completed' && canEvaluate && (
+          {task.status === 'completed' && (canEvaluate || (isAssignee && collaboratorNames.length > 0)) && (
             <button
               onClick={() => onEvaluate?.(task)}
               className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white text-[12px] font-bold rounded-xl transition-colors shadow-sm"
             >
               <Star size={14} />
-              {task.evaluation_score !== null ? 'Xem / Sửa đánh giá' : 'Đánh giá kết quả'}
+              {canEvaluate 
+                ? (task.evaluation_score !== null ? 'Xem / Sửa đánh giá' : 'Đánh giá kết quả')
+                : 'Đề xuất đánh giá người phối hợp'
+              }
             </button>
           )}
-          {task.status === 'completed' && !canEvaluate && task.evaluation_score !== null && (
+          {task.status === 'completed' && !canEvaluate && !isAssignee && task.evaluation_score !== null && (
             <span className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-[12px] font-bold rounded-xl border border-amber-200 dark:border-amber-800/40">
               <Award size={14} />
               {task.evaluation_score} điểm — {task.evaluation_rank}

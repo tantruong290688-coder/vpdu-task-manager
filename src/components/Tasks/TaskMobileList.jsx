@@ -84,7 +84,7 @@ export default function TaskMobileList({
               )}
               
               {/* Đánh giá */}
-              {canEvaluate(profile, task) && (
+              {(canEvaluate(profile, task) || (profile?.id === task.assignee_id && task.task_collaborators?.length > 0)) && (
                 <button
                   onClick={() => setEvalModalTask(task)}
                   className="p-2 rounded-lg flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors bg-slate-50 dark:bg-slate-800/50"

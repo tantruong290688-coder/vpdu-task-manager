@@ -242,7 +242,7 @@ export default function TaskTable({
                           <CheckCircle size={14} />
                         </button>
                       )}
-                      {canEvaluate(profile, task) && (
+                      {(canEvaluate(profile, task) || (profile?.id === task.assignee_id && task.task_collaborators?.length > 0)) && (
                         <button
                           onClick={() => setEvalModalTask(task)}
                           title={task.evaluation_score !== null ? 'Xem/Sửa đánh giá' : 'Đánh giá kết quả'}

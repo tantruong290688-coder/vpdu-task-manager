@@ -72,6 +72,7 @@ export function canEvaluate(profile, task) {
   
   return (
     profile.role === ROLES.ADMIN ||
+    profile.role === ROLES.MANAGER ||
     profile.id === task.assigned_by
   );
 }

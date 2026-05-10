@@ -67,9 +67,9 @@ export const taskEvaluationService = {
   },
 
   /**
-   * 3. Admin chốt điểm cuối cùng
+   * 3. Admin chốt điểm cuối cùng hoặc điều chỉnh điểm đã chốt
    */
-  async finalizeByAdmin({ evaluationId, score, comment, adjustmentReason, progressLevel, progressScore, finalizedBy }) {
+  async finalizeByAdmin({ evaluationId, score, comment, adjustmentReason, progressLevel, progressScore, finalizedBy, oldScore, taskId, adjustedByName }) {
     const payload = {
       final_score: score,
       final_comment: comment,
@@ -90,6 +90,24 @@ export const taskEvaluationService = {
       .single();
 
     if (error) throw error;
+
+    // Nếu có sự điều chỉnh điểm (oldScore khác score), ghi vào log
+    if (oldScore !== undefined && oldScore !== null && Number(oldScore) !== Number(score)) {
+      await supabase.from('evaluation_adjustment_logs').insert({
+        task_id: taskId || data.task_id,
+        evaluation_id: evaluationId,
+        old_score: oldScore,
+        new_score: score,
+        reason: adjustmentReason || 'Điều chỉnh điểm sau khi chốt',
+        comment: comment,
+        adjusted_by: finalizedBy,
+        adjusted_by_name: adjustedByName
+      });
+
+      // Ghi thêm vào nhật ký hệ thống (writeLog/task_logs nếu có)
+      // Tùy theo cấu trúc dự án, ở đây ta ưu tiên lưu vào bảng log chuyên dụng vừa tạo
+    }
+
     return data;
   },
 

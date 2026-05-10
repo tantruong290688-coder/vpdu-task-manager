@@ -167,7 +167,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
   };
 
   // 3. Admin chốt điểm
-  const handleAdminFinalize = async (evalId, proposedScore, selectedProgressLevel) => {
+  const handleAdminFinalize = async (evalId, proposedScore, selectedProgressLevel, currentFinalScore) => {
     const scoreVal = parseInt(finalScore);
     if (isNaN(scoreVal)) {
       toast.error('Vui lòng nhập điểm cuối cùng');
@@ -190,19 +190,33 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         adjustmentReason: adjReason,
         progressLevel: progLevel,
         progressScore: getScoreFromLevel(progLevel),
-        finalizedBy: profile.id
+        finalizedBy: profile.id,
+        oldScore: currentFinalScore, // Pass current score to check for adjustment
+        taskId: task.id,
+        adjustedByName: profile.full_name
       });
 
       // Nếu là đánh giá người thực hiện chính, cập nhật luôn vào bảng tasks để tương thích cũ
       const ev = evaluations.find(e => e.id === evalId);
       if (ev?.evaluated_user_id === task.assignee_id) {
+        const now = new Date();
+        const currentPeriod = `${now.getFullYear()}-M${String(now.getMonth() + 1).padStart(2, '0')}`;
+        
         await supabase.from('tasks').update({
           evaluation_score: scoreVal,
           evaluation_comment: finalComment,
-          evaluation_period: task.evaluation_period || periodKey, // Gắn kỳ nếu chưa có
+          evaluation_period: task.evaluation_period || currentPeriod,
           evaluated_by: profile.id,
-          evaluated_at: new Date().toISOString()
+          evaluated_at: now.toISOString(),
+          evaluation_rank: scoreVal >= 90 ? 'Xuất sắc' : scoreVal >= 80 ? 'Tốt' : scoreVal >= 50 ? 'Hoàn thành' : 'Chưa hoàn thành'
         }).eq('id', task.id);
+        
+        // Ghi vào nhật ký điều phối của nhiệm vụ
+        if (currentFinalScore !== undefined && currentFinalScore !== null && Number(currentFinalScore) !== Number(scoreVal)) {
+          await writeLog(task.id, profile.id, 'ADJUST_SCORE', 
+            `Lãnh đạo điều chỉnh điểm chốt từ ${currentFinalScore} thành ${scoreVal}. Lý do: ${adjReason}`
+          );
+        }
       }
 
       toast.success('Đã chốt đánh giá chính thức');
@@ -800,11 +814,18 @@ function AdminRow({ user, roleLabel, roleCls, evaluation, onFinalize, loading })
             </div>
          </td>
          <td className="px-6 py-6">
-            {evaluation?.status === 'finalized' ? (
+            {(evaluation?.status === 'finalized' && !isEditing) ? (
                 <div className="flex flex-col">
-                   <span className="text-[16px] font-black text-emerald-600">{evaluation.final_score}đ</span>
+                   <div className="flex items-center gap-2">
+                      <span className="text-[16px] font-black text-emerald-600">{evaluation.final_score}đ</span>
+                      <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[9px] font-black uppercase">Đã chốt</span>
+                   </div>
+                   {evaluation.final_adjustment_reason && (
+                      <span className="text-[10px] font-medium text-rose-500 mt-1 italic leading-tight truncate max-w-[150px]" title={evaluation.final_adjustment_reason}>
+                        Lý do: {evaluation.final_adjustment_reason}
+                      </span>
+                   )}
                    <span className="text-[10px] font-black text-emerald-500 mt-1">{evaluation.final_progress_level || '—'}</span>
-                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Đã chốt</span>
                 </div>
             ) : isEditing ? (
                <div className="space-y-3 w-48">
@@ -828,7 +849,7 @@ function AdminRow({ user, roleLabel, roleCls, evaluation, onFinalize, loading })
                   />
                   <div className="flex gap-2">
                      <button 
-                       onClick={() => onFinalize(evaluation.id, proposedScore).then(() => setIsEditing(false))}
+                       onClick={() => onFinalize(evaluation.id, proposedScore, progressLevel, evaluation?.final_score).then(() => setIsEditing(false))}
                        className="flex-1 py-2 bg-emerald-600 text-white rounded-xl text-[11px] font-black"
                      >Lưu</button>
                      <button 
@@ -850,11 +871,14 @@ function AdminRow({ user, roleLabel, roleCls, evaluation, onFinalize, loading })
                  CHỐT ĐIỂM
                </button>
             )}
-            {evaluation?.status === 'finalized' && (
-               <div className="flex items-center justify-end text-emerald-600 gap-1">
-                  <CheckCircle2 size={16} />
-                  <span className="text-[11px] font-black uppercase">Hoàn tất</span>
-               </div>
+            {evaluation?.status === 'finalized' && !isEditing && (
+               <button 
+                 onClick={() => setIsEditing(true)}
+                 className="px-4 py-2 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-600 hover:text-white rounded-xl text-[11px] font-black transition-all flex items-center gap-1 ml-auto"
+               >
+                 <History size={14} />
+                 ĐIỀU CHỈNH
+               </button>
             )}
          </td>
       </tr>

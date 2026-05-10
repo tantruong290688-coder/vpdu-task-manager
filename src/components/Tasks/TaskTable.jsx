@@ -1,6 +1,6 @@
 import { SlidersHorizontal, ArrowUp, ArrowDown, ArrowUpDown, Eye, CheckCircle, Star, Edit2, Trash2, AlertTriangle, Flag as FlagIcon } from 'lucide-react';
 import { getTaskRisk } from '../../utils/taskAnalytics';
-import { StatusBadge, PriorityBadge, ScoreBadge } from './TaskBadges';
+import { StatusBadge, PriorityBadge, ScoreBadge, EvaluationStatusBadge } from './TaskBadges';
 import { canEditTask, canUpdateProgress, canEvaluate } from '../../lib/permissions';
 import { getDashboardEmptyState } from '../../lib/taskFilters';
 

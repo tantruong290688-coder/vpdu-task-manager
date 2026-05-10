@@ -1,5 +1,5 @@
 import { SlidersHorizontal, Clock, Calendar, Star, Eye, CheckCircle, Edit2, Trash2 } from 'lucide-react';
-import { StatusBadge, PriorityBadge } from './TaskBadges';
+import { StatusBadge, PriorityBadge, EvaluationStatusBadge } from './TaskBadges';
 import { canEditTask, canUpdateProgress, canEvaluate } from '../../lib/permissions';
 import { getDashboardEmptyState } from '../../lib/taskFilters';
 
@@ -58,14 +58,10 @@ export default function TaskMobileList({
               )}
             </div>
 
-            {/* Evaluation score if available */}
-            {task.status === 'completed' && task.evaluation_score !== null && (
-              <div className="mt-2 flex items-center gap-1.5">
-                <Star size={12} className="fill-amber-400 text-amber-500" />
-                <span className="text-[12px] font-bold text-blue-600 dark:text-blue-400">{task.evaluation_score} điểm</span>
-                <span className="text-[11px] text-slate-400">— {task.evaluation_rank}</span>
-              </div>
-            )}
+            {/* Evaluation status */}
+            <div className="mt-2">
+              <EvaluationStatusBadge task={task} />
+            </div>
 
             {/* Row 4: Actions */}
             <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>

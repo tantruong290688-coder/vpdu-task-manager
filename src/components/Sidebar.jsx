@@ -29,16 +29,23 @@ export default function Sidebar({ isOpen, onClose }) {
     };
     fetch();
     // Lắng nghe thông báo mới qua channel riêng
-    const channel = supabase
-      .channel(`sidebar_notif_${user.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
-        () => { if (mounted) setNotifUnread(prev => prev + 1); }
-      )
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
-        () => { fetch(); }
-      )
-      .subscribe();
-    return () => { mounted = false; supabase.removeChannel(channel); };
+    const channel = supabase.channel(`sidebar_notif_${user.id}`);
+    
+    if (channel.state === 'closed' || channel.state === 'joined') {
+      channel
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+          () => { if (mounted) setNotifUnread(prev => prev + 1); }
+        )
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+          () => { fetch(); }
+        )
+        .subscribe();
+    }
+
+    return () => { 
+      mounted = false; 
+      supabase.removeChannel(channel); 
+    };
   }, [user?.id]);
 
   // Cập nhật App Badge (PWA) và Title tab

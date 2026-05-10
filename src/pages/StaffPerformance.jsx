@@ -557,7 +557,7 @@ function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
 
                 <div className="space-y-3">
                    {[...staff.primaryTasks, ...staff.collabTasks].map((task) => {
-                      const scoreObj = calculateTaskScore(task);
+                      const scoreObj = calculateTaskScore(task, task.evaluation);
                       const isPrimary = task.assignee_id === staff.id;
 
                       return (

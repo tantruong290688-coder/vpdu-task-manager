@@ -17,13 +17,14 @@ export const taskEvaluationService = {
   /**
    * 1. Người phối hợp / Người thực hiện chính tự đề xuất điểm
    */
-  async submitSelfEvaluation({ taskId, userId, score, comment, participationLevel }) {
+  async submitSelfEvaluation({ taskId, userId, score, comment, participationLevel, progressLevel }) {
     const payload = {
       task_id: taskId,
       evaluated_user_id: userId,
       self_score: score,
       self_comment: comment,
       self_participation_level: participationLevel,
+      self_progress_level: progressLevel,
       self_submitted_at: new Date().toISOString(),
       status: 'self_submitted',
       updated_at: new Date().toISOString()
@@ -42,11 +43,12 @@ export const taskEvaluationService = {
   /**
    * 2. Người thực hiện chính đánh giá/đề xuất cho người phối hợp hoặc bản thân
    */
-  async submitMainAssigneeReview({ evaluationId, score, comment, participationLevel, reviewedBy }) {
+  async submitMainAssigneeReview({ evaluationId, score, comment, participationLevel, progressLevel, reviewedBy }) {
     const payload = {
       main_assignee_score: score,
       main_assignee_comment: comment,
       main_assignee_participation_level: participationLevel,
+      main_assignee_progress_level: progressLevel,
       main_assignee_reviewed_at: new Date().toISOString(),
       main_assignee_reviewed_by: reviewedBy,
       status: 'main_reviewed',
@@ -67,11 +69,13 @@ export const taskEvaluationService = {
   /**
    * 3. Admin chốt điểm cuối cùng
    */
-  async finalizeByAdmin({ evaluationId, score, comment, adjustmentReason, finalizedBy }) {
+  async finalizeByAdmin({ evaluationId, score, comment, adjustmentReason, progressLevel, progressScore, finalizedBy }) {
     const payload = {
       final_score: score,
       final_comment: comment,
       final_adjustment_reason: adjustmentReason,
+      final_progress_level: progressLevel,
+      final_progress_score: progressScore,
       finalized_at: new Date().toISOString(),
       finalized_by: finalizedBy,
       status: 'finalized',

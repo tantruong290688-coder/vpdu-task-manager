@@ -8,6 +8,22 @@ import { writeLog } from '../lib/logger';
 import { createNotification } from '../hooks/useNotifications';
 import { canSelfProposeEvaluation, canMainAssigneeReview, canAdminFinalizeEvaluation, isTaskStillPendingFinalEvaluation } from '../lib/permissions';
 
+const PROGRESS_LEVELS = [
+  { id: 'level1', label: 'Dưới 50%', score: 40, range: [0, 49] },
+  { id: 'level2', label: '50% - dưới 70%', score: 60, range: [50, 69] },
+  { id: 'level3', label: '70% - dưới 90%', score: 80, range: [70, 89] },
+  { id: 'level4', label: '90% - dưới 100%', score: 95, range: [90, 99] },
+  { id: 'level5', label: 'Hoàn thành (100%)', score: 100, range: [100, 100] }
+];
+
+const getLevelFromProgress = (progress) => {
+  return PROGRESS_LEVELS.find(l => progress >= l.range[0] && progress <= l.range[1])?.label || PROGRESS_LEVELS[0].label;
+};
+
+const getScoreFromLevel = (levelLabel) => {
+  return PROGRESS_LEVELS.find(l => l.label === levelLabel)?.score || 0;
+};
+
 export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) {
   const { profile } = useAuth();
   const [evaluations, setEvaluations] = useState([]);
@@ -19,6 +35,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
   const [selfScore, setSelfScore] = useState('');
   const [selfComment, setSelfComment] = useState('');
   const [selfLevel, setSelfLevel] = useState('Đạt yêu cầu');
+  const [selfProgress, setSelfProgress] = useState('');
   const [selfWorkDone, setSelfWorkDone] = useState('');
   const [selfDifficulty, setSelfDifficulty] = useState('');
 
@@ -27,12 +44,14 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
   const [mainRevScore, setMainRevScore] = useState('');
   const [mainRevComment, setMainRevComment] = useState('');
   const [mainRevLevel, setMainRevLevel] = useState('Đạt yêu cầu');
+  const [mainRevProgress, setMainRevProgress] = useState('');
   const [mainRevDiffReason, setMainRevDiffReason] = useState('');
 
   // --- Form States: Admin Finalization ---
   const [finalScore, setFinalScore] = useState('');
   const [finalComment, setFinalComment] = useState('');
   const [adjReason, setAdjReason] = useState('');
+  const [finalProgress, setFinalProgress] = useState('');
 
   const isAdmin = profile?.role === 'admin';
   const isManager = profile?.role === 'manager';
@@ -49,6 +68,12 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
       if (isAdmin) setActiveTab('finalize');
       else if (isMainAssignee) setActiveTab('review');
       else setActiveTab('self');
+
+      // Pre-select progress level
+      const autoLevel = getLevelFromProgress(task.progress || 0);
+      setSelfProgress(autoLevel);
+      setMainRevProgress(autoLevel);
+      setFinalProgress(autoLevel);
     }
   }, [isOpen, task]);
 
@@ -63,6 +88,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         setSelfScore(myEval.self_score || '');
         setSelfComment(myEval.self_comment || '');
         setSelfLevel(myEval.self_participation_level || 'Đạt yêu cầu');
+        setSelfProgress(myEval.self_progress_level || getLevelFromProgress(task.progress || 0));
       }
     } catch (err) {
       console.error('Lỗi tải đánh giá:', err);
@@ -89,7 +115,8 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         userId: profile.id,
         score: scoreVal,
         comment: selfComment,
-        participationLevel: selfLevel
+        participationLevel: selfLevel,
+        progressLevel: selfProgress
       });
 
       toast.success('Đã gửi tự đề xuất đánh giá');
@@ -122,6 +149,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         score: scoreVal,
         comment: mainRevComment + (mainRevDiffReason ? `\n(Lý do chênh lệch: ${mainRevDiffReason})` : ''),
         participationLevel: mainRevLevel,
+        progressLevel: mainRevProgress,
         reviewedBy: profile.id
       });
 
@@ -139,7 +167,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
   };
 
   // 3. Admin chốt điểm
-  const handleAdminFinalize = async (evalId, proposedScore) => {
+  const handleAdminFinalize = async (evalId, proposedScore, selectedProgressLevel) => {
     const scoreVal = parseInt(finalScore);
     if (isNaN(scoreVal)) {
       toast.error('Vui lòng nhập điểm cuối cùng');
@@ -151,6 +179,8 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
       return;
     }
 
+    const progLevel = selectedProgressLevel || finalProgress;
+
     setLoading(true);
     try {
       await taskEvaluationService.finalizeByAdmin({
@@ -158,6 +188,8 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         score: scoreVal,
         comment: finalComment,
         adjustmentReason: adjReason,
+        progressLevel: progLevel,
+        progressScore: getScoreFromLevel(progLevel),
         finalizedBy: profile.id
       });
 
@@ -318,7 +350,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                            </div>
                         ) : (
                            <form onSubmit={handleSelfPropose} className="space-y-8">
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
                                  <div className="space-y-3">
                                     <label className="flex items-center gap-2 text-[12px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
                                        <Star size={14} className="text-amber-500" />
@@ -345,6 +377,20 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                        <option>Phối hợp chưa thường xuyên</option>
                                        <option>Ít tham gia</option>
                                        <option>Không tham gia</option>
+                                    </select>
+                                 </div>
+                                 <div className="space-y-3">
+                                    <label className="flex items-center gap-2 text-[12px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
+                                       <TrendingUp size={14} className="text-emerald-500" />
+                                       <span>Tiến độ thực hiện</span>
+                                    </label>
+                                    <select 
+                                      value={selfProgress} onChange={e => setSelfProgress(e.target.value)}
+                                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-6 py-5 rounded-3xl text-[15px] font-black text-slate-700 dark:text-slate-200 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                                    >
+                                       {PROGRESS_LEVELS.map(l => (
+                                         <option key={l.id} value={l.label}>{l.label}</option>
+                                       ))}
                                     </select>
                                  </div>
                               </div>
@@ -536,6 +582,18 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                              </div>
                                           </div>
 
+                                          <div className="space-y-2">
+                                              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Tiến độ thực hiện (Đánh giá)</label>
+                                              <select 
+                                                value={mainRevProgress} onChange={e => setMainRevProgress(e.target.value)}
+                                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-5 py-4 rounded-2xl text-[14px] font-black outline-none"
+                                              >
+                                                 {PROGRESS_LEVELS.map(l => (
+                                                   <option key={l.id} value={l.label}>{l.label}</option>
+                                                 ))}
+                                              </select>
+                                           </div>
+
                                           {/* Logic check for >10pt difference */}
                                           {Math.abs(parseInt(mainRevScore) - (selEval?.self_score || 0)) >= 10 && (
                                              <div className="space-y-2 animate-in slide-in-from-top-2">
@@ -689,6 +747,7 @@ function AdminRow({ user, roleLabel, roleCls, evaluation, onFinalize, loading })
    const [score, setScore] = useState('');
    const [reason, setReason] = useState('');
    const [comment, setComment] = useState('');
+   const [progressLevel, setProgressLevel] = useState('');
    const [isEditing, setIsEditing] = useState(false);
 
    useEffect(() => {
@@ -696,6 +755,7 @@ function AdminRow({ user, roleLabel, roleCls, evaluation, onFinalize, loading })
        setScore(evaluation.final_score || evaluation.main_assignee_score || evaluation.self_score || '');
        setComment(evaluation.final_comment || '');
        setReason(evaluation.final_adjustment_reason || '');
+       setProgressLevel(evaluation.final_progress_level || evaluation.main_assignee_progress_level || evaluation.self_progress_level || '');
      }
    }, [evaluation]);
 
@@ -719,25 +779,32 @@ function AdminRow({ user, roleLabel, roleCls, evaluation, onFinalize, loading })
          <td className="px-6 py-6">
             <div className="flex flex-col">
                <span className="text-[14px] font-black text-slate-600 dark:text-slate-400">{evaluation?.self_score ? `${evaluation.self_score}đ` : '—'}</span>
-               {evaluation?.self_participation_level && (
+                {evaluation?.self_participation_level && (
                   <span className="text-[10px] font-bold text-slate-400 mt-1">{evaluation.self_participation_level}</span>
+               )}
+               {evaluation?.self_progress_level && (
+                  <span className="text-[10px] font-black text-emerald-600 mt-0.5">{evaluation.self_progress_level}</span>
                )}
             </div>
          </td>
          <td className="px-6 py-6">
             <div className="flex flex-col">
                <span className="text-[14px] font-black text-indigo-600">{evaluation?.main_assignee_score ? `${evaluation.main_assignee_score}đ` : '—'}</span>
-               {evaluation?.main_assignee_comment && (
+                {evaluation?.main_assignee_comment && (
                   <span className="text-[10px] font-bold text-slate-400 mt-1 truncate max-w-[150px] italic">"{evaluation.main_assignee_comment}"</span>
+               )}
+               {evaluation?.main_assignee_progress_level && (
+                  <span className="text-[10px] font-black text-indigo-500 mt-0.5">{evaluation.main_assignee_progress_level}</span>
                )}
             </div>
          </td>
          <td className="px-6 py-6">
             {evaluation?.status === 'finalized' ? (
-               <div className="flex flex-col">
-                  <span className="text-[16px] font-black text-emerald-600">{evaluation.final_score}đ</span>
-                  <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mt-1">Đã chốt</span>
-               </div>
+                <div className="flex flex-col">
+                   <span className="text-[16px] font-black text-emerald-600">{evaluation.final_score}đ</span>
+                   <span className="text-[10px] font-black text-emerald-500 mt-1">{evaluation.final_progress_level || '—'}</span>
+                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Đã chốt</span>
+                </div>
             ) : isEditing ? (
                <div className="space-y-3 w-48">
                   <input 

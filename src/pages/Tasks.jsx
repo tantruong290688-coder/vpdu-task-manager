@@ -326,15 +326,6 @@ export default function Tasks() {
                 )}
               </button>
 
-              {(profile?.role === 'admin' || profile?.role === 'manager') && (
-                <button
-                  onClick={() => { setEditingTask(null); setIsModalOpen(true); }}
-                  className="flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-[13px] font-extrabold bg-[#dc2626] text-white hover:bg-[#b91c1c] transition-all shadow-[0_4px_12px_rgba(220,38,38,0.3)] shrink-0"
-                >
-                  <Plus size={18} strokeWidth={3} />
-                  Thêm nhiệm vụ
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -455,30 +446,7 @@ export default function Tasks() {
           )}
         </div>
 
-        {/* Floating Add Button */}
-        {(profile?.role === 'admin' || profile?.role === 'manager') && (
-          <div className="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-40 flex flex-col items-center gap-2 group/fab">
-            <span className={[
-              'absolute bottom-[60px] md:bottom-[72px] right-0',
-              'px-3.5 py-2 rounded-xl text-[13px] font-bold text-white whitespace-nowrap',
-              'bg-slate-900 dark:bg-slate-700 shadow-[0_4px_16px_rgba(0,0,0,0.25)]',
-              'pointer-events-none select-none',
-              'opacity-0 translate-y-1 scale-95',
-              'group-hover/fab:opacity-100 group-hover/fab:translate-y-0 group-hover/fab:scale-100',
-              'transition-all duration-200 ease-out',
-              'after:content-[""] after:absolute after:top-full after:right-4',
-              'after:border-4 after:border-transparent after:border-t-slate-900 dark:after:border-t-slate-700',
-            ].join(' ')}>
-              Tạo nhiệm vụ mới
-            </span>
-            <button
-              onClick={() => { setEditingTask(null); setIsModalOpen(true); }}
-              className="w-12 h-12 md:w-14 md:h-14 bg-[#dc2626] hover:bg-[#b91c1c] text-white rounded-2xl flex items-center justify-center shadow-[0_8px_24px_rgba(220,38,38,0.4)] transition-all hover:scale-110 active:scale-95"
-            >
-              <Plus size={24} strokeWidth={3} />
-            </button>
-          </div>
-        )}
+
 
         <BulkActionToolbar 
           selectedCount={selectedTaskIds.length}

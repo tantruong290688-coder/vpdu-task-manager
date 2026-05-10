@@ -487,7 +487,6 @@ export default function Tasks() {
           onDelete={handleBulkDelete}
           onExport={handleBulkExport}
         />
-      </div>
 
       <TaskModal 
         isOpen={isModalOpen} 

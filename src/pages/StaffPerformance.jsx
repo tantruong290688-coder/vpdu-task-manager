@@ -269,6 +269,5 @@ export default function StaffPerformance() {
            </div>
         </div>
       </div>
-    </div>
-  );
+   );
 }

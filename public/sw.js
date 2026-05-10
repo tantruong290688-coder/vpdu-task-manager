@@ -3,8 +3,8 @@
 // Version: 2026.05.02.08 (Force Update - VAPID Sync)
 // ═══════════════════════════════════════════════════════════
 
-const SW_VERSION = '2026.05.02.08';
-const CACHE_NAME = 'vpdu-v5';
+const SW_VERSION = '2026.05.10.01';
+const CACHE_NAME = 'vpdu-v6';
 const OFFLINE_URL = '/offline.html';
 
 // ── Install: pre-cache shell ─────────────────────────────

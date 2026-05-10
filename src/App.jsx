@@ -167,19 +167,19 @@ function App() {
               <Tasks />
             </ErrorBoundary>
           } />
-          <Route path="evaluations"   element={<Evaluations />} />
-          <Route path="logs"          element={<Logs />} />
-          <Route path="admin"         element={<Admin />} />
-          <Route path="todo"          element={<TodoPage />} />
+          <Route path="evaluations"   element={<ErrorBoundary><Evaluations /></ErrorBoundary>} />
+          <Route path="logs"          element={<ErrorBoundary><Logs /></ErrorBoundary>} />
+          <Route path="admin"         element={<ErrorBoundary><Admin /></ErrorBoundary>} />
+          <Route path="todo"          element={<ErrorBoundary><TodoPage /></ErrorBoundary>} />
           <Route path="notifications" element={
             <ErrorBoundary>
               <NotificationsPage />
             </ErrorBoundary>
           } />
           <Route path="performance" element={
-            <ProtectedRoute>
+            <ErrorBoundary>
               <StaffPerformance />
-            </ProtectedRoute>
+            </ErrorBoundary>
           } />
         </Route>
       </Routes>

@@ -1,13 +1,18 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
 export function usePresence() {
   const { user, profile } = useAuth();
 
-  useEffect(() => {
-    if (!user || !profile) return;
+  const channelRef = useRef(null);
+  const isSubscribedRef = useRef(false);
 
+  useEffect(() => {
+    if (!user || !profile || isSubscribedRef.current) return;
+
+    isSubscribedRef.current = true;
+    
     const channel = supabase.channel('online-users', {
       config: {
         presence: {
@@ -16,30 +21,33 @@ export function usePresence() {
       },
     });
 
-    // Chỉ thiết lập nếu kênh chưa được subscribe
-    if (channel.state === 'closed' || channel.state === 'joined') {
-      channel
-        .on('presence', { event: 'sync' }, () => {
-          // const newState = channel.presenceState();
-        })
-        .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-          updateOnlineStatus(key, true);
-        })
-        .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-          updateOnlineStatus(key, false);
-        })
-        .subscribe(async (status) => {
-          if (status === 'SUBSCRIBED') {
-            await channel.track({
-              online_at: new Date().toISOString(),
-              full_name: profile.full_name,
-            });
-          }
-        });
-    }
+    channelRef.current = channel;
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        // sync logic
+      })
+      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+        updateOnlineStatus(key, true);
+      })
+      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+        updateOnlineStatus(key, false);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({
+            online_at: new Date().toISOString(),
+            full_name: profile.full_name,
+          });
+        }
+      });
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+        isSubscribedRef.current = false;
+      }
     };
   }, [user?.id, profile?.id]);
 

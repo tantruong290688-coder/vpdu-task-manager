@@ -14,10 +14,15 @@ export default function Sidebar({ isOpen, onClose }) {
   const { unreadCount, toggleDrawer } = useMessage();
   const themeLabel = { light: 'Sáng', dark: 'Tối', system: 'Theo hệ thống' }[theme] || 'Sáng';
 
+  const sidebarNotifRef = useRef(null);
+  const isSidebarSubscribedRef = useRef(false);
+
   // Lấy số thông báo chưa đọc (dùng query đơn giản, không tạo realtime channel mới)
   const [notifUnread, setNotifUnread] = useState(0);
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || isSidebarSubscribedRef.current) return;
+    
+    isSidebarSubscribedRef.current = true;
     let mounted = true;
     const fetch = async () => {
       const { count } = await supabase
@@ -28,23 +33,27 @@ export default function Sidebar({ isOpen, onClose }) {
       if (mounted) setNotifUnread(count || 0);
     };
     fetch();
+
     // Lắng nghe thông báo mới qua channel riêng
     const channel = supabase.channel(`sidebar_notif_${user.id}`);
+    sidebarNotifRef.current = channel;
     
-    if (channel.state === 'closed' || channel.state === 'joined') {
-      channel
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
-          () => { if (mounted) setNotifUnread(prev => prev + 1); }
-        )
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
-          () => { fetch(); }
-        )
-        .subscribe();
-    }
+    channel
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        () => { if (mounted) setNotifUnread(prev => prev + 1); }
+      )
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        () => { fetch(); }
+      )
+      .subscribe();
 
     return () => { 
       mounted = false; 
-      supabase.removeChannel(channel); 
+      if (sidebarNotifRef.current) {
+        supabase.removeChannel(sidebarNotifRef.current);
+        sidebarNotifRef.current = null;
+        isSidebarSubscribedRef.current = false;
+      }
     };
   }, [user?.id]);
 

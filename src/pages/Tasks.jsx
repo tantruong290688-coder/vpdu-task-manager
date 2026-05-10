@@ -326,6 +326,15 @@ export default function Tasks() {
                 )}
               </button>
 
+              {(profile?.role === 'admin' || profile?.role === 'manager') && (
+                <button
+                  onClick={() => { setEditingTask(null); setIsModalOpen(true); }}
+                  className="flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-[13px] font-extrabold bg-[#dc2626] text-white hover:bg-[#b91c1c] transition-all shadow-[0_4px_12px_rgba(220,38,38,0.3)] shrink-0"
+                >
+                  <Plus size={18} strokeWidth={3} />
+                  Thêm nhiệm vụ
+                </button>
+              )}
             </div>
           </div>
         </div>

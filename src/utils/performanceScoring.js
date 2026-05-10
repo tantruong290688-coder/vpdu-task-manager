@@ -63,10 +63,12 @@ export function calculateTaskScore(task, evaluation = null) {
     }
   }
 
-  // 4. Tinh thần trách nhiệm/phối hợp (Trọng số 15%)
-  let responsibilityScore = 80; 
+  // 4. Khối lượng công việc (Trọng số 15%)
+  let workloadScore = 80; 
   if (task.responsibility_score !== null && task.responsibility_score !== undefined) {
-    responsibilityScore = task.responsibility_score;
+    workloadScore = task.responsibility_score;
+  } else if (task.workload_score !== null && task.workload_score !== undefined) {
+    workloadScore = task.workload_score;
   }
 
   // 5. Thưởng/Phạt (Priority, Returns, Reminders)
@@ -77,19 +79,21 @@ export function calculateTaskScore(task, evaluation = null) {
   if (task.return_count > 0) penalty += (task.return_count * 5);
   if (task.reminder_count > 0) penalty += (task.reminder_count * 2);
 
-  // TỔNG ĐIỂM NHIỆM VỤ (Cân bằng lại trọng số)
-  const total = (qualityScore * 0.40) + (progressScore * 0.25) + (completionScore * 0.20) + (responsibilityScore * 0.15) + priorityBonus - penalty;
+  // TỔNG ĐIỂM NHIỆM VỤ (Công thức chuẩn 100% trọng số)
+  // Điểm tổng = (Chất lượng × 40%) + (Tiến độ × 25%) + (Tỷ lệ hoàn thành × 20%) + (Khối lượng × 15%) + Điểm cộng - Điểm trừ
+  const total = (qualityScore * 0.40) + (progressScore * 0.25) + (completionScore * 0.20) + (workloadScore * 0.15) + priorityBonus - penalty;
   
   return {
     total: Math.round(Math.max(0, Math.min(100, total))),
     breakdown: {
-      quality: Math.round(qualityScore),
-      progress: Math.round(progressScore),
-      completion: Math.round(completionScore),
-      responsibility: Math.round(responsibilityScore),
+      quality: qualityScore,
+      progress: progressScore,
+      completion: task.progress !== null && task.progress !== undefined ? task.progress : null,
+      workload: workloadScore,
       priorityBonus,
       penalty
     },
+    formula: `${qualityScore}×40% + ${progressScore}×25% + ${completionRate}×20% + ${workloadScore}×15% + ${priorityBonus} - ${penalty} = ${Math.round(total)}`,
     warnings: {
       quality: qualityWarning
     }

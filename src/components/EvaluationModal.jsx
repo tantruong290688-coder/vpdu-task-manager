@@ -222,7 +222,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         }
       }
 
-      toast.success('Đã chốt đánh giá chính thức');
+      toast.success('Đã chốt đánh giá. Nhiệm vụ đã được lưu vào hồ sơ hoàn thành.');
       
       const { data: latestEvals } = await supabase.from('task_evaluations').select('*').eq('task_id', task.id);
       

@@ -97,7 +97,18 @@ async function fetchTasksFromDB({ filters, sortConfig, currentPage, filterParam,
   if (filters.assigneeId)      query = query.eq('assignee_id', filters.assigneeId);
   if (filters.workArea)        query = query.eq('work_area', filters.workArea);
   if (filters.taskGroup)       query = query.eq('task_group', filters.taskGroup);
-  if (filters.status)          query = query.eq('status', filters.status);
+  if (filters.status) {
+    if (filters.status === 'finalized') {
+      query = query.eq('status', 'completed').not('evaluation_score', 'is', null);
+    } else if (filters.status === 'pending_eval') {
+      query = query.eq('status', 'completed').is('evaluation_score', null);
+    } else if (filters.status === 'completed') {
+      // Khi chọn "Hoàn thành (Chưa chốt)" từ bộ lọc nâng cao
+      query = query.eq('status', 'completed').is('evaluation_score', null);
+    } else {
+      query = query.eq('status', filters.status);
+    }
+  }
   if (filters.priority)        query = query.eq('priority', filters.priority);
   if (filters.evaluationPeriod) {
     query = applySmartPeriodFilter(query, filters.evaluationPeriod);

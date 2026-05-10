@@ -396,14 +396,12 @@ export default function StaffPerformance() {
              </div>
 
              <div className="bg-white dark:bg-slate-900 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
-                <h3 className="text-[14px] font-black text-slate-800 dark:text-white uppercase tracking-tight mb-6">Cơ cấu tính điểm</h3>
+                <h3 className="text-[14px] font-black text-slate-800 dark:text-white uppercase tracking-tight mb-6">Cơ cấu tính điểm cán bộ</h3>
                 <div className="space-y-3">
                    {[
-                     { label: 'Chất lượng (đánh giá)', weight: '40%', color: 'bg-indigo-500' },
-                     { label: 'Đúng hạn & tiến độ', weight: '25%', color: 'bg-blue-500' },
-                     { label: 'Khối lượng & độ khó', weight: '20%', color: 'bg-amber-500' },
-                     { label: 'Tỷ lệ hoàn thành', weight: '20%', color: 'bg-emerald-500' },
-                     { label: 'Phối hợp', weight: '10%', color: 'bg-slate-500' }
+                     { label: 'Nhiệm vụ chủ trì (TB)', weight: '70%', color: 'bg-indigo-500' },
+                     { label: 'Khối lượng công việc', weight: '20%', color: 'bg-amber-500' },
+                     { label: 'Nhiệm vụ phối hợp', weight: '10%', color: 'bg-blue-500' }
                    ].map((item, i) => (
                      <div key={i} className="flex items-center justify-between group">
                         <div className="flex items-center gap-2">
@@ -413,6 +411,12 @@ export default function StaffPerformance() {
                         <span className="text-[13px] font-black text-slate-800 dark:text-white">{item.weight}</span>
                      </div>
                    ))}
+                </div>
+                <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                   <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-tighter mb-1">Công thức tổng hợp</p>
+                   <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                     Điểm tổng hợp = (TB điểm chủ trì × 70%) + (TB điểm phối hợp × 10%) + (Điểm khối lượng × 20%)
+                   </p>
                 </div>
                 <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
                    <div className="flex items-start gap-2">
@@ -651,7 +655,7 @@ function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
                               </div>
                            </div>
 
-                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-50 dark:border-slate-700/50">
+                           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4 pt-4 border-t border-slate-50 dark:border-slate-700/50">
                               <div className="space-y-1">
                                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Chất lượng (40%)</p>
                                  <div className="flex items-center gap-1.5">
@@ -664,16 +668,32 @@ function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
                                  <span className="text-[13px] font-black text-slate-700 dark:text-slate-200">{scoreObj.breakdown.progress}</span>
                               </div>
                               <div className="space-y-1">
-                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hoàn thành (20%)</p>
-                                 <span className="text-[13px] font-black text-slate-700 dark:text-slate-200">{scoreObj.breakdown.completion}%</span>
+                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tỷ lệ hoàn thành (20%)</p>
+                                 <span className="text-[13px] font-black text-slate-700 dark:text-slate-200">
+                                    {scoreObj.breakdown.completion !== null ? `${scoreObj.breakdown.completion}%` : 'Chưa cập nhật'}
+                                 </span>
                               </div>
                               <div className="space-y-1">
-                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Cộng/Trừ</p>
+                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Khối lượng (15%)</p>
+                                 <span className="text-[13px] font-black text-slate-700 dark:text-slate-200">{scoreObj.breakdown.workload}</span>
+                              </div>
+                              <div className="space-y-1">
+                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Điểm Cộng/Trừ</p>
                                  <div className="flex items-center gap-1">
                                     <span className="text-[13px] font-black text-emerald-600">+{scoreObj.breakdown.priorityBonus}</span>
                                     <span className="text-[13px] font-black text-rose-600">-{scoreObj.breakdown.penalty}</span>
                                  </div>
                               </div>
+                              <div className="space-y-1">
+                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tổng điểm</p>
+                                 <span className="text-[13px] font-black text-indigo-600">{scoreObj.total}</span>
+                              </div>
+                           </div>
+                           
+                           <div className="mt-3 py-2 px-4 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-800">
+                              <p className="text-[10px] font-bold text-slate-500 italic">
+                                Công thức: {scoreObj.formula}
+                              </p>
                            </div>
                         </div>
                       );

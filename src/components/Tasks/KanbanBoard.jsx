@@ -41,10 +41,37 @@ export default function KanbanBoard({ tasks, onStatusChange, onTaskClick, profil
 
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) : '—';
 
+  const isEvaluationFinalized = (task) => {
+    const finalizedStatuses = [
+      'Đã đánh giá', 'Đã chốt', 'Đã chốt đánh giá', 'Hoàn thành đánh giá',
+      'final_approved', 'approved', 'evaluated', 'completed_evaluation', 'finalized'
+    ];
+
+    return (
+      finalizedStatuses.includes(task.evaluation_status) ||
+      (task.evaluation && finalizedStatuses.includes(task.evaluation.status)) ||
+      (task.evaluation_score !== null && task.evaluation_score !== undefined) ||
+      task.evaluated_at
+    );
+  };
+
   return (
     <div className="flex flex-col md:flex-row gap-6 h-[calc(100vh-250px)] min-h-[500px]">
       {COLUMNS.map(col => {
-        const colTasks = tasks.filter(t => t.status === col.id);
+        const colTasks = tasks.filter(t => {
+          if (col.id === 'completed') {
+            return t.status === 'completed' && !isEvaluationFinalized(t);
+          }
+          // Normalize other statuses if needed
+          if (col.id === 'pending') {
+            return ['pending', 'todo', 'backlog'].includes(t.status);
+          }
+          if (col.id === 'in_progress') {
+            return ['in_progress', 'processing'].includes(t.status);
+          }
+          return t.status === col.id;
+        });
+
         return (
           <div 
             key={col.id} 
@@ -139,11 +166,13 @@ export default function KanbanBoard({ tasks, onStatusChange, onTaskClick, profil
                 })}
 
                 {colTasks.length === 0 && (
-                   <div className="py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center gap-2 opacity-50">
+                   <div className="py-12 px-4 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center gap-2 opacity-50">
                       <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                         <Plus size={16} className="text-slate-400" />
                       </div>
-                      <span className="text-[12px] font-medium text-slate-400">Thả vào đây</span>
+                      <span className="text-[12px] font-medium text-slate-400">
+                        {col.id === 'completed' ? 'Không có nhiệm vụ hoàn thành đang chờ đánh giá.' : 'Thả vào đây'}
+                      </span>
                    </div>
                 )}
               </div>

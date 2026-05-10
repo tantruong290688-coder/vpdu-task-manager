@@ -187,7 +187,9 @@ export default function AdvancedFilter({ isOpen, onClose, onApply, activeCount, 
                 <option value="">-- Tất cả --</option>
                 <option value="pending">Chờ xử lý</option>
                 <option value="in_progress">Đang thực hiện</option>
-                <option value="completed">Hoàn thành</option>
+                <option value="completed">Hoàn thành (Chưa chốt)</option>
+                <option value="finalized">Đã chốt điểm</option>
+                <option value="pending_eval">Đang chờ đánh giá</option>
                 <option value="overdue">Quá hạn</option>
               </select>
             </div>

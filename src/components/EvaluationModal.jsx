@@ -361,8 +361,8 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
 
                                 {isSelected && (
                                   <div className="px-6 pb-6 pt-2 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-2">
-                                     {/* Proposal Form (For Main Assignee) */}
-                                     {isMainAssignee && (!evalData || evalData.status === 'pending') && (
+                                     {/* Proposal Form (For Main Assignee or Manager) */}
+                                     {(isMainAssignee || isManager) && (!evalData || evalData.status === 'pending') && (
                                        <div className="space-y-4">
                                           <div className="flex items-center gap-2 mb-2">
                                              <Send size={14} className="text-indigo-600" />
@@ -397,13 +397,13 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                             disabled={loading || !propScore}
                                             className="w-full py-3 bg-indigo-600 text-white rounded-2xl text-[13px] font-black shadow-lg shadow-indigo-600/20 disabled:opacity-50"
                                           >
-                                            Gửi đề xuất cho Lãnh đạo
+                                            {isAdmin ? 'Lưu đánh giá cơ sở' : 'Gửi đề xuất cho Lãnh đạo'}
                                           </button>
                                        </div>
                                      )}
 
-                                     {/* Review Form (For Leaders) */}
-                                     {isLeader && evalData?.status === 'waiting_final_review' && (
+                                     {/* Review Form (For Admin only - Finalize) */}
+                                     {isAdmin && evalData?.status === 'waiting_final_review' && (
                                        <div className="space-y-4">
                                           <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 mb-4">
                                              <div className="flex justify-between mb-2">

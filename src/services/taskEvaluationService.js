@@ -69,10 +69,11 @@ export const taskEvaluationService = {
   /**
    * 3. Admin chốt điểm cuối cùng hoặc điều chỉnh điểm đã chốt
    */
-  async finalizeByAdmin({ evaluationId, userId, score, comment, adjustmentReason, progressLevel, progressScore, finalizedBy, oldScore, taskId, adjustedByName }) {
+  async finalizeByAdmin({ evaluationId, userId, role, score, comment, adjustmentReason, progressLevel, progressScore, finalizedBy, oldScore, taskId, adjustedByName }) {
     const payload = {
       task_id: taskId,
       evaluated_user_id: userId,
+      evaluated_role: role || 'collaborator',
       final_score: score,
       final_comment: comment,
       final_adjustment_reason: adjustmentReason,

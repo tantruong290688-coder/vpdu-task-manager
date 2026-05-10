@@ -167,7 +167,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
   };
 
   // 3. Admin chốt điểm
-  const handleAdminFinalize = async (evalId, userId, proposedScore, selectedProgressLevel, currentFinalScore, newScore, newComment, newReason) => {
+  const handleAdminFinalize = async (evalId, userId, role, proposedScore, selectedProgressLevel, currentFinalScore, newScore, newComment, newReason) => {
     const scoreVal = parseInt(newScore || finalScore);
     if (isNaN(scoreVal)) {
       toast.error('Vui lòng nhập điểm cuối cùng');
@@ -189,6 +189,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
       const result = await taskEvaluationService.finalizeByAdmin({
         evaluationId: evalId,
         userId: userId,
+        role: role,
         score: scoreVal,
         comment: commentVal,
         adjustmentReason: reasonVal,
@@ -693,6 +694,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                  <AdminRow 
                                    user={task.assignee} 
                                    roleLabel="Chính" 
+                                   roleType="main_assignee"
                                    roleCls="text-indigo-600 bg-indigo-50"
                                    evaluation={evaluations.find(e => e.evaluated_user_id === task.assignee_id)}
                                    onFinalize={handleAdminFinalize}
@@ -705,6 +707,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                       key={c.profiles?.id || c.user_id}
                                       user={c.profiles} 
                                       roleLabel="Phối hợp" 
+                                      roleType="collaborator"
                                       roleCls="text-blue-600 bg-blue-50"
                                       evaluation={evaluations.find(e => e.evaluated_user_id === (c.profiles?.id || c.user_id))}
                                       onFinalize={handleAdminFinalize}
@@ -763,7 +766,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
 /**
  * Sub-component for Admin Table Row
  */
-function AdminRow({ user, roleLabel, roleCls, evaluation, onFinalize, loading }) {
+function AdminRow({ user, roleLabel, roleType, roleCls, evaluation, onFinalize, loading }) {
    const [score, setScore] = useState('');
    const [reason, setReason] = useState('');
    const [comment, setComment] = useState('');
@@ -854,7 +857,7 @@ function AdminRow({ user, roleLabel, roleCls, evaluation, onFinalize, loading })
                   />
                   <div className="flex gap-2">
                      <button 
-                       onClick={() => onFinalize(evaluation?.id, user.id, proposedScore, progressLevel, evaluation?.final_score, score, comment, reason).then(() => setIsEditing(false))}
+                       onClick={() => onFinalize(evaluation?.id, user.id, roleType, proposedScore, progressLevel, evaluation?.final_score, score, comment, reason).then(() => setIsEditing(false))}
                        className="flex-1 py-2 bg-emerald-600 text-white rounded-xl text-[11px] font-black"
                      >Lưu</button>
                      <button 

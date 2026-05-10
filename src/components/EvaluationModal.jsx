@@ -67,19 +67,25 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
     e.preventDefault();
     if (!isLeader) return;
     
+    const scoreVal = parseInt(mainScore);
+    if (isNaN(scoreVal)) {
+      toast.error('Vui lòng nhập điểm hợp lệ (0-100)');
+      return;
+    }
+
     setLoading(true);
     try {
       await taskEvaluationService.evaluateMainAssignee({
         taskId: task.id,
         userId: task.assignee_id,
-        score: parseInt(mainScore),
+        score: scoreVal,
         comment: mainComment,
         reviewedBy: profile.id
       });
 
       // Update legacy fields for compatibility
       await supabase.from('tasks').update({
-        evaluation_score: parseInt(mainScore),
+        evaluation_score: scoreVal,
         evaluation_comment: mainComment,
         evaluated_by: profile.id,
         evaluated_at: new Date().toISOString()
@@ -96,6 +102,12 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
   };
 
   const handleProposeCollab = async (collabId) => {
+    const scoreVal = parseInt(propScore);
+    if (isNaN(scoreVal)) {
+      toast.error('Vui lòng nhập điểm đề xuất hợp lệ');
+      return;
+    }
+
     setLoading(true);
     try {
       await taskEvaluationService.upsertProposal({
@@ -103,7 +115,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         userId: collabId,
         role: 'collaborator',
         proposedBy: profile.id,
-        score: parseInt(propScore),
+        score: scoreVal,
         comment: propComment,
         participationLevel: propLevel
       });
@@ -121,7 +133,13 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
   };
 
   const handleFinalizeCollab = async (evalId, pScore) => {
-    if (parseInt(finalScore) !== pScore && !adjReason) {
+    const scoreVal = parseInt(finalScore);
+    if (isNaN(scoreVal)) {
+      toast.error('Vui lòng nhập điểm cuối cùng hợp lệ');
+      return;
+    }
+
+    if (scoreVal !== pScore && !adjReason) {
       toast.error('Vui lòng nhập lý do điều chỉnh điểm');
       return;
     }
@@ -130,7 +148,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
     try {
       await taskEvaluationService.finalizeEvaluation({
         evaluationId: evalId,
-        score: parseInt(finalScore),
+        score: scoreVal,
         comment: finalComment,
         adjustmentReason: adjReason,
         reviewedBy: profile.id

@@ -7,7 +7,7 @@ export const taskEvaluationService = {
   async getByTaskId(taskId) {
     const { data, error } = await supabase
       .from('task_evaluations')
-      .select('*, profiles:evaluated_user_id(full_name, role)')
+      .select('*, profiles!evaluated_user_id(full_name, role)')
       .eq('task_id', taskId);
     
     if (error) throw error;

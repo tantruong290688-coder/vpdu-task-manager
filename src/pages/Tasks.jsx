@@ -502,9 +502,10 @@ export default function Tasks() {
       />
 
       <EvaluationModal
+        isOpen={!!evalModalTask}
         task={evalModalTask}
         onClose={() => setEvalModalTask(null)}
-        onSuccess={() => { 
+        onEvaluated={() => { 
           queryClient.invalidateQueries({ queryKey: ['tasks'] });
           queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
           setEvalModalTask(null); 

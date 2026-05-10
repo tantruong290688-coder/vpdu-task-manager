@@ -99,3 +99,88 @@ export function getDashboardEmptyState(filterType) {
     default: return 'Không có nhiệm vụ nào';
   }
 }
+
+/**
+ * Hàm tạo bộ lọc thông minh cho Kỳ đánh giá (Month, Quarter, Year)
+ * Hỗ trợ đồng bộ logic giữa Danh sách và Báo cáo
+ */
+export function applySmartPeriodFilter(query, period) {
+  if (!period) return query;
+
+  // 1. Phân tích định dạng kỳ
+  const isYear = /^\d{4}$/.test(period);
+  const isQuarter = /^\d{4}-Q[1-4]$/.test(period);
+  const isMonth = /^\d{4}-\d{2}$/.test(period);
+
+  if (isYear) {
+    const start = `${period}-01-01`;
+    const end = `${period}-12-31`;
+    // Lọc theo evaluation_period khớp hoặc ngày nằm trong năm
+    return query.or(`evaluation_period.ilike.${period}%,and(due_date.gte.${start},due_date.lte.${end})`);
+  }
+
+  if (isQuarter) {
+    const [year, q] = period.split('-Q');
+    const quarter = parseInt(q);
+    const startMonth = (quarter - 1) * 3 + 1;
+    const endMonth = quarter * 3;
+    const start = `${year}-${String(startMonth).padStart(2, '0')}-01`;
+    const end = new Date(year, endMonth, 0).toISOString().split('T')[0];
+    
+    return query.or(`evaluation_period.eq.${period},and(due_date.gte.${start},due_date.lte.${end})`);
+  }
+
+  if (isMonth) {
+    const [year, month] = period.split('-');
+    const start = `${year}-${month}-01`;
+    const end = new Date(year, parseInt(month), 0).toISOString().split('T')[0];
+
+    return query.or(`evaluation_period.eq.${period},and(due_date.gte.${start},due_date.lte.${end})`);
+  }
+
+  // Fallback nếu là nhãn chung (Tháng/Quý/Năm)
+  return query.eq('evaluation_period', period);
+}
+
+/**
+ * Lọc mảng nhiệm vụ theo kỳ (client-side)
+ * Đồng bộ với logic applySmartPeriodFilter
+ */
+export function filterTasksByPeriod(tasks, period) {
+  if (!period || !tasks) return tasks;
+
+  const isYear = /^\d{4}$/.test(period);
+  const isQuarter = /^\d{4}-Q[1-4]$/.test(period);
+  const isMonth = /^\d{4}-\d{2}$/.test(period);
+
+  return tasks.filter(t => {
+    // 1. Khớp trực tiếp nhãn
+    if (t.evaluation_period === period) return true;
+    if (isYear && t.evaluation_period?.startsWith(period)) return true;
+
+    // 2. Khớp theo ngày tháng
+    const taskDate = t.completed_at || t.due_date;
+    if (!taskDate) return false;
+
+    const d = new Date(taskDate);
+    const tYear = d.getFullYear();
+    const tMonth = d.getMonth() + 1;
+
+    if (isYear) {
+      return tYear === parseInt(period);
+    }
+
+    if (isQuarter) {
+      const [pYear, pQ] = period.split('-Q');
+      const quarter = Math.ceil(tMonth / 3);
+      return tYear === parseInt(pYear) && quarter === parseInt(pQ);
+    }
+
+    if (isMonth) {
+      const [pYear, pMonth] = period.split('-').map(Number);
+      return tYear === pYear && tMonth === pMonth;
+    }
+
+    return false;
+  });
+}

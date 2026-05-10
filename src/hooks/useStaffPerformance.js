@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { calculateStaffPerformance } from '../utils/performanceScoring';
+import { filterTasksByPeriod } from '../lib/taskFilters';
 
 export function useStaffPerformance(period = null) {
   return useQuery({
@@ -14,7 +15,7 @@ export function useStaffPerformance(period = null) {
 
       if (pError) throw pError;
 
-      // 2. Lấy toàn bộ nhiệm vụ (chúng ta sẽ lọc theo kỳ ở client để bao quát cả completed_at)
+      // 2. Lấy toàn bộ nhiệm vụ
       const { data: tasks, error: tError } = await supabase
         .from('tasks')
         .select(`
@@ -26,12 +27,8 @@ export function useStaffPerformance(period = null) {
 
       if (tError) throw tError;
 
-      // Lọc tasks theo kỳ (khớp evaluation_period hoặc tháng hoàn thành)
-      const filteredTasks = tasks.filter(t => {
-        if (t.evaluation_period === period) return true;
-        if (t.completed_at && t.completed_at.startsWith(period)) return true;
-        return false;
-      });
+      // Lọc tasks theo kỳ
+      const filteredTasks = filterTasksByPeriod(tasks, period);
 
       // 3. Lấy dữ liệu phối hợp
       const { data: collaborators, error: cError } = await supabase
@@ -96,7 +93,17 @@ export function useStaffPerformance(period = null) {
         };
       });
 
-      return performanceData.sort((a, b) => b.displayScore - a.displayScore);
+      const result = performanceData.sort((a, b) => b.displayScore - a.displayScore);
+      
+      return {
+        performanceData: result,
+        debug: {
+          totalTasksFetched: tasks?.length || 0,
+          tasksInPeriod: filteredTasks?.length || 0,
+          period: period,
+          timestamp: new Date().toISOString()
+        }
+      };
     }
   });
 }

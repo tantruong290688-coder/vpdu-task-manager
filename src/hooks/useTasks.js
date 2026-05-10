@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import { getDashboardFilter } from '../lib/taskFilters';
+import { getDashboardFilter, applySmartPeriodFilter } from '../lib/taskFilters';
 
 const ROWS_PER_PAGE = 10;
 
@@ -99,7 +99,9 @@ async function fetchTasksFromDB({ filters, sortConfig, currentPage, filterParam,
   if (filters.taskGroup)       query = query.eq('task_group', filters.taskGroup);
   if (filters.status)          query = query.eq('status', filters.status);
   if (filters.priority)        query = query.eq('priority', filters.priority);
-  if (filters.evaluationPeriod) query = query.eq('evaluation_period', filters.evaluationPeriod);
+  if (filters.evaluationPeriod) {
+    query = applySmartPeriodFilter(query, filters.evaluationPeriod);
+  }
   if (filters.taskType)        query = query.eq('task_type', filters.taskType);
   if (filters.assignedDateFrom) query = query.gte('assigned_date', filters.assignedDateFrom);
   if (filters.assignedDateTo)  query = query.lte('assigned_date', filters.assignedDateTo);

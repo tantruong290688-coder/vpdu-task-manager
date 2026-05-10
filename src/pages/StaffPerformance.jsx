@@ -33,15 +33,17 @@ export default function StaffPerformance() {
     return selectedPeriod.split('-')[0]; // Year
   }, [periodType, selectedPeriod]);
 
-  const { data: performanceData, isLoading, refetch } = useStaffPerformance(periodKey);
+  const { data, isLoading, refetch } = useStaffPerformance(periodKey);
+  const performanceData = data?.performanceData || [];
+  const debugInfo = data?.debug;
 
   const isAdmin = profile?.role === ROLES.ADMIN;
   const isManager = profile?.role === ROLES.MANAGER;
   const canReview = isAdmin || isManager;
 
-  const filteredData = performanceData?.filter(p => 
+  const filteredData = performanceData.filter(p => 
     p.full_name.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  );
 
   const stats = useMemo(() => {
     if (!performanceData || performanceData.length === 0) {
@@ -99,7 +101,6 @@ export default function StaffPerformance() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20">
-      {/* Header & Filters */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 pt-8 pb-6 px-4 sm:px-8">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
           <div className="flex items-center gap-4">
@@ -112,35 +113,107 @@ export default function StaffPerformance() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-                {['month', 'quarter', 'year'].map(t => (
-                  <button
-                    key={t}
-                    onClick={() => setPeriodType(t)}
-                    className={`px-4 py-1.5 rounded-lg text-[12px] font-black transition-all ${
-                      periodType === t 
-                        ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm' 
-                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                    }`}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+              {[
+                { id: 'month', label: 'Tháng', icon: Calendar },
+                { id: 'quarter', label: 'Quý', icon: Activity },
+                { id: 'year', label: 'Năm', icon: Target }
+              ].map(type => (
+                <button
+                  key={type.id}
+                  onClick={() => setPeriodType(type.id)}
+                  className={`
+                    flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-bold transition-all duration-200
+                    ${periodType === type.id 
+                      ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' 
+                      : 'text-slate-500 hover:text-slate-700'}
+                  `}
+                >
+                  <type.icon size={14} />
+                  {type.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Diagnostic Info for Admins */}
+            {isAdmin && debugInfo && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-xl text-[11px] text-amber-700 dark:text-amber-400 font-bold">
+                <Info size={14} />
+                <span>Dữ liệu: {debugInfo.tasksInPeriod}/{debugInfo.totalTasksFetched} nv</span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 p-1 rounded-xl shadow-sm">
+              {periodType === 'month' && (
+                <input 
+                  type="month"
+                  value={selectedPeriod}
+                  onChange={(e) => setSelectedPeriod(e.target.value)}
+                  className="bg-transparent border-none text-[13px] font-bold text-slate-900 dark:text-white focus:ring-0 px-3 py-1.5"
+                />
+              )}
+
+              {periodType === 'quarter' && (
+                <div className="flex items-center gap-1">
+                  <select
+                    value={selectedPeriod.split('-')[1]}
+                    onChange={(e) => {
+                      const year = selectedPeriod.split('-')[0];
+                      const month = e.target.value;
+                      setSelectedPeriod(`${year}-${month}`);
+                    }}
+                    className="bg-transparent border-none text-[13px] font-bold text-slate-900 dark:text-white focus:ring-0 px-3 py-1.5 cursor-pointer"
                   >
-                    {t === 'month' ? 'Tháng' : t === 'quarter' ? 'Quý' : 'Năm'}
-                  </button>
-                ))}
-             </div>
-             <input 
-               type={periodType === 'month' ? 'month' : 'number'}
-               value={periodType === 'year' ? selectedPeriod.split('-')[0] : selectedPeriod}
-               onChange={(e) => setSelectedPeriod(periodType === 'year' ? `${e.target.value}-01` : e.target.value)}
-               className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl text-[13px] font-bold outline-none focus:ring-2 focus:ring-indigo-500/20"
-             />
-             <button 
-               onClick={handleExportExcel}
-               className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[13px] font-black shadow-lg shadow-emerald-600/20 transition-all"
-             >
-               <Download size={16} />
-               <span>Xuất Excel</span>
-             </button>
+                    <option value="03" className="text-slate-900">Quý 1 (T1-T3)</option>
+                    <option value="06" className="text-slate-900">Quý 2 (T4-T6)</option>
+                    <option value="09" className="text-slate-900">Quý 3 (T7-T9)</option>
+                    <option value="12" className="text-slate-900">Quý 4 (T10-T12)</option>
+                  </select>
+                  <input 
+                    type="number"
+                    min="2020"
+                    max="2030"
+                    value={selectedPeriod.split('-')[0]}
+                    onChange={(e) => {
+                      const month = selectedPeriod.split('-')[1];
+                      setSelectedPeriod(`${e.target.value}-${month}`);
+                    }}
+                    className="w-20 bg-slate-50 dark:bg-slate-800 border-none rounded-lg text-[13px] font-bold text-slate-900 dark:text-white focus:ring-0 px-2 py-1.5"
+                  />
+                </div>
+              )}
+
+              {periodType === 'year' && (
+                <input 
+                  type="number"
+                  min="2020"
+                  max="2030"
+                  value={selectedPeriod.split('-')[0]}
+                  onChange={(e) => {
+                    const month = selectedPeriod.split('-')[1];
+                    setSelectedPeriod(`${e.target.value}-${month}`);
+                  }}
+                  className="bg-transparent border-none text-[13px] font-bold text-slate-900 dark:text-white focus:ring-0 px-3 py-1.5"
+                />
+              )}
+            </div>
+
+            <button 
+              onClick={() => refetch()}
+              className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm text-slate-500 hover:text-indigo-600 group"
+              title="Cập nhật dữ liệu"
+            >
+              <Activity size={18} className="group-active:animate-spin" />
+            </button>
+
+            <button 
+              onClick={handleExportExcel}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[13px] font-black shadow-lg shadow-emerald-600/20 transition-all"
+            >
+              <Download size={16} />
+              <span>Xuất Excel</span>
+            </button>
           </div>
         </div>
 
@@ -371,9 +444,9 @@ export default function StaffPerformance() {
 function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
   const radarData = [
     { subject: 'Chất lượng', A: staff.stats.avgPrimary, fullMark: 100 },
-    { subject: 'Tiến độ', A: 85, fullMark: 100 }, // Placeholder for detailed progress score
+    { subject: 'Tiến độ', A: staff.stats.avgProgress || 0, fullMark: 100 },
     { subject: 'Khối lượng', A: staff.stats.workload, fullMark: 100 },
-    { subject: 'Phối hợp', A: staff.stats.avgCollab * 2, fullMark: 100 }, // Scaled
+    { subject: 'Phối hợp', A: staff.stats.avgCollab * 2, fullMark: 100 }, 
   ];
 
   const [leaderComment, setLeaderComment] = useState(staff.officialReview?.leader_comment || '');

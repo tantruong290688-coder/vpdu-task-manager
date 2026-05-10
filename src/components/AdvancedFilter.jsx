@@ -206,10 +206,81 @@ export default function AdvancedFilter({ isOpen, onClose, onApply, activeCount, 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Kỳ đánh giá</label>
-              <select value={filters.evaluationPeriod} onChange={e => set('evaluationPeriod', e.target.value)} className={inputCls}>
-                <option value="">-- Tất cả --</option>
-                {EVAL_PERIODS.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
+              <div className="space-y-2">
+                <select 
+                  value={filters.evaluationPeriodType || (filters.evaluationPeriod?.includes('-Q') ? 'Quý' : /^\d{4}-\d{2}$/.test(filters.evaluationPeriod) ? 'Tháng' : /^\d{4}$/.test(filters.evaluationPeriod) ? 'Năm' : filters.evaluationPeriod ? 'Nhãn' : '')} 
+                  onChange={e => {
+                    const type = e.target.value;
+                    set('evaluationPeriodType', type);
+                    if (type === '') set('evaluationPeriod', '');
+                    else if (type === 'Tháng') set('evaluationPeriod', new Date().toISOString().slice(0, 7));
+                    else if (type === 'Quý') set('evaluationPeriod', `${new Date().getFullYear()}-Q${Math.ceil((new Date().getMonth() + 1) / 3)}`);
+                    else if (type === 'Năm') set('evaluationPeriod', new Date().getFullYear().toString());
+                    else set('evaluationPeriod', '');
+                  }} 
+                  className={inputCls}
+                >
+                  <option value="">-- Tất cả --</option>
+                  <option value="Tháng">Theo Tháng cụ thể</option>
+                  <option value="Quý">Theo Quý cụ thể</option>
+                  <option value="Năm">Theo Năm cụ thể</option>
+                  <option value="Nhãn">Theo Nhãn chung</option>
+                </select>
+
+                {filters.evaluationPeriodType === 'Tháng' && (
+                  <input 
+                    type="month" 
+                    value={filters.evaluationPeriod} 
+                    onChange={e => set('evaluationPeriod', e.target.value)} 
+                    className={inputCls} 
+                  />
+                )}
+
+                {filters.evaluationPeriodType === 'Quý' && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <input 
+                      type="number" 
+                      placeholder="Năm"
+                      value={filters.evaluationPeriod.split('-Q')[0]} 
+                      onChange={e => set('evaluationPeriod', `${e.target.value}-Q${filters.evaluationPeriod.split('-Q')[1] || '1'}`)}
+                      className={inputCls}
+                    />
+                    <select 
+                      value={filters.evaluationPeriod.split('-Q')[1]} 
+                      onChange={e => set('evaluationPeriod', `${filters.evaluationPeriod.split('-Q')[0]}-Q${e.target.value}`)}
+                      className={inputCls}
+                    >
+                      <option value="1">Quý 1</option>
+                      <option value="2">Quý 2</option>
+                      <option value="3">Quý 3</option>
+                      <option value="4">Quý 4</option>
+                    </select>
+                  </div>
+                )}
+
+                {filters.evaluationPeriodType === 'Năm' && (
+                  <input 
+                    type="number" 
+                    placeholder="Nhập năm (VD: 2026)"
+                    value={filters.evaluationPeriod} 
+                    onChange={e => set('evaluationPeriod', e.target.value)} 
+                    className={inputCls} 
+                  />
+                )}
+
+                {filters.evaluationPeriodType === 'Nhãn' && (
+                  <select 
+                    value={filters.evaluationPeriod} 
+                    onChange={e => set('evaluationPeriod', e.target.value)} 
+                    className={inputCls}
+                  >
+                    <option value="">-- Chọn nhãn --</option>
+                    <option value="Tháng">Nhãn "Tháng"</option>
+                    <option value="Quý">Nhãn "Quý"</option>
+                    <option value="Năm">Nhãn "Năm"</option>
+                  </select>
+                )}
+              </div>
             </div>
             <div>
               <label className={labelCls}>Loại nhiệm vụ</label>

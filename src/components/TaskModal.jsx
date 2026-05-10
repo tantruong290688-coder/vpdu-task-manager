@@ -560,13 +560,79 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
               </div>
               <div>
                 <label className="block text-[13px] font-bold text-slate-800 mb-2">Kỳ đánh giá</label>
-                <select value={evaluationPeriod} onChange={e => setEvaluationPeriod(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none text-[14px] font-medium text-slate-700">
-                  <option value="">-- Chọn --</option>
-                  <option value="Tháng">Tháng</option>
-                  <option value="Quý">Quý</option>
-                  <option value="Năm">Năm</option>
-                </select>
+                <div className="space-y-2">
+                  <select 
+                    value={evaluationPeriod === 'Tháng' || evaluationPeriod === 'Quý' || evaluationPeriod === 'Năm' ? 'Nhãn' : evaluationPeriod?.includes('-Q') ? 'Quý' : /^\d{4}-\d{2}$/.test(evaluationPeriod) ? 'Tháng' : /^\d{4}$/.test(evaluationPeriod) ? 'Năm' : ''} 
+                    onChange={e => {
+                      const type = e.target.value;
+                      if (type === '') setEvaluationPeriod('');
+                      else if (type === 'Tháng') setEvaluationPeriod(new Date().toISOString().slice(0, 7));
+                      else if (type === 'Quý') setEvaluationPeriod(`${new Date().getFullYear()}-Q${Math.ceil((new Date().getMonth() + 1) / 3)}`);
+                      else if (type === 'Năm') setEvaluationPeriod(new Date().getFullYear().toString());
+                      else setEvaluationPeriod('Tháng');
+                    }}
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none text-[14px] font-medium text-slate-700"
+                  >
+                    <option value="">-- Chọn kiểu kỳ --</option>
+                    <option value="Tháng">Tháng cụ thể (YYYY-MM)</option>
+                    <option value="Quý">Quý cụ thể (YYYY-QX)</option>
+                    <option value="Năm">Năm cụ thể (YYYY)</option>
+                    <option value="Nhãn">Nhãn chung (Tháng/Quý/Năm)</option>
+                  </select>
+
+                  {/^\d{4}-\d{2}$/.test(evaluationPeriod) && (
+                    <input 
+                      type="month" 
+                      value={evaluationPeriod} 
+                      onChange={e => setEvaluationPeriod(e.target.value)} 
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none text-[14px] font-medium text-slate-700"
+                    />
+                  )}
+
+                  {evaluationPeriod?.includes('-Q') && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <input 
+                        type="number" 
+                        placeholder="Năm"
+                        value={evaluationPeriod.split('-Q')[0]} 
+                        onChange={e => setEvaluationPeriod(`${e.target.value}-Q${evaluationPeriod.split('-Q')[1] || '1'}`)}
+                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none text-[14px] font-medium text-slate-700"
+                      />
+                      <select 
+                        value={evaluationPeriod.split('-Q')[1]} 
+                        onChange={e => setEvaluationPeriod(`${evaluationPeriod.split('-Q')[0]}-Q${e.target.value}`)}
+                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none text-[14px] font-medium text-slate-700"
+                      >
+                        <option value="1">Quý 1</option>
+                        <option value="2">Quý 2</option>
+                        <option value="3">Quý 3</option>
+                        <option value="4">Quý 4</option>
+                      </select>
+                    </div>
+                  )}
+
+                  {/^\d{4}$/.test(evaluationPeriod) && (
+                    <input 
+                      type="number" 
+                      placeholder="Năm (VD: 2026)"
+                      value={evaluationPeriod} 
+                      onChange={e => setEvaluationPeriod(e.target.value)} 
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none text-[14px] font-medium text-slate-700"
+                    />
+                  )}
+
+                  {(evaluationPeriod === 'Tháng' || evaluationPeriod === 'Quý' || evaluationPeriod === 'Năm') && (
+                    <select 
+                      value={evaluationPeriod} 
+                      onChange={e => setEvaluationPeriod(e.target.value)} 
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none text-[14px] font-medium text-slate-700"
+                    >
+                      <option value="Tháng">Nhãn "Tháng"</option>
+                      <option value="Quý">Nhãn "Quý"</option>
+                      <option value="Năm">Nhãn "Năm"</option>
+                    </select>
+                  )}
+                </div>
               </div>
             </div>
 

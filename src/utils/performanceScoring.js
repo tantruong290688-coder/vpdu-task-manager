@@ -11,16 +11,12 @@
  */
 export function calculateTaskScore(task, evaluation = null) {
   // 1. Tỷ lệ hoàn thành (Trọng số 20%)
-  const completionRate = task.progress || 0; // Giả định progress là 0-100
+  const completionRate = task.progress || 0;
   const completionScore = completionRate;
   
   // 2. Điểm chất lượng (Trọng số 40%)
-  // Ưu tiên: Điểm chốt cuối (evaluation_score) > Điểm lãnh đạo (leader_score) > Điểm tự động (auto_score) > Tự đánh giá (self_quality_eval)
   let qualityScore = 0;
   let qualityWarning = false;
-
-  // Lấy điểm chất lượng từ evaluation object nếu được truyền vào, 
-  // nếu không thì lấy từ task object (dùng cho tương thích cũ hoặc khi chưa join)
   const finalQualityScore = evaluation?.final_score ?? task.evaluation_score;
 
   if (finalQualityScore !== null && finalQualityScore !== undefined) {
@@ -35,26 +31,23 @@ export function calculateTaskScore(task, evaluation = null) {
     qualityScore = task.self_quality_eval;
     qualityWarning = true;
   } else {
-    qualityScore = 0;
+    qualityScore = task.status === 'completed' ? 80 : 0;
     qualityWarning = true;
   }
 
   // 3. Điểm tiến độ (Trọng số 25%)
   let progressScore = 0;
-  
-  // ƯU TIÊN: Dùng điểm tiến độ đã được đánh giá chốt cuối
   if (evaluation?.final_progress_score !== null && evaluation?.final_progress_score !== undefined) {
     progressScore = evaluation.final_progress_score;
   } else {
-    // Nếu chưa có đánh giá chốt, dùng logic tính tự động dựa trên ngày tháng
     const today = new Date();
     const dueDate = task.due_date ? new Date(task.due_date) : null;
     const completedDate = task.completed_at ? new Date(task.completed_at) : null;
 
     if (task.status === 'completed' && completedDate && dueDate) {
       const diffDays = Math.floor((dueDate - completedDate) / (1000 * 60 * 60 * 24));
-      if (diffDays > 0) progressScore = 100; // Trước hạn
-      else if (diffDays === 0) progressScore = 95; // Đúng hạn
+      if (diffDays > 0) progressScore = 100;
+      else if (diffDays === 0) progressScore = 95;
       else {
         const lateDays = Math.abs(diffDays);
         if (lateDays <= 2) progressScore = 85;
@@ -63,86 +56,42 @@ export function calculateTaskScore(task, evaluation = null) {
         else progressScore = 30;
       }
     } else if (task.status !== 'completed') {
-      if (dueDate && today > dueDate) {
-        progressScore = 20; // Quá hạn chưa xong
-      } else {
-        // Đang thực hiện, chưa đến hạn: Tính theo tỷ lệ hoàn thành (không phạt quá nặng)
-        progressScore = Math.max(70, completionRate); 
-      }
+      if (dueDate && today > dueDate) progressScore = 20;
+      else progressScore = Math.max(70, completionRate); 
     } else {
-      progressScore = task.status === 'completed' ? 90 : 20;
+      progressScore = 80;
     }
   }
 
-  // 4. Điểm tinh thần trách nhiệm/phối hợp (Trọng số 10%)
-  let responsibilityScore = 70; 
-  let respWarning = false;
-  
-  // Nếu là người phối hợp, có thể lấy điểm từ mức độ tham gia trong đánh giá
-  const finalRespScore = evaluation?.final_participation_score; // Giả định nếu có cột này
-  
+  // 4. Tinh thần trách nhiệm/phối hợp (Trọng số 15%)
+  let responsibilityScore = 80; 
   if (task.responsibility_score !== null && task.responsibility_score !== undefined) {
     responsibilityScore = task.responsibility_score;
-  } else {
-    respWarning = true;
   }
 
-  // 5. Điểm cộng mức độ ưu tiên (Cộng thẳng)
+  // 5. Thưởng/Phạt (Priority, Returns, Reminders)
   let priorityBonus = 0;
-  switch (task.priority) {
-    case 'important': priorityBonus = 2; break;
-    case 'high':
-    case 'urgent': priorityBonus = 3; break;
-    case 'critical':
-    case 'leadership': priorityBonus = 5; break;
-    default: priorityBonus = 0;
-  }
-
-  // 6. Điểm trừ vi phạm (Trừ thẳng)
+  if (['urgent', 'critical', 'leadership'].includes(task.priority)) priorityBonus = 5;
+  
   let penalty = 0;
-  // Số lần trả lại
-  if (task.return_count === 1) penalty += 3;
-  else if (task.return_count >= 2) penalty += 7;
-
-  // Nhắc việc
+  if (task.return_count > 0) penalty += (task.return_count * 5);
   if (task.reminder_count > 0) penalty += (task.reminder_count * 2);
 
-  // Quá hạn không lý do (giả định có flag hoặc check ghi chú)
-  if (task.status !== 'completed' && dueDate && today > dueDate && !task.notes) {
-    penalty += 10;
-  }
-
-  // Thiếu minh chứng (giả định check attachments)
-  // if (task.requires_attachment && !task.attachments) penalty += 5;
-
-  // Giới hạn penalty tối đa 20
-  penalty = Math.min(20, penalty);
-
-  // TỔNG ĐIỂM NHIỆM VỤ
-  let totalTaskScore = 
-    (completionScore * 0.20) + 
-    (qualityScore * 0.40) + 
-    (progressScore * 0.25) + 
-    (responsibilityScore * 0.10) + 
-    priorityBonus - 
-    penalty;
-
-  // Giới hạn 0 - 100
-  totalTaskScore = Math.max(0, Math.min(100, totalTaskScore));
-
+  // TỔNG ĐIỂM NHIỆM VỤ (Cân bằng lại trọng số)
+  const total = (qualityScore * 0.40) + (progressScore * 0.25) + (completionScore * 0.20) + (responsibilityScore * 0.15) + priorityBonus - penalty;
+  
   return {
-    total: Math.round(totalTaskScore),
+    total: Math.round(Math.max(0, Math.min(100, total))),
     breakdown: {
-      completion: Math.round(completionScore),
       quality: Math.round(qualityScore),
       progress: Math.round(progressScore),
+      completion: Math.round(completionScore),
       responsibility: Math.round(responsibilityScore),
       priorityBonus,
       penalty
     },
     warnings: {
-      quality: qualityWarning,
-      responsibility: respWarning
+      quality: qualityWarning
     }
   };
 }
@@ -163,26 +112,26 @@ export function calculateStaffPerformance(primaryTasks, collaboratorTasks, evalu
   const getEval = (taskId) => evaluations.find(e => e.task_id === taskId);
 
   // 1. Điểm trung bình nhiệm vụ chủ trì (70%)
-  const primaryScores = validPrimary.map(t => calculateTaskScore(t, getEval(t.id)).total);
-  const avgPrimaryScore = primaryScores.length > 0 
-    ? primaryScores.reduce((a, b) => a + b, 0) / primaryScores.length 
+  const primaryResults = validPrimary.map(t => calculateTaskScore(t, getEval(t.id)));
+  const avgPrimaryScore = primaryResults.length > 0 
+    ? primaryResults.reduce((a, b) => a + b.total, 0) / primaryResults.length 
+    : 0;
+
+  // Điểm tiến độ trung bình (để vẽ Radar)
+  const avgProgress = primaryResults.length > 0
+    ? primaryResults.reduce((a, b) => a + b.breakdown.progress, 0) / primaryResults.length
     : 0;
 
   // 2. Điểm phối hợp (10%)
-  const collabScores = validCollab.map(t => {
-    const scoreObj = calculateTaskScore(t, getEval(t.id));
-    // Theo yêu cầu: Người phối hợp không tính ngang bằng người thực hiện chính
-    return scoreObj.total * 0.5; 
-  });
+  const collabScores = validCollab.map(t => calculateTaskScore(t, getEval(t.id)).total * 0.5);
   const avgCollabScore = collabScores.length > 0
     ? collabScores.reduce((a, b) => a + b, 0) / collabScores.length
     : 0;
 
-  // 3. Điểm khối lượng/độ khó (20%)
-  // Chuẩn hóa dựa trên số lượng task và mức độ ưu tiên
-  // Giả định 10 task là mốc 100 điểm khối lượng (có thể điều chỉnh tùy quy mô đơn vị)
+  // 3. Điểm khối lượng (20%)
+  // Mốc chuẩn: 5 nhiệm vụ chính/tháng = 100 điểm khối lượng
   const workloadVolume = validPrimary.length + (validCollab.length * 0.3);
-  const workloadScore = Math.min(100, (workloadVolume / 5) * 100); // 5 task là đạt 100 điểm khối lượng
+  const workloadScore = Math.min(100, (workloadVolume / 5) * 100);
 
   // TỔNG ĐIỂM HIỆU SUẤT CÁN BỘ
   let finalStaffScore = (avgPrimaryScore * 0.70) + (avgCollabScore * 0.10) + (workloadScore * 0.20);
@@ -192,12 +141,13 @@ export function calculateStaffPerformance(primaryTasks, collaboratorTasks, evalu
     finalScore: Math.round(finalStaffScore),
     avgPrimary: Math.round(avgPrimaryScore),
     avgCollab: Math.round(avgCollabScore),
+    avgProgress: Math.round(avgProgress),
     workload: Math.round(workloadScore),
     taskCount: {
       primary: validPrimary.length,
       collab: validCollab.length
     },
-    isInsufficient: validPrimary.length < 3
+    isInsufficient: validPrimary.length < 2
   };
 }
 

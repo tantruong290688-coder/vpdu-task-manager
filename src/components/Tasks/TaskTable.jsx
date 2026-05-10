@@ -222,15 +222,7 @@ export default function TaskTable({
                     <StatusBadge status={task.status} dueDate={task.due_date} evaluationScore={task.evaluation_score} />
                   </td>
                   <td className="p-3 text-center">
-                    {task.status === 'completed' ? (
-                      task.evaluation_score !== null ? (
-                        <ScoreBadge score={task.evaluation_score} rank={task.evaluation_rank} />
-                      ) : (
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500 italic font-medium">Chưa ĐG</span>
-                      )
-                    ) : (
-                      <span className="text-slate-300 dark:text-slate-700">—</span>
-                    )}
+                    <EvaluationStatusBadge task={task} />
                   </td>
                   <td className="p-3" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-center gap-1">

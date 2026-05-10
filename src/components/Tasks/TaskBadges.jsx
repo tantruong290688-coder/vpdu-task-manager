@@ -37,17 +37,45 @@ export function PriorityBadge({ priority }) {
 
 export function ScoreBadge({ score, rank }) {
   const RANK_COLOR = {
-    'Xuất sắc': 'text-purple-700 bg-purple-50 dark:bg-purple-900/20 dark:text-purple-400',
-    'Tốt': 'text-blue-700 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400',
+    'Hoàn thành xuất sắc': 'text-purple-700 bg-purple-50 dark:bg-purple-900/20 dark:text-purple-400',
+    'Hoàn thành tốt': 'text-blue-700 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400',
     'Hoàn thành': 'text-green-700 bg-green-50 dark:bg-green-900/20 dark:text-green-400',
-    'Không hoàn thành': 'text-red-700 bg-red-50 dark:bg-red-900/20 dark:text-red-400',
+    'Chưa hoàn thành': 'text-red-700 bg-red-50 dark:bg-red-900/20 dark:text-red-400',
   };
   return (
     <div className="flex flex-col items-center gap-1">
       <span className="text-[13px] font-black text-blue-600 dark:text-blue-400">{score}</span>
       {rank && (
-        <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded-md ${RANK_COLOR[rank] || ''}`}>{rank}</span>
+        <span className={`px-1.5 py-0.5 text-[9px] font-black rounded-md whitespace-nowrap ${RANK_COLOR[rank] || ''}`}>{rank}</span>
       )}
+    </div>
+  );
+}
+
+export function EvaluationStatusBadge({ task }) {
+  const hasCollabs = task.task_collaborators?.length > 0;
+  const isMainEvaluated = task.evaluation_score !== null;
+  
+  if (task.status !== 'completed') return <span className="text-slate-300 dark:text-slate-700">—</span>;
+
+  if (isMainEvaluated) {
+    if (hasCollabs) {
+      // Check if all collabs are evaluated? This might be heavy without pre-calculated status.
+      // For now, show if it's evaluated main.
+      return (
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-[10px] font-black text-emerald-600 uppercase tracking-tighter bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">Đã ĐG Chính</span>
+          <span className="text-[9px] font-bold text-slate-400 italic">Kiểm tra Phối hợp</span>
+        </div>
+      );
+    }
+    return <ScoreBadge score={task.evaluation_score} rank={task.evaluation_rank} />;
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+       <span className="text-[10px] font-black text-amber-500 uppercase tracking-tighter bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">Chờ Đánh Giá</span>
+       {hasCollabs && <span className="text-[9px] font-bold text-slate-400 italic">Gồm Phối hợp</span>}
     </div>
   );
 }

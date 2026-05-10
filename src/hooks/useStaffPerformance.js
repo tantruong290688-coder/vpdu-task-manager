@@ -14,7 +14,7 @@ export function useStaffPerformance(period = null) {
 
       if (pError) throw pError;
 
-      // 2. Lấy toàn bộ nhiệm vụ kèm dữ liệu phục vụ tính điểm
+      // 2. Lấy toàn bộ nhiệm vụ (chúng ta sẽ lọc theo kỳ ở client để bao quát cả completed_at)
       const { data: tasks, error: tError } = await supabase
         .from('tasks')
         .select(`
@@ -25,6 +25,13 @@ export function useStaffPerformance(period = null) {
         `);
 
       if (tError) throw tError;
+
+      // Lọc tasks theo kỳ (khớp evaluation_period hoặc tháng hoàn thành)
+      const filteredTasks = tasks.filter(t => {
+        if (t.evaluation_period === period) return true;
+        if (t.completed_at && t.completed_at.startsWith(period)) return true;
+        return false;
+      });
 
       // 3. Lấy dữ liệu phối hợp
       const { data: collaborators, error: cError } = await supabase
@@ -54,11 +61,11 @@ export function useStaffPerformance(period = null) {
       const performanceData = profiles.map(profile => {
         // Nhiệm vụ chủ trì
         // Nhiệm vụ chủ trì
-        const primaryTasks = tasks.filter(t => t.assignee_id === profile.id);
+        const primaryTasks = filteredTasks.filter(t => t.assignee_id === profile.id);
         
         // Nhiệm vụ phối hợp (tìm qua bảng task_collaborators)
         const collabTaskIds = collaborators.filter(c => c.user_id === profile.id).map(c => c.task_id);
-        const collabTasks = tasks.filter(t => collabTaskIds.includes(t.id));
+        const collabTasks = filteredTasks.filter(t => collabTaskIds.includes(t.id));
 
         // Lọc các bản ghi đánh giá liên quan đến user này
         const myEvaluations = allEvaluations.filter(e => e.evaluated_user_id === profile.id);

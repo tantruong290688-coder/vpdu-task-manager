@@ -227,5 +227,5 @@ export function generateAutoComment(stats) {
   
   if (stats.isInsufficient) comments.push('Số lượng nhiệm vụ trong kỳ còn ít, chưa đủ cơ sở đánh giá toàn diện.');
 
-  return comments.join(' ');
+  return comments.length > 0 ? comments.join(' ') : 'Chưa có đủ dữ liệu nhiệm vụ để thực hiện phân tích tự động trong kỳ này.';
 }

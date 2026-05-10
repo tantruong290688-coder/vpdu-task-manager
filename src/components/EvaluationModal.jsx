@@ -199,6 +199,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         await supabase.from('tasks').update({
           evaluation_score: scoreVal,
           evaluation_comment: finalComment,
+          evaluation_period: task.evaluation_period || periodKey, // Gắn kỳ nếu chưa có
           evaluated_by: profile.id,
           evaluated_at: new Date().toISOString()
         }).eq('id', task.id);

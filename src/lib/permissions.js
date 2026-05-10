@@ -78,6 +78,73 @@ export function canEvaluate(profile, task) {
 }
 
 /**
+ * 1. Quyền tự đề xuất điểm (Người thực hiện chính hoặc Người phối hợp)
+ */
+export function canSelfProposeEvaluation(profile, task) {
+  if (!profile || !task || task.status !== 'completed') return false;
+  
+  const isMain = task.assignee_id === profile.id;
+  const isCollab = (task.task_collaborators || []).some(c => c.user_id === profile.id);
+  
+  return isMain || isCollab;
+}
+
+/**
+ * 2. Quyền người thực hiện chính đánh giá (Dành cho người thực hiện chính hoặc Admin/Manager)
+ */
+export function canMainAssigneeReview(profile, task) {
+  if (!profile || !task || task.status !== 'completed') return false;
+  
+  // Admin/Manager luôn có quyền can thiệp
+  if (profile.role === ROLES.ADMIN || profile.role === ROLES.MANAGER) return true;
+  
+  // Người thực hiện chính
+  return task.assignee_id === profile.id;
+}
+
+/**
+ * 3. Quyền Admin chốt điểm cuối cùng
+ */
+export function canAdminFinalizeEvaluation(profile) {
+  if (!profile) return false;
+  return profile.role === ROLES.ADMIN || profile.role === ROLES.MANAGER;
+}
+
+/**
+ * 4. Quyền xem đánh giá
+ */
+export function canViewEvaluation(profile, task) {
+  if (!profile || !task) return false;
+  
+  const isParticipant = 
+    task.assignee_id === profile.id || 
+    (task.task_collaborators || []).some(c => c.user_id === profile.id) ||
+    task.assigned_by === profile.id;
+    
+  return profile.role === ROLES.ADMIN || profile.role === ROLES.MANAGER || isParticipant;
+}
+
+/**
+ * Kiểm tra xem nhiệm vụ có đang trong quá trình chờ đánh giá không
+ */
+export function isTaskStillPendingFinalEvaluation(task, evaluations = []) {
+  if (!task || task.status !== 'completed') return false;
+  
+  // Nếu chưa có bất kỳ bản ghi finalized nào cho người thực hiện chính
+  const mainEval = evaluations.find(e => e.evaluated_user_id === task.assignee_id);
+  if (!mainEval || mainEval.status !== 'finalized') return true;
+  
+  // Kiểm tra tất cả người phối hợp
+  const collabs = task.task_collaborators || [];
+  for (const collab of collabs) {
+    const evalItem = evaluations.find(e => e.evaluated_user_id === collab.user_id);
+    if (!evalItem || evalItem.status !== 'finalized') return true;
+  }
+  
+  return false;
+}
+
+/**
  * Kiểm tra xem user có quyền quản lý lịch công tác không
  */
 export function canManageSchedules(profile) {

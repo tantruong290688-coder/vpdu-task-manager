@@ -53,29 +53,39 @@ export function ScoreBadge({ score, rank }) {
 }
 
 export function EvaluationStatusBadge({ task }) {
-  const hasCollabs = task.task_collaborators?.length > 0;
-  const isMainEvaluated = task.evaluation_score !== null;
-  
   if (task.status !== 'completed') return <span className="text-slate-300 dark:text-slate-700">—</span>;
 
-  if (isMainEvaluated) {
-    if (hasCollabs) {
-      // Check if all collabs are evaluated? This might be heavy without pre-calculated status.
-      // For now, show if it's evaluated main.
-      return (
-        <div className="flex flex-col items-center gap-1">
-          <span className="text-[10px] font-black text-emerald-600 uppercase tracking-tighter bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">Đã ĐG Chính</span>
-          <span className="text-[9px] font-bold text-slate-400 italic">Kiểm tra Phối hợp</span>
-        </div>
-      );
-    }
+  // Nếu đã chốt điểm chính thức (Admin đã chốt)
+  const isFinalized = task.evaluation_score !== null;
+  const hasCollabs = task.task_collaborators?.length > 0;
+  
+  if (isFinalized) {
     return <ScoreBadge score={task.evaluation_score} rank={task.evaluation_rank} />;
   }
 
+  // Logic thô để xác định bước hiện tại (có thể tinh chỉnh thêm khi join data)
+  // Giả sử có một trường status_đánh_giá được tính toán từ DB hoặc hook
+  const evalStatus = task.evaluation_status || 'waiting_self'; 
+
+  const statusMap = {
+    waiting_self: { label: 'Chờ tự đề xuất', cls: 'bg-slate-100 text-slate-600 border-slate-200' },
+    waiting_main: { label: 'Chờ chính ĐG', cls: 'bg-blue-50 text-blue-600 border-blue-100' },
+    waiting_admin: { label: 'Chờ Admin chốt', cls: 'bg-amber-50 text-amber-600 border-amber-100' },
+    need_revision: { label: 'Yêu cầu bổ sung', cls: 'bg-red-50 text-red-600 border-red-100' },
+  };
+
+  const info = statusMap[evalStatus] || statusMap.waiting_self;
+
   return (
     <div className="flex flex-col items-center gap-1">
-       <span className="text-[10px] font-black text-amber-500 uppercase tracking-tighter bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">Chờ Đánh Giá</span>
-       {hasCollabs && <span className="text-[9px] font-bold text-slate-400 italic">Gồm Phối hợp</span>}
+       <span className={`text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded border ${info.cls}`}>
+         {info.label}
+       </span>
+       {hasCollabs && (
+         <span className="text-[8px] font-bold text-slate-400 italic">
+           {task.eval_progress_text || (hasCollabs ? 'Đang thực hiện' : '')}
+         </span>
+       )}
     </div>
   );
 }

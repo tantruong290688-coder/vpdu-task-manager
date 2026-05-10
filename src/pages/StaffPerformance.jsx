@@ -44,12 +44,12 @@ export default function StaffPerformance() {
   ) || [];
 
   const stats = useMemo(() => {
-    if (!performanceData) return null;
-    const totalTasks = performanceData.reduce((acc, curr) => acc + curr.stats.taskCount.primary + curr.stats.taskCount.collab, 0);
-    const avgScore = performanceData.length > 0 
-      ? performanceData.reduce((acc, curr) => acc + curr.displayScore, 0) / performanceData.length 
-      : 0;
-    const insufficientCount = performanceData.filter(p => p.stats.isInsufficient).length;
+    if (!performanceData || performanceData.length === 0) {
+      return { totalTasks: 0, avgScore: 0, insufficientCount: 0 };
+    }
+    const totalTasks = performanceData.reduce((acc, curr) => acc + (curr.stats?.taskCount?.primary || 0) + (curr.stats?.taskCount?.collab || 0), 0);
+    const avgScore = performanceData.reduce((acc, curr) => acc + (curr.displayScore || 0), 0) / performanceData.length;
+    const insufficientCount = performanceData.filter(p => p.stats?.isInsufficient).length;
     
     return {
       totalTasks,
@@ -149,7 +149,7 @@ export default function StaffPerformance() {
            {[
              { label: 'Tổng nhiệm vụ', value: stats.totalTasks, icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
              { label: 'Điểm TB toàn đơn vị', value: `${stats.avgScore}/100`, icon: Target, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
-             { label: 'Số cán bộ đánh giá', value: performanceData.length, icon: Users, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+             { label: 'Số cán bộ đánh giá', value: performanceData?.length || 0, icon: Users, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20' },
              { label: 'Chưa đủ dữ liệu', value: stats.insufficientCount, icon: AlertTriangle, color: 'text-rose-600', bg: 'bg-rose-50 dark:bg-rose-900/20' },
            ].map((kpi, i) => (
              <div key={i} className={`${kpi.bg} p-4 rounded-2xl border border-transparent dark:border-slate-800/50`}>

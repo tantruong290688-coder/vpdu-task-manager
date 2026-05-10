@@ -2,7 +2,6 @@ import { useStaffPerformance } from '../hooks/useStaffPerformance';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Trophy, TrendingUp, Users, Target, Award, ChevronRight, Search } from 'lucide-react';
 import { useState } from 'react';
-import MainLayout from '../layouts/MainLayout';
 
 export default function StaffPerformance() {
   const { data: performanceData, isLoading } = useStaffPerformance();
@@ -24,17 +23,14 @@ export default function StaffPerformance() {
 
   if (isLoading) {
     return (
-      <MainLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="w-10 h-10 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
-        </div>
-      </MainLayout>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-10 h-10 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+      </div>
     );
   }
 
   return (
-    <MainLayout>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900/50 pb-20">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900/50 pb-20">
         {/* Header Section */}
         <div className="bg-white dark:bg-[#111827] border-b border-slate-100 dark:border-slate-800 pt-8 pb-6 px-4 sm:px-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
@@ -273,6 +269,6 @@ export default function StaffPerformance() {
            </div>
         </div>
       </div>
-    </MainLayout>
+    </div>
   );
 }

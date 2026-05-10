@@ -23,7 +23,6 @@ import { canEditTask, canUpdateProgress, canEvaluate, ROLES } from '../lib/permi
 import { getDashboardFilter, getDashboardFilterTitle, getDashboardEmptyState } from '../lib/taskFilters';
 import { useTasks } from '../hooks/useTasks';
 import { useQueryClient } from '@tanstack/react-query';
-import MainLayout from '../layouts/MainLayout';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -285,8 +284,7 @@ export default function Tasks() {
   const activeFilterCount = Object.values(activeFilters).filter(v => v !== '').length;
 
   return (
-    <MainLayout>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900/50 pb-20">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900/50 pb-20">
         {/* Header Section */}
         <div className="bg-white dark:bg-[#111827] border-b border-slate-100 dark:border-slate-800 pt-8 pb-6 px-4 sm:px-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
@@ -531,7 +529,7 @@ export default function Tasks() {
         onRefresh={() => refetch()}
         profile={profile}
       />
-    </MainLayout>
+    </div>
   );
 }
 

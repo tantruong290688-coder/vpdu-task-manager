@@ -3,7 +3,7 @@ import { LayoutDashboard, Send, LayoutList, ClipboardList, History, Settings, X,
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useMessage } from '../context/MessageContext';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import partyLogo from '../assets/bieu-tuong-vp-cap-uy.png';
 

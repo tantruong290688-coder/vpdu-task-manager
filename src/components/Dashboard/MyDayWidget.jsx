@@ -22,7 +22,7 @@ export default function MyDayWidget({ tasks, notifications, profile }) {
   const unreadNotifs = notifications.filter(n => !n.is_read).slice(0, 3);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-5 mb-4 md:mb-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-5 mb-4 md:mb-6">
       {/* Today's Deadlines */}
       <div className="bg-gradient-to-br from-red-500 to-orange-600 rounded-[22px] p-4 md:p-5 text-white shadow-lg shadow-orange-500/20 relative overflow-hidden group">
         <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
@@ -78,30 +78,6 @@ export default function MyDayWidget({ tasks, notifications, profile }) {
               ))
             ) : (
               <p className="text-[12px] md:text-[13px] font-medium text-slate-400 py-2 md:py-4 italic text-center">Chưa có nhiệm vụ đang làm</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Alerts */}
-      <div className="bg-white dark:bg-[#111827] rounded-[22px] p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden group">
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-3 md:mb-4">
-            <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
-              <Bell size={16} className="text-amber-600" />
-            </div>
-            <h3 className="font-black text-[13px] md:text-[15px] uppercase tracking-wider text-slate-800 dark:text-slate-200">Thông báo mới</h3>
-          </div>
-          <div className="space-y-2">
-            {unreadNotifs.length > 0 ? (
-              unreadNotifs.map(n => (
-                <div key={n.id} className="flex items-start gap-2.5 p-1.5 md:p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer" onClick={() => navigate('/notifications')}>
-                  <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
-                  <p className="text-[11px] md:text-[12px] font-medium text-slate-600 dark:text-slate-400 line-clamp-2 leading-snug">{n.title || n.message}</p>
-                </div>
-              ))
-            ) : (
-              <p className="text-[12px] md:text-[13px] font-medium text-slate-400 py-2 md:py-4 italic text-center">Không có thông báo mới</p>
             )}
           </div>
         </div>

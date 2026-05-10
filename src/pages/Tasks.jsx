@@ -19,7 +19,7 @@ import BulkActionToolbar from '../components/Tasks/BulkActionToolbar';
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { writeLog } from '../lib/logger';
-import { canEditTask, canUpdateProgress, canEvaluate, ROLES } from '../lib/permissions';
+import { canEditTask, canUpdateProgress, canEvaluate, canCreateTask, ROLES } from '../lib/permissions';
 import { getDashboardFilter, getDashboardFilterTitle, getDashboardEmptyState } from '../lib/taskFilters';
 import { useTasks } from '../hooks/useTasks';
 import { useQueryClient } from '@tanstack/react-query';
@@ -92,7 +92,8 @@ export default function Tasks() {
     currentPage,
     pathname: location.pathname,
     filterParam,
-    profileId: profile?.id
+    profileId: profile?.id,
+    role: profile?.role
   });
 
   const tasks      = data?.tasks      ?? [];
@@ -326,7 +327,7 @@ export default function Tasks() {
                 )}
               </button>
 
-              {(profile?.role === 'admin' || profile?.role === 'manager') && (
+              {canCreateTask(profile) && (
                 <button
                   onClick={() => { setEditingTask(null); setIsModalOpen(true); }}
                   className="flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-[13px] font-extrabold bg-[#dc2626] text-white hover:bg-[#b91c1c] transition-all shadow-[0_4px_12px_rgba(220,38,38,0.3)] shrink-0"

@@ -6,26 +6,10 @@ import { getDashboardFilter } from '../lib/taskFilters';
 const ROWS_PER_PAGE = 10;
 
 // ── Hàm fetch tasks thuần túy (tách ra để dễ test và tái sử dụng) ─────────────
-async function fetchTasksFromDB({ filters, sortConfig, currentPage, filterParam, searchStr, pathname, profileId }) {
-  // Lấy danh sách task_id mà người dùng là người phối hợp
-  let myCollabTaskIds = [];
-  const isMyTasksPage = pathname === '/my-tasks' && profileId;
-  if (isMyTasksPage) {
-    const { data } = await supabase
-      .from('task_collaborators')
-      .select('task_id')
-      .eq('user_id', profileId);
-    if (data) myCollabTaskIds = data.map(d => d.task_id);
-  }
-
-  let specificCollabTaskIds = [];
-  if (filters.collaboratorId) {
-    const { data } = await supabase
-      .from('task_collaborators')
-      .select('task_id')
-      .eq('user_id', filters.collaboratorId);
-    if (data) specificCollabTaskIds = data.map(d => d.task_id);
-  }
+async function fetchTasksFromDB({ filters, sortConfig, currentPage, filterParam, searchStr, pathname, profileId, role }) {
+  const isAdmin = role === 'admin';
+  const isMyTasksPage = pathname === '/my-tasks';
+  const isAllTasksPage = pathname === '/all-tasks';
 
   let query = supabase
     .from('tasks')
@@ -34,12 +18,28 @@ async function fetchTasksFromDB({ filters, sortConfig, currentPage, filterParam,
       { count: 'exact' }
     );
 
-  // Lọc theo trang "Nhiệm vụ của tôi"
-  if (isMyTasksPage) {
-    if (myCollabTaskIds.length > 0) {
-      query = query.or(`assignee_id.eq.${profileId},id.in.(${myCollabTaskIds.join(',')})`);
+  // Nếu không phải admin, lọc theo quyền hạn tham gia (cho cả My Tasks và All Tasks)
+  if (!isAdmin && profileId && (isMyTasksPage || isAllTasksPage)) {
+    const { data: collabData } = await supabase
+      .from('task_collaborators')
+      .select('task_id')
+      .eq('user_id', profileId);
+    const myCollabTaskIds = collabData?.map(d => d.task_id) || [];
+
+    if (isMyTasksPage) {
+      // "Nhiệm vụ của tôi": Chỉ tính nơi mình trực tiếp thực hiện hoặc phối hợp
+      if (myCollabTaskIds.length > 0) {
+        query = query.or(`assignee_id.eq.${profileId},id.in.(${myCollabTaskIds.join(',')})`);
+      } else {
+        query = query.eq('assignee_id', profileId);
+      }
     } else {
-      query = query.eq('assignee_id', profileId);
+      // "Tất cả nhiệm vụ": Bao gồm cả nơi mình giao hoặc tạo (Giống RPC Dashboard)
+      let orFilter = `assignee_id.eq.${profileId},assigned_by.eq.${profileId},created_by.eq.${profileId}`;
+      if (myCollabTaskIds.length > 0) {
+        orFilter += `,id.in.(${myCollabTaskIds.join(',')})`;
+      }
+      query = query.or(orFilter);
     }
   }
 
@@ -123,7 +123,7 @@ async function fetchTasksFromDB({ filters, sortConfig, currentPage, filterParam,
 }
 
 // ── Hook chính: useTasks ──────────────────────────────────────────────────────
-export function useTasks({ filters, sortConfig, currentPage, filterParam, searchStr, pathname, profileId }) {
+export function useTasks({ filters, sortConfig, currentPage, filterParam, searchStr, pathname, profileId, role }) {
   const queryClient = useQueryClient();
 
   // Query key bao gồm tất cả tham số ảnh hưởng đến kết quả
@@ -135,14 +135,14 @@ export function useTasks({ filters, sortConfig, currentPage, filterParam, search
     currentPage,
     sortConfig.key,
     sortConfig.direction,
-    // Serialize filters object để React Query so sánh chính xác
     JSON.stringify(filters),
     profileId ?? '',
+    role ?? '',
   ];
 
   const query = useQuery({
     queryKey,
-    queryFn: () => fetchTasksFromDB({ filters, sortConfig, currentPage, filterParam, searchStr, pathname, profileId }),
+    queryFn: () => fetchTasksFromDB({ filters, sortConfig, currentPage, filterParam, searchStr, pathname, profileId, role }),
     // Giữ dữ liệu cũ khi đang fetch trang mới (không bị màn hình trắng)
     placeholderData: (previousData) => previousData,
     enabled: true,

@@ -6,6 +6,7 @@ import { ArrowLeft, Plus, Save, Trash2, Calendar as CalendarIcon, CheckSquare, D
 import toast from 'react-hot-toast';
 import TaskModal from '../components/TaskModal';
 import { exportScheduleToExcel, sortSchedulesForExport } from '../utils/exportSchedule';
+import { canManageSchedules, canCreateTask } from '../lib/permissions';
 
 export default function ScheduleDetail() {
   const { id } = useParams();
@@ -251,7 +252,8 @@ export default function ScheduleDetail() {
   if (loading) return <div className="p-8 text-center">Đang tải...</div>;
   if (!schedule) return <div className="p-8 text-center text-red-500">Không tìm thấy dữ liệu</div>;
 
-  const canEdit = profile?.role === 'admin' || profile?.role === 'manager';
+  const canEdit = canManageSchedules(profile);
+  const canAddTasks = canCreateTask(profile);
 
   return (
     <div className="flex flex-col h-[calc(100vh-60px-env(safe-area-inset-top))] sm:h-[calc(100vh-70px)] md:h-[calc(100vh-80px)] bg-slate-50 dark:bg-[#0b1120]">
@@ -379,9 +381,11 @@ export default function ScheduleDetail() {
                       item.is_task_created ? (
                         <span className="inline-flex items-center gap-1 text-green-600 text-xs font-bold"><CheckSquare size={14}/> Đã tạo</span>
                       ) : (
-                        <button onClick={() => handleOpenTaskModal(item)} disabled={item.id.toString().startsWith('temp_')} className="text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 px-2 py-1 rounded font-bold disabled:opacity-50 whitespace-nowrap">
-                          + Nhiệm vụ
-                        </button>
+                        canAddTasks && (
+                          <button onClick={() => handleOpenTaskModal(item)} disabled={item.id.toString().startsWith('temp_')} className="text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 px-2 py-1 rounded font-bold disabled:opacity-50 whitespace-nowrap">
+                            + Nhiệm vụ
+                          </button>
+                        )
                       )
                     )}
                   </td>

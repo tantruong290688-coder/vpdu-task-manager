@@ -5,7 +5,9 @@ const toDateStr = (date) =>
 export function getDashboardFilter(query, filterType) {
   const today = new Date();
   const todayStr = toDateStr(today);
-  const threeDaysStr = toDateStr(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3));
+  // Sắp hạn: trong vòng 3 ngày tới (giống RPC: interval '3 days')
+  const threeDaysLater = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3);
+  const threeDaysStr = toDateStr(threeDaysLater);
 
   switch (filterType) {
     case 'overdue':
@@ -44,7 +46,8 @@ export function getDashboardFilter(query, filterType) {
 export function filterTasksLocal(tasks, filterType) {
   const today = new Date();
   const todayStr = toDateStr(today);
-  const threeDaysStr = toDateStr(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3));
+  const threeDaysLater = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3);
+  const threeDaysStr = toDateStr(threeDaysLater);
 
   return tasks.filter(t => {
     // due_date từ DB là YYYY-MM-DD, so sánh trực tiếp string là chính xác

@@ -4,10 +4,15 @@ import { supabase } from '../lib/supabase';
 import { filterTasksLocal } from '../lib/taskFilters';
 
 // ── Hàm fetch dashboard stats qua RPC ────────────────────────────────────────
-async function fetchDashboardStats() {
+async function fetchDashboardStats(profileId, role) {
+  const isAdmin = role === 'admin';
+  const targetId = isAdmin ? null : profileId;
+
   // Ưu tiên gọi RPC để tính toán tại phía Database
   try {
-    const { data: rpcData, error: rpcError } = await supabase.rpc('get_dashboard_stats');
+    const { data: rpcData, error: rpcError } = await supabase.rpc('get_dashboard_stats', {
+      p_user_id: targetId
+    });
 
     if (!rpcError && rpcData) {
       const {
@@ -44,21 +49,24 @@ async function fetchDashboardStats() {
   // ── Fallback: tính toán bằng JS nếu RPC chưa khả dụng ──────────────────────
   const { data: tasks, error } = await supabase
     .from('tasks')
-    .select('status, due_date, completed_at, evaluation_score, work_area');
+    .select('status, due_date, completed_at, evaluation_score, work_area, assignee_id');
 
   if (error) throw error;
 
-  const today = new Date().toISOString().slice(0, 10);
-  const total = tasks.length;
-  const notStarted = filterTasksLocal(tasks, 'pending').length;
-  const inProgress = filterTasksLocal(tasks, 'in_progress').length;
-  const completed  = filterTasksLocal(tasks, 'completed').length;
-  const overdue    = filterTasksLocal(tasks, 'overdue').length;
-  const dueSoon    = filterTasksLocal(tasks, 'due_soon').length;
-  const pendingEval  = filterTasksLocal(tasks, 'pending_eval').length;
-  const pendingFinal = filterTasksLocal(tasks, 'pending_final').length;
+  const filteredTasks = !isAdmin && targetId 
+    ? tasks.filter(t => t.assignee_id === targetId)
+    : tasks;
 
-  const completedTasks = tasks.filter(t => t.status === 'completed');
+  const total = filteredTasks.length;
+  const notStarted = filterTasksLocal(filteredTasks, 'pending').length;
+  const inProgress = filterTasksLocal(filteredTasks, 'in_progress').length;
+  const completed  = filterTasksLocal(filteredTasks, 'completed').length;
+  const overdue    = filterTasksLocal(filteredTasks, 'overdue').length;
+  const dueSoon    = filterTasksLocal(filteredTasks, 'due_soon').length;
+  const pendingEval  = filterTasksLocal(filteredTasks, 'pending_eval').length;
+  const pendingFinal = filterTasksLocal(filteredTasks, 'pending_final').length;
+
+  const completedTasks = filteredTasks.filter(t => t.status === 'completed');
   const completedOnTime = completedTasks.filter(t => {
     if (!t.completed_at || !t.due_date) return false;
     return t.completed_at.slice(0, 10) <= t.due_date;
@@ -74,7 +82,7 @@ async function fetchDashboardStats() {
     { name: 'Quá hạn',       value: overdue,    color: '#ef4444' },
   ].filter(d => d.value > 0);
 
-  const workAreasMap = tasks.reduce((acc, task) => {
+  const workAreasMap = filteredTasks.reduce((acc, task) => {
     const area = task.work_area || 'Chưa phân loại';
     acc[area] = (acc[area] || 0) + 1;
     return acc;
@@ -89,14 +97,14 @@ async function fetchDashboardStats() {
 }
 
 // ── Hook chính: useDashboardStats ─────────────────────────────────────────────
-export function useDashboardStats() {
+export function useDashboardStats(profileId, role) {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ['dashboard-stats'],
-    queryFn: fetchDashboardStats,
-    staleTime: 1 * 60 * 1000, // Dashboard làm mới sau 1 phút (nhanh hơn tasks)
-    // Trả về dữ liệu mặc định trong khi đang fetch lần đầu
+    queryKey: ['dashboard-stats', profileId, role],
+    queryFn: () => fetchDashboardStats(profileId, role),
+    staleTime: 1 * 60 * 1000, 
+    enabled: !!profileId,
     placeholderData: {
       stats: {
         total: 0, notStarted: 0, inProgress: 0, completed: 0, overdue: 0,

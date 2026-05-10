@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Calendar, Plus, ChevronLeft, ChevronRight, Edit2, Trash2, Eye, LayoutList, CheckSquare } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { canManageSchedules } from '../lib/permissions';
 import ScheduleTracking from '../components/Schedules/ScheduleTracking';
 
 export default function Schedules() {
@@ -14,7 +15,7 @@ export default function Schedules() {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [activeTab, setActiveTab] = useState('list'); // 'list' or 'tracking'
 
-  const canEditSchedule = profile?.role === 'admin' || profile?.role === 'manager';
+  const canEditSchedule = canManageSchedules(profile);
 
   // Basic states for modal later
   const [isModalOpen, setIsModalOpen] = useState(false);

@@ -11,14 +11,15 @@ import RiskTasksWidget from '../components/Dashboard/RiskTasksWidget';
 export default function Dashboard() {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const { data: statsData, isLoading: isStatsLoading, refetch: refetchStats } = useDashboardStats();
+  const { data: statsData, isLoading: isStatsLoading, refetch: refetchStats } = useDashboardStats(profile?.id, profile?.role);
   
   const { data: tasksData } = useTasks({ 
     filters: {}, 
     sortConfig: {}, 
     currentPage: 1, 
-    pathname: profile?.role === 'admin' ? '/all-tasks' : '/my-tasks', // Admin xem tất cả, staff xem của mình
-    profileId: profile?.id 
+    pathname: '/all-tasks', // Dashboard luôn đồng bộ với "Tất cả nhiệm vụ" (đã được lọc theo quyền)
+    profileId: profile?.id,
+    role: profile?.role
   });
 
   const { notifications } = useNotifications({ filter: 'unread', limit: 5 });

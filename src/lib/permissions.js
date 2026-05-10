@@ -75,3 +75,26 @@ export function canEvaluate(profile, task) {
     profile.id === task.assigned_by
   );
 }
+
+/**
+ * Kiểm tra xem user có quyền quản lý lịch công tác không
+ */
+export function canManageSchedules(profile) {
+  if (!profile) return false;
+  return (
+    profile.role === ROLES.ADMIN ||
+    profile.role === ROLES.MANAGER ||
+    profile.email === 'phthuyet@gmail.com'
+  );
+}
+
+/**
+ * Kiểm tra xem user có quyền tạo nhiệm vụ mới không
+ */
+export function canCreateTask(profile) {
+  if (!profile) return false;
+  return (
+    profile.role === ROLES.ADMIN ||
+    profile.role === ROLES.MANAGER
+  );
+}

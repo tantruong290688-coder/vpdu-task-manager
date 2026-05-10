@@ -167,14 +167,17 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
   };
 
   // 3. Admin chốt điểm
-  const handleAdminFinalize = async (evalId, proposedScore, selectedProgressLevel, currentFinalScore) => {
-    const scoreVal = parseInt(finalScore);
+  const handleAdminFinalize = async (evalId, proposedScore, selectedProgressLevel, currentFinalScore, newScore, newComment, newReason) => {
+    const scoreVal = parseInt(newScore || finalScore);
     if (isNaN(scoreVal)) {
       toast.error('Vui lòng nhập điểm cuối cùng');
       return;
     }
 
-    if (scoreVal !== proposedScore && !adjReason) {
+    const commentVal = newComment !== undefined ? newComment : finalComment;
+    const reasonVal = newReason !== undefined ? newReason : adjReason;
+
+    if (scoreVal !== proposedScore && !reasonVal) {
       toast.error('Vui lòng nhập lý do điều chỉnh điểm');
       return;
     }
@@ -186,12 +189,12 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
       await taskEvaluationService.finalizeByAdmin({
         evaluationId: evalId,
         score: scoreVal,
-        comment: finalComment,
-        adjustmentReason: adjReason,
+        comment: commentVal,
+        adjustmentReason: reasonVal,
         progressLevel: progLevel,
         progressScore: getScoreFromLevel(progLevel),
         finalizedBy: profile.id,
-        oldScore: currentFinalScore, // Pass current score to check for adjustment
+        oldScore: currentFinalScore,
         taskId: task.id,
         adjustedByName: profile.full_name
       });
@@ -204,7 +207,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         
         await supabase.from('tasks').update({
           evaluation_score: scoreVal,
-          evaluation_comment: finalComment,
+          evaluation_comment: commentVal,
           evaluation_period: task.evaluation_period || currentPeriod,
           evaluated_by: profile.id,
           evaluated_at: now.toISOString(),
@@ -214,7 +217,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         // Ghi vào nhật ký điều phối của nhiệm vụ
         if (currentFinalScore !== undefined && currentFinalScore !== null && Number(currentFinalScore) !== Number(scoreVal)) {
           await writeLog(task.id, profile.id, 'ADJUST_SCORE', 
-            `Lãnh đạo điều chỉnh điểm chốt từ ${currentFinalScore} thành ${scoreVal}. Lý do: ${adjReason}`
+            `Lãnh đạo điều chỉnh điểm chốt từ ${currentFinalScore} thành ${scoreVal}. Lý do: ${reasonVal}`
           );
         }
       }
@@ -849,7 +852,7 @@ function AdminRow({ user, roleLabel, roleCls, evaluation, onFinalize, loading })
                   />
                   <div className="flex gap-2">
                      <button 
-                       onClick={() => onFinalize(evaluation.id, proposedScore, progressLevel, evaluation?.final_score).then(() => setIsEditing(false))}
+                       onClick={() => onFinalize(evaluation.id, proposedScore, progressLevel, evaluation?.final_score, score, comment, reason).then(() => setIsEditing(false))}
                        className="flex-1 py-2 bg-emerald-600 text-white rounded-xl text-[11px] font-black"
                      >Lưu</button>
                      <button 

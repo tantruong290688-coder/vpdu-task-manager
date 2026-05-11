@@ -17,6 +17,22 @@ const PROGRESS_LEVELS = [
   { id: 'level5', label: 'Hoàn thành (100%)', score: 100, range: [100, 100] }
 ];
 
+const SCORE_OPTIONS = [
+  { label: 'Hoàn thành xuất sắc (100)', score: 100 },
+  { label: 'Hoàn thành tốt (90)', score: 90 },
+  { label: 'Đạt yêu cầu (80)', score: 80 },
+  { label: 'Cần nỗ lực thêm (70)', score: 70 },
+  { label: 'Chưa đạt yêu cầu (60)', score: 60 },
+  { label: 'Không thực hiện (0)', score: 0 }
+];
+
+const DIFFICULTY_OPTIONS = [
+  { label: 'Rất lớn / Quan trọng (100)', score: 100 },
+  { label: 'Lớn (90)', score: 90 },
+  { label: 'Trung bình (80)', score: 80 },
+  { label: 'Ít (60)', score: 60 }
+];
+
 const getLevelFromProgress = (progress) => {
   return PROGRESS_LEVELS.find(l => progress >= l.range[0] && progress <= l.range[1])?.label || PROGRESS_LEVELS[0].label;
 };
@@ -287,7 +303,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                  <Star size={28} fill="currentColor" />
               </div>
               <div>
-                 <h2 className="text-2xl font-black text-slate-800 dark:text-white leading-none">Hệ thống Đánh giá Đa cấp</h2>
+                 <h2 className="text-2xl font-black text-slate-800 dark:text-white leading-none">Hệ thống đánh giá</h2>
                  <p className="text-[12px] text-slate-400 font-black uppercase tracking-[0.2em] mt-2 flex items-center gap-2">
                    <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-600">{task.code}</span>
                    <span className="w-1.5 h-1.5 rounded-full bg-slate-200" />
@@ -392,39 +408,42 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                                  <div className="space-y-2">
                                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Chất lượng (40%)</label>
-                                    <input 
-                                      type="number" min="0" max="100"
-                                      value={selfQualityScore} onChange={e => {
-                                        const val = Number(e.target.value);
-                                        setSelfQualityScore(val);
-                                        setSelfScore(calculateFinalScore({ qualityScore: val, progressScore: selfProgressScore, completionRate: selfCompletionRate }));
-                                      }}
-                                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-xl font-black text-indigo-600 outline-none"
-                                    />
+                                    <select 
+                                       value={selfQualityScore} onChange={e => {
+                                         const val = Number(e.target.value);
+                                         setSelfQualityScore(val);
+                                         setSelfScore(calculateFinalScore({ qualityScore: val, progressScore: selfProgressScore, completionRate: selfCompletionRate }));
+                                       }}
+                                       className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-[14px] font-black text-indigo-600 outline-none"
+                                     >
+                                        {SCORE_OPTIONS.map(opt => <option key={opt.score} value={opt.score}>{opt.label}</option>)}
+                                     </select>
                                  </div>
                                  <div className="space-y-2">
                                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Tiến độ (25%)</label>
-                                    <input 
-                                      type="number" min="0" max="100"
-                                      value={selfProgressScore} onChange={e => {
-                                        const val = Number(e.target.value);
-                                        setSelfProgressScore(val);
-                                        setSelfScore(calculateFinalScore({ qualityScore: selfQualityScore, progressScore: val, completionRate: selfCompletionRate }));
-                                      }}
-                                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-xl font-black text-indigo-600 outline-none"
-                                    />
+                                    <select 
+                                       value={selfProgressScore} onChange={e => {
+                                         const val = Number(e.target.value);
+                                         setSelfProgressScore(val);
+                                         setSelfScore(calculateFinalScore({ qualityScore: selfQualityScore, progressScore: val, completionRate: selfCompletionRate }));
+                                       }}
+                                       className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-[14px] font-black text-indigo-600 outline-none"
+                                     >
+                                        {SCORE_OPTIONS.map(opt => <option key={opt.score} value={opt.score}>{opt.label}</option>)}
+                                     </select>
                                  </div>
                                  <div className="space-y-2">
                                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Tỷ lệ hoàn thành (20%)</label>
-                                    <input 
-                                      type="number" min="0" max="100"
-                                      value={selfCompletionRate} onChange={e => {
-                                        const val = Number(e.target.value);
-                                        setSelfCompletionRate(val);
-                                        setSelfScore(calculateFinalScore({ qualityScore: selfQualityScore, progressScore: selfProgressScore, completionRate: val }));
-                                      }}
-                                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-xl font-black text-indigo-600 outline-none"
-                                    />
+                                    <select 
+                                       value={selfCompletionRate} onChange={e => {
+                                         const val = Number(e.target.value);
+                                         setSelfCompletionRate(val);
+                                         setSelfScore(calculateFinalScore({ qualityScore: selfQualityScore, progressScore: selfProgressScore, completionRate: val }));
+                                       }}
+                                       className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-[14px] font-black text-indigo-600 outline-none"
+                                     >
+                                        {SCORE_OPTIONS.map(opt => <option key={opt.score} value={opt.score}>{opt.label}</option>)}
+                                     </select>
                                  </div>
                                  <div className="space-y-2">
                                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Mức độ tham gia</label>
@@ -624,61 +643,69 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                        <div className="space-y-6">
                                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                              <div className="space-y-1">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Chất lượng (40%)</label>
-                                                <input 
-                                                  type="number" value={mainRevQualityScore} onChange={e => {
-                                                    const val = Number(e.target.value);
-                                                    setMainRevQualityScore(val);
-                                                    setMainRevScore(calculateFinalScore({ 
-                                                      qualityScore: val, progressScore: mainRevProgressScore, completionRate: mainRevCompletionRate, 
-                                                      difficultyScore: mainRevDifficultyScore, bonusPoint: mainRevBonusPoint, penaltyPoint: mainRevPenaltyPoint 
-                                                    }));
-                                                  }}
-                                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl text-lg font-black text-indigo-600 outline-none"
-                                                />
-                                             </div>
-                                             <div className="space-y-1">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tiến độ (25%)</label>
-                                                <input 
-                                                  type="number" value={mainRevProgressScore} onChange={e => {
-                                                    const val = Number(e.target.value);
-                                                    setMainRevProgressScore(val);
-                                                    setMainRevScore(calculateFinalScore({ 
-                                                      qualityScore: mainRevQualityScore, progressScore: val, completionRate: mainRevCompletionRate, 
-                                                      difficultyScore: mainRevDifficultyScore, bonusPoint: mainRevBonusPoint, penaltyPoint: mainRevPenaltyPoint 
-                                                    }));
-                                                  }}
-                                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl text-lg font-black text-indigo-600 outline-none"
-                                                />
-                                             </div>
-                                             <div className="space-y-1">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tỷ lệ HT (20%)</label>
-                                                <input 
-                                                  type="number" value={mainRevCompletionRate} onChange={e => {
-                                                    const val = Number(e.target.value);
-                                                    setMainRevCompletionRate(val);
-                                                    setMainRevScore(calculateFinalScore({ 
-                                                      qualityScore: mainRevQualityScore, progressScore: mainRevProgressScore, completionRate: val, 
-                                                      difficultyScore: mainRevDifficultyScore, bonusPoint: mainRevBonusPoint, penaltyPoint: mainRevPenaltyPoint 
-                                                    }));
-                                                  }}
-                                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl text-lg font-black text-indigo-600 outline-none"
-                                                />
-                                             </div>
-                                             <div className="space-y-1">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Khối lượng (15%)</label>
-                                                <input 
-                                                  type="number" value={mainRevDifficultyScore} onChange={e => {
-                                                    const val = Number(e.target.value);
-                                                    setMainRevDifficultyScore(val);
-                                                    setMainRevScore(calculateFinalScore({ 
-                                                      qualityScore: mainRevQualityScore, progressScore: mainRevProgressScore, completionRate: mainRevCompletionRate, 
-                                                      difficultyScore: val, bonusPoint: mainRevBonusPoint, penaltyPoint: mainRevPenaltyPoint 
-                                                    }));
-                                                  }}
-                                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl text-lg font-black text-indigo-600 outline-none"
-                                                />
-                                             </div>
+                                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Chất lượng (40%)</label>
+                                                 <select 
+                                                   value={mainRevQualityScore} onChange={e => {
+                                                     const val = Number(e.target.value);
+                                                     setMainRevQualityScore(val);
+                                                     setMainRevScore(calculateFinalScore({ 
+                                                       qualityScore: val, progressScore: mainRevProgressScore, completionRate: mainRevCompletionRate, 
+                                                       difficultyScore: mainRevDifficultyScore, bonusPoint: mainRevBonusPoint, penaltyPoint: mainRevPenaltyPoint 
+                                                     }));
+                                                   }}
+                                                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl text-[13px] font-black text-indigo-600 outline-none"
+                                                 >
+                                                    {SCORE_OPTIONS.map(opt => <option key={opt.score} value={opt.score}>{opt.label}</option>)}
+                                                 </select>
+                                              </div>
+                                              <div className="space-y-1">
+                                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tiến độ (25%)</label>
+                                                 <select 
+                                                   value={mainRevProgressScore} onChange={e => {
+                                                     const val = Number(e.target.value);
+                                                     setMainRevProgressScore(val);
+                                                     setMainRevScore(calculateFinalScore({ 
+                                                       qualityScore: mainRevQualityScore, progressScore: val, completionRate: mainRevCompletionRate, 
+                                                       difficultyScore: mainRevDifficultyScore, bonusPoint: mainRevBonusPoint, penaltyPoint: mainRevPenaltyPoint 
+                                                     }));
+                                                   }}
+                                                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl text-[13px] font-black text-indigo-600 outline-none"
+                                                 >
+                                                    {SCORE_OPTIONS.map(opt => <option key={opt.score} value={opt.score}>{opt.label}</option>)}
+                                                 </select>
+                                              </div>
+                                              <div className="space-y-1">
+                                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tỷ lệ HT (20%)</label>
+                                                 <select 
+                                                   value={mainRevCompletionRate} onChange={e => {
+                                                     const val = Number(e.target.value);
+                                                     setMainRevCompletionRate(val);
+                                                     setMainRevScore(calculateFinalScore({ 
+                                                       qualityScore: mainRevQualityScore, progressScore: mainRevProgressScore, completionRate: val, 
+                                                       difficultyScore: mainRevDifficultyScore, bonusPoint: mainRevBonusPoint, penaltyPoint: mainRevPenaltyPoint 
+                                                     }));
+                                                   }}
+                                                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl text-[13px] font-black text-indigo-600 outline-none"
+                                                 >
+                                                    {SCORE_OPTIONS.map(opt => <option key={opt.score} value={opt.score}>{opt.label}</option>)}
+                                                 </select>
+                                              </div>
+                                              <div className="space-y-1">
+                                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Khối lượng (15%)</label>
+                                                 <select 
+                                                   value={mainRevDifficultyScore} onChange={e => {
+                                                     const val = Number(e.target.value);
+                                                     setMainRevDifficultyScore(val);
+                                                     setMainRevScore(calculateFinalScore({ 
+                                                       qualityScore: mainRevQualityScore, progressScore: mainRevProgressScore, completionRate: mainRevCompletionRate, 
+                                                       difficultyScore: val, bonusPoint: mainRevBonusPoint, penaltyPoint: mainRevPenaltyPoint 
+                                                     }));
+                                                   }}
+                                                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl text-[13px] font-black text-indigo-600 outline-none"
+                                                 >
+                                                    {DIFFICULTY_OPTIONS.map(opt => <option key={opt.score} value={opt.score}>{opt.label}</option>)}
+                                                 </select>
+                                              </div>
                                              <div className="space-y-1">
                                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Điểm cộng</label>
                                                 <input 
@@ -746,12 +773,12 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                                 <label className="text-[11px] font-black text-rose-500 uppercase tracking-widest flex items-center gap-1">
                                                    <AlertTriangle size={12} />
                                                    <span>Lý do chênh lệch {'>'}10 điểm (Bắt buộc)</span>
-                                                </label>
-                                                <input 
-                                                  type="text" value={mainRevDiffReason} onChange={e => setMainRevDiffReason(e.target.value)}
-                                                  className="w-full bg-rose-50/30 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 px-5 py-3 rounded-2xl text-[13px] font-bold text-rose-600 outline-none"
-                                                  placeholder="Tại sao bạn chấm khác nhiều so với cộng sự?"
-                                                />
+                                                 </label>
+                                                 <input 
+                                                   type="text" value={mainRevDiffReason} onChange={e => setMainRevDiffReason(e.target.value)}
+                                                   className="w-full bg-rose-50/30 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 px-5 py-3 rounded-2xl text-[13px] font-bold text-rose-600 outline-none"
+                                                   placeholder="Tại sao bạn chấm khác nhiều so với cộng sự?"
+                                                 />
                                              </div>
                                           )}
 
@@ -985,17 +1012,23 @@ function AdminRow({ user, roleLabel, roleType, roleCls, evaluation, onFinalize, 
             ) : isEditing ? (
                <div className="space-y-4 w-64 bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg">
                   <div className="grid grid-cols-2 gap-2">
-                     <div className="space-y-1">
+                      <div className="space-y-1">
                         <label className="text-[9px] font-black text-slate-400 uppercase">Chất lượng</label>
-                        <input type="number" value={qualityScore} onChange={e => { setQualityScore(Number(e.target.value)); updateLiveScore(Number(e.target.value), completionRate, difficultyScore, bonusPoint, penaltyPoint, progressLevel); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded text-[13px] font-black" />
+                        <select value={qualityScore} onChange={e => { setQualityScore(Number(e.target.value)); updateLiveScore(Number(e.target.value), completionRate, difficultyScore, bonusPoint, penaltyPoint, progressLevel); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-1 py-1 rounded text-[11px] font-black">
+                           {SCORE_OPTIONS.map(opt => <option key={opt.score} value={opt.score}>{opt.score}</option>)}
+                        </select>
                      </div>
                      <div className="space-y-1">
                         <label className="text-[9px] font-black text-slate-400 uppercase">Hoàn thành</label>
-                        <input type="number" value={completionRate} onChange={e => { setCompletionRate(Number(e.target.value)); updateLiveScore(qualityScore, Number(e.target.value), difficultyScore, bonusPoint, penaltyPoint, progressLevel); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded text-[13px] font-black" />
+                        <select value={completionRate} onChange={e => { setCompletionRate(Number(e.target.value)); updateLiveScore(qualityScore, Number(e.target.value), difficultyScore, bonusPoint, penaltyPoint, progressLevel); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-1 py-1 rounded text-[11px] font-black">
+                           {SCORE_OPTIONS.map(opt => <option key={opt.score} value={opt.score}>{opt.score}</option>)}
+                        </select>
                      </div>
                      <div className="space-y-1">
                         <label className="text-[9px] font-black text-slate-400 uppercase">Độ khó</label>
-                        <input type="number" value={difficultyScore} onChange={e => { setDifficultyScore(Number(e.target.value)); updateLiveScore(qualityScore, completionRate, Number(e.target.value), bonusPoint, penaltyPoint, progressLevel); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded text-[13px] font-black" />
+                        <select value={difficultyScore} onChange={e => { setDifficultyScore(Number(e.target.value)); updateLiveScore(qualityScore, completionRate, Number(e.target.value), bonusPoint, penaltyPoint, progressLevel); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-1 py-1 rounded text-[11px] font-black">
+                           {DIFFICULTY_OPTIONS.map(opt => <option key={opt.score} value={opt.score}>{opt.score}</option>)}
+                        </select>
                      </div>
                      <div className="space-y-1">
                         <label className="text-[9px] font-black text-slate-400 uppercase">Tiến độ</label>

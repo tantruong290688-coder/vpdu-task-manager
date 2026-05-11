@@ -259,6 +259,20 @@ export function getPerformanceRank(score) {
 }
 
 /**
+ * Ánh xạ điểm số sang nhãn đánh giá tương ứng
+ */
+export function getEvaluationLabel(score) {
+  const s = Number(score);
+  if (s >= 100) return { label: 'Xuất sắc', color: 'emerald' };
+  if (s >= 90) return { label: 'Tốt', color: 'indigo' };
+  if (s >= 80) return { label: 'Đạt yêu cầu', color: 'blue' };
+  if (s >= 70) return { label: 'Khá', color: 'amber' };
+  if (s >= 60) return { label: 'Trung bình', color: 'orange' };
+  if (s > 0) return { label: 'Yếu', color: 'rose' };
+  return { label: 'Không đạt', color: 'slate' };
+}
+
+/**
  * Tạo nhận xét tự động dựa trên dữ liệu
  */
 export function generateAutoComment(stats) {

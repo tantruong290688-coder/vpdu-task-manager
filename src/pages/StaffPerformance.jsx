@@ -10,7 +10,7 @@ import {
   Filter, Calendar, Download, AlertTriangle, CheckCircle2, Info,
   ChevronDown, FileText, Star, Activity, MoreHorizontal, User
 } from 'lucide-react';
-import { calculateTaskScore, getPerformanceRank, generateAutoComment } from '../utils/performanceScoring';
+import { calculateTaskScore, getPerformanceRank, generateAutoComment, getEvaluationLabel } from '../utils/performanceScoring';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { useAuth } from '../context/AuthContext';
@@ -224,14 +224,14 @@ export default function StaffPerformance() {
               { label: 'Số cán bộ được chốt', value: performanceData?.length || 0, icon: Users, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20' },
               { label: 'Dữ liệu chưa chốt', value: stats.insufficientCount, icon: AlertTriangle, color: 'text-rose-600', bg: 'bg-rose-50 dark:bg-rose-900/20' },
             ].map((kpi, i) => (
-             <div key={i} className={`${kpi.bg} p-4 rounded-2xl border border-transparent dark:border-slate-800/50`}>
+              <div key={i} className={`${kpi.bg} p-4 rounded-2xl border border-transparent dark:border-slate-800/50`}>
                 <div className="flex items-center gap-2 mb-2">
-                   <kpi.icon size={14} className={kpi.color} />
-                   <span className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{kpi.label}</span>
+                    <kpi.icon size={14} className={kpi.color} />
+                    <span className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{kpi.label}</span>
                 </div>
                 <div className={`text-2xl font-black ${kpi.color}`}>{kpi.value}</div>
-             </div>
-           ))}
+              </div>
+            ))}
         </div>
       </div>
 
@@ -241,7 +241,7 @@ export default function StaffPerformance() {
           {/* Main List */}
           <div className="flex-1 space-y-6">
             <div className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-               <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
                     <h3 className="text-[16px] font-black text-slate-800 dark:text-white uppercase tracking-tight">Bảng tổng hợp hiệu suất kỳ {periodKey}</h3>
                     <p className="text-[12px] text-slate-400 font-medium">Sắp xếp theo thứ tự điểm từ cao xuống thấp</p>
@@ -256,12 +256,12 @@ export default function StaffPerformance() {
                       className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 pl-9 pr-4 py-2 rounded-xl text-[12px] font-bold outline-none focus:border-indigo-500 transition-colors"
                     />
                   </div>
-               </div>
+                </div>
 
-               <div className="overflow-x-auto">
-                 <table className="w-full text-left">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
                     <thead>
-                       <tr className="text-[10px] uppercase font-black text-slate-400 tracking-widest bg-slate-50/50 dark:bg-slate-900/30">
+                        <tr className="text-[10px] uppercase font-black text-slate-400 tracking-widest bg-slate-50/50 dark:bg-slate-900/30">
                           <th className="px-8 py-4 w-16">Hạng</th>
                           <th className="px-4 py-4">Cán bộ</th>
                           <th className="px-4 py-4 text-center">Chủ trì</th>
@@ -270,9 +270,9 @@ export default function StaffPerformance() {
                           <th className="px-4 py-4 text-center">TB Điểm</th>
                           <th className="px-4 py-4 text-center">Khối lượng</th>
                           <th className="px-8 py-4 text-right">Tổng hiệu suất</th>
-                       </tr>
+                        </tr>
                     </thead>
-                   <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                    <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                       {filteredData.map((staff, idx) => {
                         const rank = getPerformanceRank(staff.displayScore);
                         const isInsufficient = staff.stats.isInsufficient;
@@ -285,88 +285,92 @@ export default function StaffPerformance() {
                           >
                             <td className="px-8 py-5">
                                 <div className="flex items-center gap-3">
-                                   <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-[13px] font-black ${
-                                     staff.rank === 1 ? 'bg-amber-100 text-amber-600' : 
-                                     staff.rank === 2 ? 'bg-slate-100 text-slate-600' :
-                                     staff.rank === 3 ? 'bg-orange-100 text-orange-600' : 'bg-slate-50 text-slate-400'
-                                   }`}>
-                                     {staff.rank}
-                                   </span>
-                                   {staff.rank === 1 && (
-                                     <span className="bg-amber-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md animate-bounce uppercase tracking-tighter">Hạng 1</span>
-                                   )}
+                                    <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-[13px] font-black ${
+                                      staff.rank === 1 ? 'bg-amber-100 text-amber-600' : 
+                                      staff.rank === 2 ? 'bg-slate-100 text-slate-600' :
+                                      staff.rank === 3 ? 'bg-orange-100 text-orange-600' : 'bg-slate-50 text-slate-400'
+                                    }`}>
+                                      {staff.rank}
+                                    </span>
+                                    {staff.rank === 1 && (
+                                      <span className="bg-amber-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md animate-bounce uppercase tracking-tighter">Hạng 1</span>
+                                    )}
                                 </div>
                             </td>
                             <td className="px-4 py-5">
-                               <div className="flex flex-col">
-                                 <div className="flex items-center gap-2">
-                                   <p className="text-[14px] font-black text-slate-800 dark:text-white leading-none">{staff.full_name}</p>
-                                   {isInsufficient && (
-                                     <div title="Chưa đủ dữ liệu (dưới 3 nhiệm vụ hoàn thành)" className="text-amber-500">
-                                       <AlertTriangle size={14} />
-                                     </div>
-                                   )}
-                                 </div>
-                                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter mt-1">{staff.role}</p>
-                               </div>
-                            </td>
-                            <td className="px-4 py-5 text-center">
-                               <span className="text-[13px] font-black text-slate-700 dark:text-slate-300">
-                                 {staff.stats.taskCount.primary}
-                               </span>
-                            </td>
-                            <td className="px-4 py-5 text-center">
-                               <span className="text-[13px] font-bold text-slate-400">
-                                 {staff.stats.taskCount.collab}
-                               </span>
-                            </td>
-                             <td className="px-4 py-5 text-center">
-                                <span className="text-[13px] font-black text-indigo-600">
-                                  {staff.stats.taskCount.total}
-                                </span>
-                             </td>
-                             <td className="px-4 py-5 text-center">
-                                <span className={`text-[13px] font-black ${staff.displayScore >= 80 ? 'text-indigo-600' : 'text-slate-600'}`}>
-                                  {staff.displayScore}
-                                </span>
-                             </td>
-                             <td className="px-4 py-5 text-center">
-                                <div className="flex flex-col items-center gap-1">
-                                  <span className="text-[13px] font-black text-slate-700 dark:text-slate-300">{staff.stats.avgWorkload}</span>
-                                  <div className="w-10 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                     <div className="bg-blue-500 h-full" style={{ width: `${staff.stats.avgWorkload}%` }} />
+                                <div className="flex flex-col">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-[14px] font-black text-slate-800 dark:text-white leading-none">{staff.full_name}</p>
+                                    {isInsufficient && (
+                                      <div title="Chưa đủ dữ liệu (dưới 3 nhiệm vụ hoàn thành)" className="text-amber-500">
+                                        <AlertTriangle size={14} />
+                                      </div>
+                                    )}
                                   </div>
+                                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter mt-1">{staff.role}</p>
                                 </div>
-                             </td>
-                             <td className="px-8 py-5 text-right">
-                                <div className="flex items-center justify-end gap-3">
-                                   <div className="text-right">
-                                      <div className={`text-[18px] font-black ${
-                                        rank.color === 'green' ? 'text-emerald-600' :
-                                        rank.color === 'blue' ? 'text-blue-600' :
-                                        rank.color === 'orange' ? 'text-amber-600' : 'text-rose-600'
-                                      }`}>
-                                        {staff.displayScore}
-                                      </div>
-                                      <div className="text-[9px] font-black uppercase tracking-tighter text-slate-400">
-                                        {rank.label.split(' ')[0]} {rank.label.split(' ')[1]}
-                                      </div>
-                                   </div>
-                                   <ChevronRight size={16} className="text-slate-300 group-hover:text-indigo-500 transition-colors" />
-                                </div>
-                             </td>
+                            </td>
+                            <td className="px-4 py-5 text-center">
+                                <span className="text-[13px] font-black text-slate-700 dark:text-slate-300">
+                                  {staff.stats.taskCount.primary}
+                                </span>
+                            </td>
+                            <td className="px-4 py-5 text-center">
+                                <span className="text-[13px] font-bold text-slate-400">
+                                  {staff.stats.taskCount.collab}
+                                </span>
+                            </td>
+                              <td className="px-4 py-5 text-center">
+                                  <span className="text-[13px] font-black text-indigo-600">
+                                    {staff.stats.taskCount.total}
+                                  </span>
+                              </td>
+                              <td className="px-4 py-5 text-center">
+                                  <span className={`text-[13px] font-black ${staff.displayScore >= 80 ? 'text-indigo-600' : 'text-slate-600'}`}>
+                                    {staff.displayScore}
+                                  </span>
+                              </td>
+                              <td className="px-4 py-5 text-center">
+                                  <div className="flex flex-col items-center gap-1">
+                                    <span className="text-[13px] font-black text-slate-700 dark:text-slate-300">{staff.stats.avgWorkload}</span>
+                                    <div className="w-10 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                        <div className="bg-blue-500 h-full" style={{ width: `${staff.stats.avgWorkload}%` }} />
+                                    </div>
+                                  </div>
+                              </td>
+                              <td className="px-8 py-5 text-right">
+                                  <div className="flex items-center justify-end gap-3">
+                                    <div className="text-right">
+                                        <div className={`text-[18px] font-black ${
+                                          rank.color === 'green' ? 'text-emerald-600' :
+                                          rank.color === 'blue' ? 'text-blue-600' :
+                                          rank.color === 'orange' ? 'text-amber-600' : 'text-rose-600'
+                                        }`}>
+                                          {staff.displayScore}
+                                        </div>
+                                        <div className={`text-[10px] font-black uppercase tracking-tighter ${
+                                          rank.color === 'green' ? 'text-emerald-500' :
+                                          rank.color === 'blue' ? 'text-blue-500' :
+                                          rank.color === 'orange' ? 'text-amber-500' : 'text-rose-500'
+                                        }`}>
+                                          {getEvaluationLabel(staff.displayScore).label}
+                                        </div>
+                                    </div>
+                                    <ChevronRight size={16} className="text-slate-300 group-hover:text-indigo-500 transition-colors" />
+                                  </div>
+                              </td>
                           </tr>
                         );
                       })}
-                   </tbody>
-                 </table>
-               </div>
+                    </tbody>
+                  </table>
+                </div>
             </div>
           </div>
 
           {/* Top 3 & Chart Summary */}
           <div className="w-full lg:w-96 space-y-6">
-             <div className="bg-indigo-600 rounded-[32px] p-6 text-white shadow-xl shadow-indigo-200 dark:shadow-none">
+              <div className="bg-indigo-600 rounded-[32px] p-6 text-white shadow-xl shadow-indigo-200 dark:shadow-none">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
                     <Trophy size={20} />
@@ -377,68 +381,68 @@ export default function StaffPerformance() {
                 {topPerformer ? (
                   <div className="space-y-6">
                     <div className="flex items-center gap-4">
-                       <div className="w-16 h-16 rounded-[24px] bg-white/10 flex items-center justify-center text-3xl border-2 border-white/20 shadow-inner">
-                         🥇
-                       </div>
-                       <div>
-                         <p className="text-[11px] font-black uppercase tracking-widest opacity-60">Xếp hạng nhất</p>
-                         <p className="text-xl font-black leading-tight">{topPerformer.full_name}</p>
-                         <p className="text-[12px] font-bold opacity-80 mt-0.5">{topPerformer.role}</p>
-                       </div>
+                        <div className="w-16 h-16 rounded-[24px] bg-white/10 flex items-center justify-center text-3xl border-2 border-white/20 shadow-inner">
+                          🥇
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-black uppercase tracking-widest opacity-60">Xếp hạng nhất</p>
+                          <p className="text-xl font-black leading-tight">{topPerformer.full_name}</p>
+                          <p className="text-[12px] font-bold opacity-80 mt-0.5">{topPerformer.role}</p>
+                        </div>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-3">
-                       <div className="bg-white/10 p-3 rounded-2xl border border-white/10">
+                        <div className="bg-white/10 p-3 rounded-2xl border border-white/10">
                           <p className="text-[10px] font-black uppercase opacity-60">Điểm tổng</p>
                           <p className="text-xl font-black">{topPerformer.displayScore}</p>
-                       </div>
-                       <div className="bg-white/10 p-3 rounded-2xl border border-white/10">
+                        </div>
+                        <div className="bg-white/10 p-3 rounded-2xl border border-white/10">
                           <p className="text-[10px] font-black uppercase opacity-60">Hoàn thành</p>
                           <p className="text-xl font-black">{topPerformer.stats.taskCount.primary}</p>
-                       </div>
+                        </div>
                     </div>
                   </div>
                 ) : (
                   <p className="text-[13px] opacity-60 italic">Chưa có dữ liệu</p>
                 )}
-             </div>
+              </div>
 
-             <div className="bg-white dark:bg-slate-900 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
                 <h3 className="text-[14px] font-black text-slate-800 dark:text-white uppercase tracking-tight mb-6">Cơ cấu tính hiệu suất cán bộ</h3>
                 <div className="space-y-3">
-                   {[
-                     { label: 'Chất lượng công việc', weight: '40%', color: 'bg-indigo-500' },
-                     { label: 'Tiến độ thực hiện', weight: '25%', color: 'bg-blue-500' },
-                     { label: 'Tỷ lệ hoàn thành', weight: '20%', color: 'bg-emerald-500' },
-                     { label: 'Khối lượng (Độ khó)', weight: '15%', color: 'bg-amber-500' }
-                   ].map((item, i) => (
-                     <div key={i} className="flex items-center justify-between group">
+                    {[
+                      { label: 'Chất lượng công việc', weight: '40%', color: 'bg-indigo-500' },
+                      { label: 'Tiến độ thực hiện', weight: '25%', color: 'bg-blue-500' },
+                      { label: 'Tỷ lệ hoàn thành', weight: '20%', color: 'bg-emerald-500' },
+                      { label: 'Khối lượng (Độ khó)', weight: '15%', color: 'bg-amber-500' }
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center justify-between group">
                         <div className="flex items-center gap-2">
-                           <div className={`w-1.5 h-1.5 rounded-full ${item.color}`} />
-                           <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400">{item.label}</span>
+                            <div className={`w-1.5 h-1.5 rounded-full ${item.color}`} />
+                            <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400">{item.label}</span>
                         </div>
                         <span className="text-[13px] font-black text-slate-800 dark:text-white">{item.weight}</span>
-                     </div>
-                   ))}
+                      </div>
+                    ))}
                 </div>
                 <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
-                   <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-tighter mb-1">Công thức bình quân</p>
-                   <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                     Hiệu suất = (Chất lượng × 40%) + (Tiến độ × 25%) + (Hoàn thành × 20%) + (Khối lượng × 15%)
-                   </p>
-                   <p className="text-[10px] text-slate-400 mt-2 leading-tight">
-                     * Dữ liệu được tính dựa trên trung bình tất cả nhiệm vụ đã được lãnh đạo chốt điểm.
-                   </p>
+                    <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-tighter mb-1">Công thức bình quân</p>
+                    <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                      Hiệu suất = (Chất lượng × 40%) + (Tiến độ × 25%) + (Hoàn thành × 20%) + (Khối lượng × 15%)
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-2 leading-tight">
+                      * Dữ liệu được tính dựa trên trung bình tất cả nhiệm vụ đã được lãnh đạo chốt điểm.
+                    </p>
                 </div>
                 <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
-                   <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-2">
                       <Info size={14} className="text-slate-400 shrink-0 mt-0.5" />
                       <p className="text-[11px] text-slate-400 leading-relaxed italic">
                         Dữ liệu được tổng hợp tự động để tham mưu cho Lãnh đạo và Hội đồng Thi đua - Khen thưởng.
                       </p>
-                   </div>
+                    </div>
                 </div>
-             </div>
+              </div>
           </div>
         </div>
       </div>
@@ -670,14 +674,24 @@ function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
                            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4 pt-4 border-t border-slate-50 dark:border-slate-700/50">
                               <div className="space-y-1">
                                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Chất lượng (40%)</p>
-                                 <div className="flex items-center gap-1.5">
-                                    <span className="text-[13px] font-black text-slate-700 dark:text-slate-200">{scoreObj.breakdown.quality}</span>
-                                    {scoreObj.warnings.quality && <Info size={12} className="text-amber-500" title="Chưa có điểm chốt cuối" />}
+                                 <div className="flex flex-col">
+                                    <div className="flex items-center gap-1.5">
+                                       <span className="text-[13px] font-black text-slate-700 dark:text-slate-200">{scoreObj.breakdown.quality}</span>
+                                       {scoreObj.warnings.quality && <Info size={12} className="text-amber-500" title="Chưa có điểm chốt cuối" />}
+                                    </div>
+                                    <span className={`text-[9px] font-bold text-${getEvaluationLabel(scoreObj.breakdown.quality).color}-500 uppercase`}>
+                                      {getEvaluationLabel(scoreObj.breakdown.quality).label}
+                                    </span>
                                  </div>
                               </div>
                               <div className="space-y-1">
                                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tiến độ (25%)</p>
-                                 <span className="text-[13px] font-black text-slate-700 dark:text-slate-200">{scoreObj.breakdown.progress}</span>
+                                 <div className="flex flex-col">
+                                    <span className="text-[13px] font-black text-slate-700 dark:text-slate-200">{scoreObj.breakdown.progress}</span>
+                                    <span className={`text-[9px] font-bold text-${getEvaluationLabel(scoreObj.breakdown.progress).color}-500 uppercase`}>
+                                      {getEvaluationLabel(scoreObj.breakdown.progress).label}
+                                    </span>
+                                 </div>
                               </div>
                               <div className="space-y-1">
                                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tỷ lệ hoàn thành (20%)</p>
@@ -687,7 +701,12 @@ function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
                               </div>
                               <div className="space-y-1">
                                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Khối lượng (15%)</p>
-                                 <span className="text-[13px] font-black text-slate-700 dark:text-slate-200">{scoreObj.breakdown.workload}</span>
+                                 <div className="flex flex-col">
+                                    <span className="text-[13px] font-black text-slate-700 dark:text-slate-200">{scoreObj.breakdown.workload}</span>
+                                    <span className={`text-[9px] font-bold text-${getEvaluationLabel(scoreObj.breakdown.workload).color}-500 uppercase`}>
+                                      {getEvaluationLabel(scoreObj.breakdown.workload).label}
+                                    </span>
+                                 </div>
                               </div>
                               <div className="space-y-1">
                                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Điểm Cộng/Trừ</p>

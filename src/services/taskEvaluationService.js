@@ -21,9 +21,14 @@ export const taskEvaluationService = {
     taskId, userId, score, comment, participationLevel, progressLevel,
     qualityScore = 0, progressScore = 0, completionRate = 0, note = '' 
   }) {
+    // Tự động xác định vai trò dựa trên assignee_id của nhiệm vụ
+    const { data: taskData } = await supabase.from('tasks').select('assignee_id').eq('id', taskId).single();
+    const evaluatedRole = taskData?.assignee_id === userId ? 'main_assignee' : 'collaborator';
+
     const payload = {
       task_id: taskId,
       evaluated_user_id: userId,
+      evaluated_role: evaluatedRole,
       self_score: score,
       self_comment: comment,
       self_participation_level: participationLevel,
@@ -46,8 +51,7 @@ export const taskEvaluationService = {
     if (error) throw error;
 
     // Cập nhật trạng thái nhiệm vụ sang Chờ chốt cuối nếu đây là người thực hiện chính
-    const { data: taskData } = await supabase.from('tasks').select('assignee_id').eq('id', taskId).single();
-    if (taskData?.assignee_id === userId) {
+    if (evaluatedRole === 'main_assignee') {
       await supabase.from('tasks').update({ evaluation_status: 'pending_final' }).eq('id', taskId);
     }
 

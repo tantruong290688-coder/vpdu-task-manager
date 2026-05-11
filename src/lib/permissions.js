@@ -111,6 +111,34 @@ export function canAdminFinalizeEvaluation(profile) {
 }
 
 /**
+ * 5. Quyền mở Modal Đánh giá (Admin, Manager, Assignee, Collab)
+ */
+export function canOpenEvaluationModal(profile, task) {
+  if (!profile || !task || task.status !== 'completed') return false;
+  
+  const isParticipant = 
+    task.assignee_id === profile.id || 
+    (task.task_collaborators || []).some(c => c.user_id === profile.id) ||
+    task.assigned_by === profile.id;
+    
+  return profile.role === ROLES.ADMIN || profile.role === ROLES.MANAGER || isParticipant;
+}
+
+/**
+ * 5. Quyền mở Modal Đánh giá (Admin, Manager, Assignee, Collab)
+ */
+export function canOpenEvaluationModal(profile, task) {
+  if (!profile || !task || task.status !== 'completed') return false;
+  
+  const isParticipant = 
+    task.assignee_id === profile.id || 
+    (task.task_collaborators || []).some(c => c.user_id === profile.id) ||
+    task.assigned_by === profile.id;
+    
+  return profile.role === ROLES.ADMIN || profile.role === ROLES.MANAGER || isParticipant;
+}
+
+/**
  * 4. Quyền xem đánh giá
  */
 export function canViewEvaluation(profile, task) {

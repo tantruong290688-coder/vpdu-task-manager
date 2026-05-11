@@ -9,7 +9,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { writeLog } from '../lib/logger';
 import toast from 'react-hot-toast';
-import { canEditTask, canUpdateProgress as checkCanUpdateProgress, canEvaluate as checkCanEvaluate, ROLES } from '../lib/permissions';
+import { canEditTask, canUpdateProgress as checkCanUpdateProgress, canEvaluate as checkCanEvaluate, canOpenEvaluationModal, ROLES } from '../lib/permissions';
 import TaskChecklist from './Tasks/TaskChecklist';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

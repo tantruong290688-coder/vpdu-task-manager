@@ -1,6 +1,6 @@
 import { SlidersHorizontal, Clock, Calendar, Star, Eye, CheckCircle, Edit2, Trash2 } from 'lucide-react';
 import { StatusBadge, PriorityBadge, EvaluationStatusBadge } from './TaskBadges';
-import { canEditTask, canUpdateProgress, canEvaluate } from '../../lib/permissions';
+import { canEditTask, canUpdateProgress, canEvaluate, canOpenEvaluationModal } from '../../lib/permissions';
 import { getDashboardEmptyState } from '../../lib/taskFilters';
 
 export default function TaskMobileList({

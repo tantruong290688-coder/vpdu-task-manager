@@ -1,7 +1,7 @@
 import { SlidersHorizontal, ArrowUp, ArrowDown, ArrowUpDown, Eye, CheckCircle, Star, Edit2, Trash2, AlertTriangle, Flag as FlagIcon } from 'lucide-react';
 import { getTaskRisk } from '../../utils/taskAnalytics';
 import { StatusBadge, PriorityBadge, ScoreBadge, EvaluationStatusBadge } from './TaskBadges';
-import { canEditTask, canUpdateProgress, canEvaluate } from '../../lib/permissions';
+import { canEditTask, canUpdateProgress, canEvaluate, canOpenEvaluationModal } from '../../lib/permissions';
 import { getDashboardEmptyState } from '../../lib/taskFilters';
 
 export default function TaskTable({

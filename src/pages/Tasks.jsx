@@ -19,7 +19,7 @@ import BulkActionToolbar from '../components/Tasks/BulkActionToolbar';
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { writeLog } from '../lib/logger';
-import { canEditTask, canUpdateProgress, canEvaluate, canCreateTask, ROLES } from '../lib/permissions';
+import { canEditTask, canUpdateProgress, canEvaluate, canCreateTask, canOpenEvaluationModal, ROLES } from '../lib/permissions';
 import { getDashboardFilter, getDashboardFilterTitle, getDashboardEmptyState } from '../lib/taskFilters';
 import { useTasks } from '../hooks/useTasks';
 import { useQueryClient } from '@tanstack/react-query';

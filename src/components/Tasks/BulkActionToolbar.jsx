@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react';
 import { X, CheckCircle2, Users, Download, Trash2, ChevronUp } from 'lucide-react';
 
 export default function BulkActionToolbar({ 
@@ -7,6 +8,20 @@ export default function BulkActionToolbar({
   onExport, 
   onDelete 
 }) {
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsStatusOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   if (selectedCount === 0) return null;
 
   return (
@@ -26,20 +41,42 @@ export default function BulkActionToolbar({
 
         <div className="flex items-center gap-2">
           {/* Change Status */}
-          <div className="relative group">
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-slate-700 transition-colors text-[13px] font-bold">
+          <div className="relative" ref={dropdownRef}>
+            <button 
+              onClick={() => setIsStatusOpen(!isStatusOpen)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-colors text-[13px] font-bold ${isStatusOpen ? 'bg-slate-700 ring-2 ring-indigo-500/50' : 'hover:bg-slate-700'}`}
+            >
               <CheckCircle2 size={16} className="text-green-400" />
               Đổi trạng thái
-              <ChevronUp size={14} className="opacity-50" />
+              <ChevronUp size={14} className={`opacity-50 transition-transform duration-200 ${isStatusOpen ? 'rotate-180' : ''}`} />
             </button>
-            <div className="absolute bottom-full mb-2 left-0 hidden group-hover:block bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden min-w-[160px]">
-              <button onClick={() => onStatusChange('pending')} className="w-full text-left px-4 py-2 text-[12px] font-bold hover:bg-slate-700 transition-colors">Chờ xử lý</button>
-              <button onClick={() => onStatusChange('in_progress')} className="w-full text-left px-4 py-2 text-[12px] font-bold hover:bg-slate-700 transition-colors">Đang thực hiện</button>
-              <button onClick={() => onStatusChange('completed')} className="w-full text-left px-4 py-2 text-[12px] font-bold hover:bg-slate-700 transition-colors">Hoàn thành</button>
-            </div>
+            
+            {isStatusOpen && (
+              <div className="absolute bottom-full mb-3 left-0 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden min-w-[180px] animate-in zoom-in-95 slide-in-from-bottom-2 duration-200">
+                <div className="p-1.5 space-y-1">
+                  {[
+                    { id: 'pending', label: 'Chờ xử lý', color: 'text-slate-400' },
+                    { id: 'in_progress', label: 'Đang thực hiện', color: 'text-blue-400' },
+                    { id: 'completed', label: 'Hoàn thành', color: 'text-emerald-400' }
+                  ].map((status) => (
+                    <button 
+                      key={status.id}
+                      onClick={() => {
+                        onStatusChange(status.id);
+                        setIsStatusOpen(false);
+                      }} 
+                      className="w-full text-left px-4 py-2.5 text-[12.5px] font-black hover:bg-slate-700 rounded-lg transition-colors flex items-center justify-between group"
+                    >
+                      <span>{status.label}</span>
+                      <div className={`w-1.5 h-1.5 rounded-full ${status.color.replace('text', 'bg')} opacity-0 group-hover:opacity-100 transition-opacity`} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Change Collaborators (Placeholder for now) */}
+          {/* Change Collaborators (Placeholder) */}
           <button className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-slate-700 transition-colors text-[13px] font-bold">
             <Users size={16} className="text-blue-400" />
             Phối hợp

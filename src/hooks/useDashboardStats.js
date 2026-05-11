@@ -17,7 +17,7 @@ async function fetchDashboardStats(profileId, role) {
     if (!rpcError && rpcData) {
       const {
         total, notStarted, inProgress, completed, overdue,
-        dueSoon, pendingEval, pendingFinal, completedOnTime, workAreas
+        dueSoon, pendingEval, pendingFinal, finalized, completedOnTime, workAreas
       } = rpcData;
 
       const completionRate = total > 0 ? ((completed / total) * 100).toFixed(1) : '0';
@@ -33,7 +33,7 @@ async function fetchDashboardStats(profileId, role) {
       const barData = Object.keys(workAreas || {}).map(key => ({ name: key, value: workAreas[key] }));
 
       return {
-        stats: { total, notStarted, inProgress, completed, overdue, dueSoon, pendingEval, pendingFinal, completionRate, onTimeRate },
+        stats: { total, notStarted, inProgress, completed, overdue, dueSoon, pendingEval, pendingFinal, finalized, completionRate, onTimeRate },
         pieData: pieData.length > 0 ? pieData : [{ name: 'Trống', value: 1, color: '#e2e8f0' }],
         barData: barData.length > 0 ? barData : [{ name: 'Chưa có', value: 0 }],
       };
@@ -47,7 +47,7 @@ async function fetchDashboardStats(profileId, role) {
   const { data: tasks, error } = await supabase
     .from('tasks')
     .select(`
-      status, due_date, completed_at, evaluation_score, work_area, 
+      status, due_date, completed_at, evaluation_score, evaluation_status, work_area, 
       assignee_id, assigned_by, created_by,
       task_collaborators(user_id)
     `);
@@ -71,6 +71,7 @@ async function fetchDashboardStats(profileId, role) {
   const dueSoon    = filterTasksLocal(filteredTasks, 'due_soon').length;
   const pendingEval  = filterTasksLocal(filteredTasks, 'pending_eval').length;
   const pendingFinal = filterTasksLocal(filteredTasks, 'pending_final').length;
+  const finalized    = filterTasksLocal(filteredTasks, 'finalized').length;
 
   const completedTasks = filteredTasks.filter(t => t.status === 'completed');
   const completedOnTime = completedTasks.filter(t => {
@@ -96,7 +97,7 @@ async function fetchDashboardStats(profileId, role) {
   const barData = Object.keys(workAreasMap).map(key => ({ name: key, value: workAreasMap[key] }));
 
   return {
-    stats: { total, notStarted, inProgress, completed, overdue, dueSoon, pendingEval, pendingFinal, completionRate, onTimeRate },
+    stats: { total, notStarted, inProgress, completed, overdue, dueSoon, pendingEval, pendingFinal, finalized, completionRate, onTimeRate },
     pieData: pieData.length > 0 ? pieData : [{ name: 'Trống', value: 1, color: '#e2e8f0' }],
     barData: barData.length > 0 ? barData : [{ name: 'Chưa có', value: 0 }],
   };
@@ -115,7 +116,7 @@ export function useDashboardStats(profileId, role) {
     placeholderData: {
       stats: {
         total: 0, notStarted: 0, inProgress: 0, completed: 0, overdue: 0,
-        dueSoon: 0, pendingEval: 0, pendingFinal: 0, completionRate: '0', onTimeRate: '0',
+        dueSoon: 0, pendingEval: 0, pendingFinal: 0, finalized: 0, completionRate: '0', onTimeRate: '0',
       },
       pieData: [{ name: 'Trống', value: 1, color: '#e2e8f0' }],
       barData: [{ name: 'Trống', value: 0 }],

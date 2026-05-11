@@ -177,12 +177,8 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
       return;
     }
 
-    // Yêu cầu lý do nếu chênh lệch trên 10 điểm
-    if (Math.abs(scoreVal - (collabSelfScore || 0)) >= 10 && !mainRevDiffReason) {
-      toast.error('Chênh lệch trên 10 điểm, vui lòng nhập lý do');
-      return;
-    }
-
+    // Bỏ kiểm tra yêu cầu lý do chênh lệch điểm
+    
     setLoading(true);
     try {
       await taskEvaluationService.submitMainAssigneeReview({
@@ -224,11 +220,8 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
     const commentVal = newComment !== undefined ? newComment : finalComment;
     const reasonVal = newReason !== undefined ? newReason : adjReason;
 
-    if (proposedScore > 0 && scoreVal !== proposedScore && !reasonVal) {
-      toast.error('Vui lòng nhập lý do điều chỉnh điểm');
-      return;
-    }
-
+    // Bỏ kiểm tra yêu cầu lý do điều chỉnh điểm
+    
     // Capture granular values from params if provided (from AdminRow)
     const gQuality = q !== undefined ? q : finalQualityScore;
     const gCompletion = c !== undefined ? c : finalCompletionRate;

@@ -71,10 +71,8 @@ export default function StaffPerformance() {
       'Chức vụ/Vai trò': p.role,
       'Số nhiệm vụ chủ trì': p.stats.taskCount.primary,
       'Số nhiệm vụ phối hợp': p.stats.taskCount.collab,
-      'Điểm TB chủ trì (70%)': p.stats.avgPrimary,
-      'Điểm TB phối hợp (30%)': p.stats.avgCollab,
-      'Điểm khối lượng (TB)': p.stats.avgWorkload,
-      'Tổng điểm hiệu suất': p.displayScore,
+      'Số nhiệm vụ đã chốt': p.stats.taskCount.total,
+      'Điểm TB (Bình quân)': p.displayScore,
       'Xếp loại': getPerformanceRank(p.displayScore).label,
       'Nhận xét hệ thống': generateAutoComment(p.stats),
       'Nhận xét lãnh đạo': p.officialReview?.leader_comment || ''
@@ -220,12 +218,12 @@ export default function StaffPerformance() {
 
         {/* KPI Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-           {[
-             { label: 'Tổng nhiệm vụ', value: stats.totalTasks, icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-             { label: 'Điểm TB toàn đơn vị', value: `${stats.avgScore}/100`, icon: Target, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
-             { label: 'Số cán bộ đánh giá', value: performanceData?.length || 0, icon: Users, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20' },
-             { label: 'Chưa đủ dữ liệu', value: stats.insufficientCount, icon: AlertTriangle, color: 'text-rose-600', bg: 'bg-rose-50 dark:bg-rose-900/20' },
-           ].map((kpi, i) => (
+            {[
+              { label: 'Nhiệm vụ đã chốt', value: stats.totalTasks, icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+              { label: 'Điểm TB toàn đơn vị', value: `${stats.avgScore}/100`, icon: Target, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
+              { label: 'Số cán bộ được chốt', value: performanceData?.length || 0, icon: Users, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+              { label: 'Dữ liệu chưa chốt', value: stats.insufficientCount, icon: AlertTriangle, color: 'text-rose-600', bg: 'bg-rose-50 dark:bg-rose-900/20' },
+            ].map((kpi, i) => (
              <div key={i} className={`${kpi.bg} p-4 rounded-2xl border border-transparent dark:border-slate-800/50`}>
                 <div className="flex items-center gap-2 mb-2">
                    <kpi.icon size={14} className={kpi.color} />
@@ -268,10 +266,10 @@ export default function StaffPerformance() {
                           <th className="px-4 py-4">Cán bộ</th>
                           <th className="px-4 py-4 text-center">Chủ trì</th>
                           <th className="px-4 py-4 text-center">Phối hợp</th>
-                          <th className="px-4 py-4 text-center">TB Chủ trì</th>
-                          <th className="px-4 py-4 text-center">TB Phối hợp</th>
+                          <th className="px-4 py-4 text-center">Đã chốt</th>
+                          <th className="px-4 py-4 text-center">TB Điểm</th>
                           <th className="px-4 py-4 text-center">Khối lượng</th>
-                          <th className="px-8 py-4 text-right">Tổng điểm</th>
+                          <th className="px-8 py-4 text-right">Tổng hiệu suất</th>
                        </tr>
                     </thead>
                    <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
@@ -323,13 +321,13 @@ export default function StaffPerformance() {
                                </span>
                             </td>
                              <td className="px-4 py-5 text-center">
-                                <span className={`text-[13px] font-black ${staff.stats.avgPrimary >= 80 ? 'text-indigo-600' : 'text-slate-600'}`}>
-                                  {staff.stats.avgPrimary}
+                                <span className="text-[13px] font-black text-indigo-600">
+                                  {staff.stats.taskCount.total}
                                 </span>
                              </td>
                              <td className="px-4 py-5 text-center">
-                                <span className="text-[13px] font-bold text-slate-500">
-                                  {staff.stats.avgCollab}
+                                <span className={`text-[13px] font-black ${staff.displayScore >= 80 ? 'text-indigo-600' : 'text-slate-600'}`}>
+                                  {staff.displayScore}
                                 </span>
                              </td>
                              <td className="px-4 py-5 text-center">
@@ -406,11 +404,13 @@ export default function StaffPerformance() {
              </div>
 
              <div className="bg-white dark:bg-slate-900 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
-                <h3 className="text-[14px] font-black text-slate-800 dark:text-white uppercase tracking-tight mb-6">Cơ cấu tính điểm cán bộ</h3>
+                <h3 className="text-[14px] font-black text-slate-800 dark:text-white uppercase tracking-tight mb-6">Cơ cấu tính hiệu suất cán bộ</h3>
                 <div className="space-y-3">
                    {[
-                     { label: 'Nhiệm vụ chủ trì (TB)', weight: '70%', color: 'bg-indigo-500' },
-                     { label: 'Nhiệm vụ phối hợp (TB)', weight: '30%', color: 'bg-blue-500' }
+                     { label: 'Chất lượng công việc', weight: '40%', color: 'bg-indigo-500' },
+                     { label: 'Tiến độ thực hiện', weight: '25%', color: 'bg-blue-500' },
+                     { label: 'Tỷ lệ hoàn thành', weight: '20%', color: 'bg-emerald-500' },
+                     { label: 'Khối lượng (Độ khó)', weight: '15%', color: 'bg-amber-500' }
                    ].map((item, i) => (
                      <div key={i} className="flex items-center justify-between group">
                         <div className="flex items-center gap-2">
@@ -422,12 +422,12 @@ export default function StaffPerformance() {
                    ))}
                 </div>
                 <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
-                   <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-tighter mb-1">Công thức tổng hợp</p>
+                   <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-tighter mb-1">Công thức bình quân</p>
                    <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                     Điểm tổng hợp = (TB điểm chủ trì × 70%) + (TB điểm phối hợp × 30%)
+                     Hiệu suất = (Chất lượng × 40%) + (Tiến độ × 25%) + (Hoàn thành × 20%) + (Khối lượng × 15%)
                    </p>
                    <p className="text-[10px] text-slate-400 mt-2 leading-tight">
-                     * Nếu chỉ có một loại nhiệm vụ, lấy điểm trung bình loại đó làm điểm tổng hợp.
+                     * Dữ liệu được tính dựa trên trung bình tất cả nhiệm vụ đã được lãnh đạo chốt điểm.
                    </p>
                 </div>
                 <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">

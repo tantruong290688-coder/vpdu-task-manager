@@ -17,7 +17,10 @@ export const taskEvaluationService = {
   /**
    * 1. Người phối hợp / Người thực hiện chính tự đề xuất điểm
    */
-  async submitSelfEvaluation({ taskId, userId, score, comment, participationLevel, progressLevel }) {
+  async submitSelfEvaluation({ 
+    taskId, userId, score, comment, participationLevel, progressLevel,
+    qualityScore = 0, progressScore = 0, completionRate = 0, note = '' 
+  }) {
     const payload = {
       task_id: taskId,
       evaluated_user_id: userId,
@@ -25,6 +28,10 @@ export const taskEvaluationService = {
       self_comment: comment,
       self_participation_level: participationLevel,
       self_progress_level: progressLevel,
+      self_quality_score: qualityScore,
+      self_progress_score: progressScore,
+      self_completion_rate: completionRate,
+      self_note: note || comment,
       self_submitted_at: new Date().toISOString(),
       status: 'self_submitted',
       updated_at: new Date().toISOString()
@@ -43,12 +50,22 @@ export const taskEvaluationService = {
   /**
    * 2. Người thực hiện chính đánh giá/đề xuất cho người phối hợp hoặc bản thân
    */
-  async submitMainAssigneeReview({ evaluationId, score, comment, participationLevel, progressLevel, reviewedBy }) {
+  async submitMainAssigneeReview({ 
+    evaluationId, score, comment, participationLevel, progressLevel, reviewedBy,
+    qualityScore = 0, progressScore = 0, completionRate = 0, difficultyScore = 0, bonusPoint = 0, penaltyPoint = 0, note = ''
+  }) {
     const payload = {
       main_assignee_score: score,
       main_assignee_comment: comment,
       main_assignee_participation_level: participationLevel,
       main_assignee_progress_level: progressLevel,
+      main_reviewer_quality_score: qualityScore,
+      main_reviewer_progress_score: progressScore,
+      main_reviewer_completion_rate: completionRate,
+      main_reviewer_difficulty_score: difficultyScore,
+      main_reviewer_bonus_point: bonusPoint,
+      main_reviewer_penalty_point: penaltyPoint,
+      main_reviewer_note: note || comment,
       main_assignee_reviewed_at: new Date().toISOString(),
       main_assignee_reviewed_by: reviewedBy,
       status: 'main_reviewed',
@@ -69,7 +86,10 @@ export const taskEvaluationService = {
   /**
    * 3. Admin chốt điểm cuối cùng hoặc điều chỉnh điểm đã chốt
    */
-  async finalizeByAdmin({ evaluationId, userId, role, score, comment, adjustmentReason, progressLevel, progressScore, finalizedBy, oldScore, taskId, adjustedByName }) {
+  async finalizeByAdmin({ 
+    evaluationId, userId, role, score, comment, adjustmentReason, progressLevel, progressScore, finalizedBy, oldScore, taskId, adjustedByName,
+    qualityScore = 0, completionRate = 0, difficultyScore = 0, bonusPoint = 0, penaltyPoint = 0, note = ''
+  }) {
     const payload = {
       task_id: taskId,
       evaluated_user_id: userId,
@@ -79,6 +99,12 @@ export const taskEvaluationService = {
       final_adjustment_reason: adjustmentReason,
       final_progress_level: progressLevel,
       final_progress_score: progressScore,
+      final_quality_score: qualityScore,
+      final_completion_rate: completionRate,
+      final_difficulty_score: difficultyScore,
+      final_bonus_point: bonusPoint,
+      final_penalty_point: penaltyPoint,
+      final_note: note || comment,
       finalized_at: new Date().toISOString(),
       finalized_by: finalizedBy,
       status: 'finalized',

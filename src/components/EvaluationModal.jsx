@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { writeLog } from '../lib/logger';
 import { createNotification } from '../hooks/useNotifications';
 import { canSelfProposeEvaluation, canMainAssigneeReview, canAdminFinalizeEvaluation, isTaskStillPendingFinalEvaluation } from '../lib/permissions';
+import { calculateFinalScore } from '../utils/performanceScoring';
 
 const PROGRESS_LEVELS = [
   { id: 'level1', label: 'Dưới 50%', score: 40, range: [0, 49] },
@@ -38,6 +39,9 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
   const [selfProgress, setSelfProgress] = useState('');
   const [selfWorkDone, setSelfWorkDone] = useState('');
   const [selfDifficulty, setSelfDifficulty] = useState('');
+  const [selfQualityScore, setSelfQualityScore] = useState(80);
+  const [selfProgressScore, setSelfProgressScore] = useState(80);
+  const [selfCompletionRate, setSelfCompletionRate] = useState(100);
 
   // --- Form States: Main Assignee Review ---
   const [selectedCollabId, setSelectedCollabId] = useState(null);
@@ -46,12 +50,24 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
   const [mainRevLevel, setMainRevLevel] = useState('Đạt yêu cầu');
   const [mainRevProgress, setMainRevProgress] = useState('');
   const [mainRevDiffReason, setMainRevDiffReason] = useState('');
+  const [mainRevQualityScore, setMainRevQualityScore] = useState(80);
+  const [mainRevProgressScore, setMainRevProgressScore] = useState(80);
+  const [mainRevCompletionRate, setMainRevCompletionRate] = useState(100);
+  const [mainRevDifficultyScore, setMainRevDifficultyScore] = useState(80);
+  const [mainRevBonusPoint, setMainRevBonusPoint] = useState(0);
+  const [mainRevPenaltyPoint, setMainRevPenaltyPoint] = useState(0);
 
   // --- Form States: Admin Finalization ---
   const [finalScore, setFinalScore] = useState('');
   const [finalComment, setFinalComment] = useState('');
   const [adjReason, setAdjReason] = useState('');
   const [finalProgress, setFinalProgress] = useState('');
+  const [finalQualityScore, setFinalQualityScore] = useState(80);
+  const [finalProgressScore, setFinalProgressScore] = useState(80);
+  const [finalCompletionRate, setFinalCompletionRate] = useState(100);
+  const [finalDifficultyScore, setFinalDifficultyScore] = useState(80);
+  const [finalBonusPoint, setFinalBonusPoint] = useState(0);
+  const [finalPenaltyPoint, setFinalPenaltyPoint] = useState(0);
 
   const isAdmin = profile?.role === 'admin';
   const isManager = profile?.role === 'manager';
@@ -89,6 +105,9 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         setSelfComment(myEval.self_comment || '');
         setSelfLevel(myEval.self_participation_level || 'Đạt yêu cầu');
         setSelfProgress(myEval.self_progress_level || getLevelFromProgress(task.progress || 0));
+        setSelfQualityScore(myEval.self_quality_score || 80);
+        setSelfProgressScore(myEval.self_progress_score || 80);
+        setSelfCompletionRate(myEval.self_completion_rate || 100);
       }
     } catch (err) {
       console.error('Lỗi tải đánh giá:', err);
@@ -116,7 +135,10 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         score: scoreVal,
         comment: selfComment,
         participationLevel: selfLevel,
-        progressLevel: selfProgress
+        progressLevel: selfProgress,
+        qualityScore: selfQualityScore,
+        progressScore: selfProgressScore,
+        completionRate: selfCompletionRate
       });
 
       toast.success('Đã gửi tự đề xuất đánh giá');
@@ -150,7 +172,13 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         comment: mainRevComment + (mainRevDiffReason ? `\n(Lý do chênh lệch: ${mainRevDiffReason})` : ''),
         participationLevel: mainRevLevel,
         progressLevel: mainRevProgress,
-        reviewedBy: profile.id
+        reviewedBy: profile.id,
+        qualityScore: mainRevQualityScore,
+        progressScore: mainRevProgressScore,
+        completionRate: mainRevCompletionRate,
+        difficultyScore: mainRevDifficultyScore,
+        bonusPoint: mainRevBonusPoint,
+        penaltyPoint: mainRevPenaltyPoint
       });
 
       toast.success('Đã lưu đánh giá cho cộng sự');
@@ -167,7 +195,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
   };
 
   // 3. Admin chốt điểm
-  const handleAdminFinalize = async (evalId, userId, role, proposedScore, selectedProgressLevel, currentFinalScore, newScore, newComment, newReason) => {
+  const handleAdminFinalize = async (evalId, userId, role, proposedScore, selectedProgressLevel, currentFinalScore, newScore, newComment, newReason, q, c, d, b, p) => {
     const scoreVal = parseInt(newScore || finalScore);
     if (isNaN(scoreVal)) {
       toast.error('Vui lòng nhập điểm cuối cùng');
@@ -181,6 +209,13 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
       toast.error('Vui lòng nhập lý do điều chỉnh điểm');
       return;
     }
+
+    // Capture granular values from params if provided (from AdminRow)
+    const gQuality = q !== undefined ? q : finalQualityScore;
+    const gCompletion = c !== undefined ? c : finalCompletionRate;
+    const gDifficulty = d !== undefined ? d : finalDifficultyScore;
+    const gBonus = b !== undefined ? b : finalBonusPoint;
+    const gPenalty = p !== undefined ? p : finalPenaltyPoint;
 
     const progLevel = selectedProgressLevel || finalProgress;
 
@@ -198,7 +233,12 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         finalizedBy: profile.id,
         oldScore: currentFinalScore,
         taskId: task.id,
-        adjustedByName: profile.full_name
+        adjustedByName: profile.full_name,
+        qualityScore: gQuality,
+        completionRate: gCompletion,
+        difficultyScore: gDifficulty,
+        bonusPoint: gBonus,
+        penaltyPoint: gPenalty
       });
 
       const actualEvalId = evalId || result.id;
@@ -371,27 +411,48 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                            </div>
                         ) : (
                            <form onSubmit={handleSelfPropose} className="space-y-8">
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-                                 <div className="space-y-3">
-                                    <label className="flex items-center gap-2 text-[12px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
-                                       <Star size={14} className="text-amber-500" />
-                                       <span>Điểm tự đề xuất (0-100)</span>
-                                    </label>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                 <div className="space-y-2">
+                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Chất lượng (40%)</label>
                                     <input 
-                                      type="number" min="0" max="100" required
-                                      value={selfScore} onChange={e => setSelfScore(e.target.value)}
-                                      placeholder="Ví dụ: 95"
-                                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-6 py-5 rounded-3xl text-3xl font-black text-indigo-600 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-300"
+                                      type="number" min="0" max="100"
+                                      value={selfQualityScore} onChange={e => {
+                                        const val = Number(e.target.value);
+                                        setSelfQualityScore(val);
+                                        setSelfScore(calculateFinalScore({ qualityScore: val, progressScore: selfProgressScore, completionRate: selfCompletionRate }));
+                                      }}
+                                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-xl font-black text-indigo-600 outline-none"
                                     />
                                  </div>
-                                 <div className="space-y-3">
-                                    <label className="flex items-center gap-2 text-[12px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
-                                       <Users size={14} className="text-blue-500" />
-                                       <span>Mức độ tham gia</span>
-                                    </label>
+                                 <div className="space-y-2">
+                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Tiến độ (25%)</label>
+                                    <input 
+                                      type="number" min="0" max="100"
+                                      value={selfProgressScore} onChange={e => {
+                                        const val = Number(e.target.value);
+                                        setSelfProgressScore(val);
+                                        setSelfScore(calculateFinalScore({ qualityScore: selfQualityScore, progressScore: val, completionRate: selfCompletionRate }));
+                                      }}
+                                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-xl font-black text-indigo-600 outline-none"
+                                    />
+                                 </div>
+                                 <div className="space-y-2">
+                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Tỷ lệ hoàn thành (20%)</label>
+                                    <input 
+                                      type="number" min="0" max="100"
+                                      value={selfCompletionRate} onChange={e => {
+                                        const val = Number(e.target.value);
+                                        setSelfCompletionRate(val);
+                                        setSelfScore(calculateFinalScore({ qualityScore: selfQualityScore, progressScore: selfProgressScore, completionRate: val }));
+                                      }}
+                                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-xl font-black text-indigo-600 outline-none"
+                                    />
+                                 </div>
+                                 <div className="space-y-2">
+                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Mức độ tham gia</label>
                                     <select 
                                       value={selfLevel} onChange={e => setSelfLevel(e.target.value)}
-                                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-6 py-5 rounded-3xl text-[15px] font-black text-slate-700 dark:text-slate-200 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-[14px] font-black text-slate-700 dark:text-slate-200 outline-none"
                                     >
                                        <option>Tích cực</option>
                                        <option>Đạt yêu cầu</option>
@@ -400,19 +461,22 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                        <option>Không tham gia</option>
                                     </select>
                                  </div>
-                                 <div className="space-y-3">
-                                    <label className="flex items-center gap-2 text-[12px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
-                                       <TrendingUp size={14} className="text-emerald-500" />
-                                       <span>Tiến độ thực hiện</span>
-                                    </label>
+                                 <div className="space-y-2">
+                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Tiến độ tổng thể</label>
                                     <select 
                                       value={selfProgress} onChange={e => setSelfProgress(e.target.value)}
-                                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-6 py-5 rounded-3xl text-[15px] font-black text-slate-700 dark:text-slate-200 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-[14px] font-black text-slate-700 dark:text-slate-200 outline-none"
                                     >
                                        {PROGRESS_LEVELS.map(l => (
                                          <option key={l.id} value={l.label}>{l.label}</option>
                                        ))}
                                     </select>
+                                 </div>
+                                 <div className="space-y-2">
+                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Điểm đề xuất (Tổng)</label>
+                                    <div className="w-full bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 px-4 py-3 rounded-2xl text-2xl font-black text-indigo-600 flex items-center justify-center">
+                                       {selfScore || 0}
+                                    </div>
                                  </div>
                               </div>
 
@@ -580,20 +644,99 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                        </div>
                                     ) : (
                                        <div className="space-y-6">
-                                          <div className="grid grid-cols-2 gap-6">
-                                             <div className="space-y-2">
-                                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Điểm bạn đề xuất</label>
+                                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                             <div className="space-y-1">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Chất lượng (40%)</label>
                                                 <input 
-                                                  type="number" value={mainRevScore} onChange={e => setMainRevScore(e.target.value)}
-                                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-5 py-4 rounded-2xl text-2xl font-black text-indigo-600 outline-none"
-                                                  placeholder="0-100"
+                                                  type="number" value={mainRevQualityScore} onChange={e => {
+                                                    const val = Number(e.target.value);
+                                                    setMainRevQualityScore(val);
+                                                    setMainRevScore(calculateFinalScore({ 
+                                                      qualityScore: val, progressScore: mainRevProgressScore, completionRate: mainRevCompletionRate, 
+                                                      difficultyScore: mainRevDifficultyScore, bonusPoint: mainRevBonusPoint, penaltyPoint: mainRevPenaltyPoint 
+                                                    }));
+                                                  }}
+                                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl text-lg font-black text-indigo-600 outline-none"
                                                 />
                                              </div>
-                                             <div className="space-y-2">
-                                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Đánh giá tham gia</label>
+                                             <div className="space-y-1">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tiến độ (25%)</label>
+                                                <input 
+                                                  type="number" value={mainRevProgressScore} onChange={e => {
+                                                    const val = Number(e.target.value);
+                                                    setMainRevProgressScore(val);
+                                                    setMainRevScore(calculateFinalScore({ 
+                                                      qualityScore: mainRevQualityScore, progressScore: val, completionRate: mainRevCompletionRate, 
+                                                      difficultyScore: mainRevDifficultyScore, bonusPoint: mainRevBonusPoint, penaltyPoint: mainRevPenaltyPoint 
+                                                    }));
+                                                  }}
+                                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl text-lg font-black text-indigo-600 outline-none"
+                                                />
+                                             </div>
+                                             <div className="space-y-1">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tỷ lệ HT (20%)</label>
+                                                <input 
+                                                  type="number" value={mainRevCompletionRate} onChange={e => {
+                                                    const val = Number(e.target.value);
+                                                    setMainRevCompletionRate(val);
+                                                    setMainRevScore(calculateFinalScore({ 
+                                                      qualityScore: mainRevQualityScore, progressScore: mainRevProgressScore, completionRate: val, 
+                                                      difficultyScore: mainRevDifficultyScore, bonusPoint: mainRevBonusPoint, penaltyPoint: mainRevPenaltyPoint 
+                                                    }));
+                                                  }}
+                                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl text-lg font-black text-indigo-600 outline-none"
+                                                />
+                                             </div>
+                                             <div className="space-y-1">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Khối lượng (15%)</label>
+                                                <input 
+                                                  type="number" value={mainRevDifficultyScore} onChange={e => {
+                                                    const val = Number(e.target.value);
+                                                    setMainRevDifficultyScore(val);
+                                                    setMainRevScore(calculateFinalScore({ 
+                                                      qualityScore: mainRevQualityScore, progressScore: mainRevProgressScore, completionRate: mainRevCompletionRate, 
+                                                      difficultyScore: val, bonusPoint: mainRevBonusPoint, penaltyPoint: mainRevPenaltyPoint 
+                                                    }));
+                                                  }}
+                                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl text-lg font-black text-indigo-600 outline-none"
+                                                />
+                                             </div>
+                                             <div className="space-y-1">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Điểm cộng</label>
+                                                <input 
+                                                  type="number" value={mainRevBonusPoint} onChange={e => {
+                                                    const val = Number(e.target.value);
+                                                    setMainRevBonusPoint(val);
+                                                    setMainRevScore(calculateFinalScore({ 
+                                                      qualityScore: mainRevQualityScore, progressScore: mainRevProgressScore, completionRate: mainRevCompletionRate, 
+                                                      difficultyScore: mainRevDifficultyScore, bonusPoint: val, penaltyPoint: mainRevPenaltyPoint 
+                                                    }));
+                                                  }}
+                                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl text-lg font-black text-emerald-600 outline-none"
+                                                />
+                                             </div>
+                                             <div className="space-y-1">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Điểm trừ</label>
+                                                <input 
+                                                  type="number" value={mainRevPenaltyPoint} onChange={e => {
+                                                    const val = Number(e.target.value);
+                                                    setMainRevPenaltyPoint(val);
+                                                    setMainRevScore(calculateFinalScore({ 
+                                                      qualityScore: mainRevQualityScore, progressScore: mainRevProgressScore, completionRate: mainRevCompletionRate, 
+                                                      difficultyScore: mainRevDifficultyScore, bonusPoint: mainRevBonusPoint, penaltyPoint: val 
+                                                    }));
+                                                  }}
+                                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl text-lg font-black text-rose-600 outline-none"
+                                                />
+                                             </div>
+                                          </div>
+
+                                          <div className="grid grid-cols-2 gap-4">
+                                             <div className="space-y-1">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mức độ tham gia</label>
                                                 <select 
                                                   value={mainRevLevel} onChange={e => setMainRevLevel(e.target.value)}
-                                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-5 py-4 rounded-2xl text-[14px] font-black outline-none"
+                                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-xl text-[13px] font-black outline-none"
                                                 >
                                                    <option>Tích cực</option>
                                                    <option>Đạt yêu cầu</option>
@@ -601,19 +744,23 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                                    <option>Ít tham gia</option>
                                                 </select>
                                              </div>
+                                             <div className="space-y-1">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tiến độ tổng thể</label>
+                                                <select 
+                                                  value={mainRevProgress} onChange={e => setMainRevProgress(e.target.value)}
+                                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-xl text-[13px] font-black outline-none"
+                                                >
+                                                   {PROGRESS_LEVELS.map(l => (
+                                                     <option key={l.id} value={l.label}>{l.label}</option>
+                                                   ))}
+                                                </select>
+                                             </div>
                                           </div>
 
-                                          <div className="space-y-2">
-                                              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Tiến độ thực hiện (Đánh giá)</label>
-                                              <select 
-                                                value={mainRevProgress} onChange={e => setMainRevProgress(e.target.value)}
-                                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-5 py-4 rounded-2xl text-[14px] font-black outline-none"
-                                              >
-                                                 {PROGRESS_LEVELS.map(l => (
-                                                   <option key={l.id} value={l.label}>{l.label}</option>
-                                                 ))}
-                                              </select>
-                                           </div>
+                                          <div className="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-800">
+                                             <span className="text-[13px] font-black text-indigo-900 dark:text-indigo-300 uppercase tracking-widest">Tổng điểm đề xuất</span>
+                                             <span className="text-3xl font-black text-indigo-600">{mainRevScore}đ</span>
+                                          </div>
 
                                           {/* Logic check for >10pt difference */}
                                           {Math.abs(parseInt(mainRevScore) - (selEval?.self_score || 0)) >= 10 && (
@@ -772,6 +919,11 @@ function AdminRow({ user, roleLabel, roleType, roleCls, evaluation, onFinalize, 
    const [comment, setComment] = useState('');
    const [progressLevel, setProgressLevel] = useState('');
    const [isEditing, setIsEditing] = useState(false);
+   const [qualityScore, setQualityScore] = useState(80);
+   const [completionRate, setCompletionRate] = useState(100);
+   const [difficultyScore, setDifficultyScore] = useState(80);
+   const [bonusPoint, setBonusPoint] = useState(0);
+   const [penaltyPoint, setPenaltyPoint] = useState(0);
 
    useEffect(() => {
      if (evaluation) {
@@ -779,12 +931,29 @@ function AdminRow({ user, roleLabel, roleType, roleCls, evaluation, onFinalize, 
        setComment(evaluation.final_comment || '');
        setReason(evaluation.final_adjustment_reason || '');
        setProgressLevel(evaluation.final_progress_level || evaluation.main_assignee_progress_level || evaluation.self_progress_level || '');
+       setQualityScore(evaluation.final_quality_score || evaluation.main_reviewer_quality_score || evaluation.self_quality_score || 80);
+       setCompletionRate(evaluation.final_completion_rate || evaluation.main_reviewer_completion_rate || evaluation.self_completion_rate || 100);
+       setDifficultyScore(evaluation.final_difficulty_score || evaluation.main_reviewer_difficulty_score || 80);
+       setBonusPoint(evaluation.final_bonus_point || evaluation.main_reviewer_bonus_point || 0);
+       setPenaltyPoint(evaluation.final_penalty_point || evaluation.main_reviewer_penalty_point || 0);
      }
    }, [evaluation]);
 
    if (!user) return null;
 
    const proposedScore = evaluation?.main_assignee_score || evaluation?.self_score || 0;
+
+   const updateLiveScore = (q, c, d, b, p, prog) => {
+     const s = calculateFinalScore({
+       qualityScore: q,
+       progressScore: getScoreFromLevel(prog),
+       completionRate: c,
+       difficultyScore: d,
+       bonusPoint: b,
+       penaltyPoint: p
+     });
+     setScore(s);
+   };
 
    return (
       <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
@@ -817,7 +986,7 @@ function AdminRow({ user, roleLabel, roleType, roleCls, evaluation, onFinalize, 
                   <span className="text-[10px] font-bold text-slate-400 mt-1 truncate max-w-[150px] italic">"{evaluation.main_assignee_comment}"</span>
                )}
                {evaluation?.main_assignee_progress_level && (
-                  <span className="text-[10px] font-black text-indigo-500 mt-0.5">{evaluation.main_assignee_progress_level}</span>
+                  <span className="text-[10px] font-black text-indigo-50 mt-0.5">{evaluation.main_assignee_progress_level}</span>
                )}
             </div>
          </td>
@@ -836,28 +1005,57 @@ function AdminRow({ user, roleLabel, roleType, roleCls, evaluation, onFinalize, 
                    <span className="text-[10px] font-black text-emerald-500 mt-1">{evaluation.final_progress_level || '—'}</span>
                 </div>
             ) : isEditing ? (
-               <div className="space-y-3 w-48">
-                  <input 
-                    type="number" value={score} onChange={e => setScore(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl text-lg font-black text-emerald-600 outline-none"
-                    placeholder="Điểm chốt"
-                  />
+               <div className="space-y-4 w-64 bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg">
+                  <div className="grid grid-cols-2 gap-2">
+                     <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase">Chất lượng</label>
+                        <input type="number" value={qualityScore} onChange={e => { setQualityScore(Number(e.target.value)); updateLiveScore(Number(e.target.value), completionRate, difficultyScore, bonusPoint, penaltyPoint, progressLevel); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded text-[13px] font-black" />
+                     </div>
+                     <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase">Hoàn thành</label>
+                        <input type="number" value={completionRate} onChange={e => { setCompletionRate(Number(e.target.value)); updateLiveScore(qualityScore, Number(e.target.value), difficultyScore, bonusPoint, penaltyPoint, progressLevel); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded text-[13px] font-black" />
+                     </div>
+                     <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase">Độ khó</label>
+                        <input type="number" value={difficultyScore} onChange={e => { setDifficultyScore(Number(e.target.value)); updateLiveScore(qualityScore, completionRate, Number(e.target.value), bonusPoint, penaltyPoint, progressLevel); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded text-[13px] font-black" />
+                     </div>
+                     <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase">Tiến độ</label>
+                        <select value={progressLevel} onChange={e => { setProgressLevel(e.target.value); updateLiveScore(qualityScore, completionRate, difficultyScore, bonusPoint, penaltyPoint, e.target.value); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-1 py-1 rounded text-[11px] font-black">
+                           {PROGRESS_LEVELS.map(l => <option key={l.id} value={l.label}>{l.label}</option>)}
+                        </select>
+                     </div>
+                     <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase text-emerald-500">Thưởng</label>
+                        <input type="number" value={bonusPoint} onChange={e => { setBonusPoint(Number(e.target.value)); updateLiveScore(qualityScore, completionRate, difficultyScore, Number(e.target.value), penaltyPoint, progressLevel); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded text-[13px] font-black text-emerald-600" />
+                     </div>
+                     <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase text-rose-500">Phạt</label>
+                        <input type="number" value={penaltyPoint} onChange={e => { setPenaltyPoint(Number(e.target.value)); updateLiveScore(qualityScore, completionRate, difficultyScore, bonusPoint, Number(e.target.value), progressLevel); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded text-[13px] font-black text-rose-600" />
+                     </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100">
+                     <span className="text-[10px] font-black uppercase text-indigo-600">Tổng chốt</span>
+                     <span className="text-lg font-black text-indigo-700">{score}đ</span>
+                  </div>
+
                   {parseInt(score) !== proposedScore && (
                      <input 
                        type="text" value={reason} onChange={e => setReason(e.target.value)}
-                       className="w-full bg-rose-50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 px-3 py-2 rounded-xl text-[11px] font-bold text-rose-600 outline-none"
+                       className="w-full bg-rose-50/50 border border-rose-100 px-3 py-2 rounded-xl text-[11px] font-bold text-rose-600 outline-none"
                        placeholder="Lý do điều chỉnh"
                      />
                   )}
                   <textarea 
                     value={comment} onChange={e => setComment(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl text-[11px] font-medium outline-none resize-none"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 px-3 py-2 rounded-xl text-[11px] font-medium outline-none resize-none"
                     placeholder="Nhận xét chốt..."
                     rows="2"
                   />
                   <div className="flex gap-2">
                      <button 
-                       onClick={() => onFinalize(evaluation?.id, user.id, roleType, proposedScore, progressLevel, evaluation?.final_score, score, comment, reason).then(() => setIsEditing(false))}
+                       onClick={() => onFinalize(evaluation?.id, user.id, roleType, proposedScore, progressLevel, evaluation?.final_score, score, comment, reason, qualityScore, completionRate, difficultyScore, bonusPoint, penaltyPoint).then(() => setIsEditing(false))}
                        className="flex-1 py-2 bg-emerald-600 text-white rounded-xl text-[11px] font-black"
                      >Lưu</button>
                      <button 

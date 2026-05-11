@@ -414,7 +414,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                          setSelfQualityScore(val);
                                          setSelfScore(calculateFinalScore({ qualityScore: val, progressScore: selfProgressScore, completionRate: selfCompletionRate }));
                                        }}
-                                       className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-[14px] font-black text-indigo-600 outline-none"
+                                       className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-3 rounded-2xl text-[12.5px] font-black text-indigo-600 outline-none focus:border-indigo-500 transition-colors"
                                      >
                                         {SCORE_OPTIONS.map(opt => <option key={opt.score} value={opt.score}>{opt.label}</option>)}
                                      </select>
@@ -449,7 +449,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Mức độ tham gia</label>
                                     <select 
                                       value={selfLevel} onChange={e => setSelfLevel(e.target.value)}
-                                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-[14px] font-black text-slate-700 dark:text-slate-200 outline-none"
+                                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-3 rounded-2xl text-[12.5px] font-black text-slate-700 dark:text-slate-200 outline-none focus:border-indigo-500 transition-colors"
                                     >
                                        <option>Tích cực</option>
                                        <option>Đạt yêu cầu</option>
@@ -571,7 +571,11 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                              </div>
                                           </div>
                                        </div>
-                                       <ChevronRight size={20} className={isSelected ? 'text-white' : 'text-slate-300'} />
+                                        {ev?.status === 'finalized' ? (
+                                           <CheckCircle2 size={20} className="text-emerald-400 animate-in zoom-in" />
+                                        ) : (
+                                           <ChevronRight size={20} className={isSelected ? 'text-white' : 'text-slate-300'} />
+                                        )}
                                     </div>
                                  );
                               })

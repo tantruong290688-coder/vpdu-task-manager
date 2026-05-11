@@ -339,7 +339,7 @@ export default function TaskDetailDrawer({
           )}
 
           {/* Đánh giá */}
-          {task.status === 'completed' && (canEvaluate || (isAssignee && collaboratorNames.length > 0)) && (
+          {task.status === 'completed' && (canEvaluate || isAssignee || isCollab) && (
             <button
               onClick={() => onEvaluate?.(task)}
               className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white text-[12px] font-bold rounded-xl transition-colors shadow-sm"
@@ -347,7 +347,7 @@ export default function TaskDetailDrawer({
               <Star size={14} />
               {canEvaluate 
                 ? (task.evaluation_score !== null ? 'Xem / Sửa đánh giá' : 'Đánh giá kết quả')
-                : 'Đề xuất đánh giá người phối hợp'
+                : (isAssignee ? 'Đề xuất đánh giá người phối hợp' : 'Tự đề xuất điểm')
               }
             </button>
           )}

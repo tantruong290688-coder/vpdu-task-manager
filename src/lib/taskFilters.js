@@ -24,11 +24,11 @@ export function getDashboardFilter(query, filterType) {
         .neq('status', 'completed')
         .eq('evaluation_status', 'pending_eval');
     case 'pending_eval':
-      return query.eq('evaluation_status', 'pending_eval');
+      return query.eq('status', 'completed').eq('evaluation_status', 'pending_eval');
     case 'pending_final':
-      return query.eq('evaluation_status', 'pending_final');
+      return query.eq('status', 'completed').eq('evaluation_status', 'pending_final');
     case 'finalized':
-      return query.eq('evaluation_status', 'finalized');
+      return query.eq('status', 'completed').eq('evaluation_status', 'finalized');
     case 'pending':
       return query.eq('status', 'pending');
     case 'in_progress':
@@ -55,11 +55,11 @@ export function filterTasksLocal(tasks, filterType) {
       case 'due_soon':
         return d && d >= todayStr && d <= threeDaysStr && t.status !== 'completed' && t.evaluation_score == null;
       case 'pending_eval':
-        return t.evaluation_status === 'pending_eval';
+        return t.status === 'completed' && t.evaluation_status === 'pending_eval';
       case 'pending_final':
-        return t.evaluation_status === 'pending_final';
+        return t.status === 'completed' && t.evaluation_status === 'pending_final';
       case 'finalized':
-        return t.evaluation_status === 'finalized';
+        return t.status === 'completed' && t.evaluation_status === 'finalized';
       case 'pending':
         return t.status === 'pending';
       case 'in_progress':

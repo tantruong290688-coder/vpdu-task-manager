@@ -24,10 +24,10 @@ async function fetchDashboardStats(profileId, role) {
       const onTimeRate = completed > 0 ? ((completedOnTime / completed) * 100).toFixed(1) : '0';
 
       const pieData = [
-        { name: 'Đang thực hiện', value: inProgress, color: '#3b82f6' },
-        { name: 'Hoàn thành',     value: completed,  color: '#22c55e' },
-        { name: 'Chưa bắt đầu',  value: notStarted, color: '#f59e0b' },
-        { name: 'Quá hạn',       value: overdue,    color: '#ef4444' },
+        { name: 'Đang thực hiện', value: inProgress, color: '#3b82f6', filter: 'in_progress' },
+        { name: 'Hoàn thành',     value: completed,  color: '#22c55e', filter: 'completed' },
+        { name: 'Chưa bắt đầu',  value: notStarted, color: '#f59e0b', filter: 'pending' },
+        { name: 'Quá hạn',       value: overdue,    color: '#ef4444', filter: 'overdue' },
       ].filter(d => d.value > 0);
 
       const barData = Object.keys(workAreas || {}).map(key => ({ name: key, value: workAreas[key] }));

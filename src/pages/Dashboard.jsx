@@ -55,6 +55,12 @@ export default function Dashboard() {
     else navigate('/all-tasks');
   };
 
+  const handleBarClick = (data) => {
+    if (data && data.name) {
+      navigate(`/all-tasks?filter=area_${data.name}`);
+    }
+  };
+
   return (
     <div className="space-y-4 px-4 sm:px-0">
       {/* Ngày của tôi Widget */}
@@ -133,6 +139,8 @@ export default function Dashboard() {
                   paddingAngle={8}
                   dataKey="value"
                   stroke="none"
+                  onClick={(data) => handleCardClick(data.filter)}
+                  className="cursor-pointer"
                 >
                   {pieData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -196,7 +204,14 @@ export default function Dashboard() {
                     fontWeight: '700'
                   }} 
                 />
-                <Bar dataKey="value" fill="#6366f1" radius={[8, 8, 0, 0]} barSize={window.innerWidth < 768 ? 20 : 35} />
+                <Bar 
+                  dataKey="value" 
+                  fill="#6366f1" 
+                  radius={[8, 8, 0, 0]} 
+                  barSize={window.innerWidth < 768 ? 20 : 35} 
+                  onClick={handleBarClick}
+                  className="cursor-pointer"
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>

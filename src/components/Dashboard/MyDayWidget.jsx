@@ -24,7 +24,11 @@ export default function MyDayWidget({ tasks, notifications, profile }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-5 mb-4 md:mb-6">
       {/* Today's Deadlines */}
-      <div className="bg-gradient-to-br from-red-500 to-orange-600 rounded-[22px] p-4 md:p-5 text-white shadow-lg shadow-orange-500/20 relative overflow-hidden group">
+      <div className={`rounded-[22px] p-4 md:p-5 text-white shadow-lg transition-all duration-500 relative overflow-hidden group ${
+        todayTasks.length > 0 
+          ? "bg-gradient-to-br from-red-500 to-orange-600 shadow-orange-500/20" 
+          : "bg-gradient-to-br from-slate-600 to-slate-700 shadow-slate-500/10"
+      }`}>
         <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
           <Clock size={60} className="md:w-20 md:h-20" />
         </div>

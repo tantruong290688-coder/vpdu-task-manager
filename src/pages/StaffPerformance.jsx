@@ -661,7 +661,7 @@ function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
                                     <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${isPrimary ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
                                        {isPrimary ? 'Chủ trì' : 'Phối hợp'}
                                     </span>
-                                    <span className="text-[11px] font-black text-slate-400 font-mono">{task.task_code}</span>
+                                    <span className="text-[11px] font-black text-slate-400 font-mono">{task.code}</span>
                                     {task.priority === 'urgent' && <span className="bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter">Khẩn</span>}
                                  </div>
                                  <h4 className="text-[13px] font-black text-slate-800 dark:text-white leading-snug">{task.title}</h4>

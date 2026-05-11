@@ -19,7 +19,7 @@ export function useStaffPerformance(period = null) {
       const { data: tasks, error: tError } = await supabase
         .from('tasks')
         .select(`
-          id, task_code, title, assignee_id, status, due_date, completed_at, evaluation_score, 
+          id, code, title, assignee_id, status, due_date, completed_at, evaluation_score, 
           progress, leader_score, auto_score, self_quality_eval, 
           responsibility_score, priority, return_count, reminder_count, 
           include_in_report, evaluation_period

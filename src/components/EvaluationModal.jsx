@@ -519,7 +519,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                     <span>Nội dung thực hiện & Tự nhận xét</span>
                                  </label>
                                  <textarea 
-                                   rows="5" required
+                                   rows="5" 
                                    value={selfComment} onChange={e => setSelfComment(e.target.value)}
                                    placeholder="Mô tả tóm tắt kết quả phần việc bạn đảm nhận và tự đánh giá ưu/khuyết điểm..."
                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-6 py-5 rounded-[32px] text-[15px] font-medium text-slate-700 dark:text-slate-200 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all resize-none leading-relaxed"

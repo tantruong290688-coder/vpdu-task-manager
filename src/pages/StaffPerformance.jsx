@@ -648,81 +648,76 @@ function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
                    </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                    {[...staff.primaryTasks, ...staff.collabTasks].map((task) => {
                       const scoreObj = calculateTaskScore(task, task.evaluation);
                       const isPrimary = task.assignee_id === staff.id;
 
                       return (
-                        <div key={task.id} className="p-5 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-3xl hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors">
-                           <div className="flex items-start justify-between gap-4 mb-4">
+                        <div key={task.id} className="p-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors shadow-sm">
+                           <div className="flex items-start justify-between gap-4 mb-3">
                               <div className="flex-1">
                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${isPrimary ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
+                                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${isPrimary ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
                                        {isPrimary ? 'Chủ trì' : 'Phối hợp'}
                                     </span>
-                                    {task.priority === 'urgent' && <span className="bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400 px-2 py-0.5 rounded text-[10px] font-black uppercase">Khẩn cấp</span>}
+                                    <span className="text-[11px] font-black text-slate-400 font-mono">{task.task_code}</span>
+                                    {task.priority === 'urgent' && <span className="bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter">Khẩn</span>}
                                  </div>
-                                 <h4 className="text-[14px] font-black text-slate-800 dark:text-white leading-snug">{task.title}</h4>
+                                 <h4 className="text-[13px] font-black text-slate-800 dark:text-white leading-snug">{task.title}</h4>
                               </div>
                               <div className="text-right">
-                                 <div className="text-2xl font-black text-indigo-600">{scoreObj.total}</div>
-                                 <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Điểm</div>
+                                 <div className="text-xl font-black text-indigo-600 leading-none mb-1">{scoreObj.total}</div>
+                                 <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Điểm chốt</div>
                               </div>
                            </div>
 
-                           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4 pt-4 border-t border-slate-50 dark:border-slate-700/50">
-                              <div className="space-y-1">
-                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Chất lượng (40%)</p>
-                                 <div className="flex flex-col">
-                                    <div className="flex items-center gap-1.5">
-                                       <span className="text-[13px] font-black text-slate-700 dark:text-slate-200">{scoreObj.breakdown.quality}</span>
-                                       {scoreObj.warnings.quality && <Info size={12} className="text-amber-500" title="Chưa có điểm chốt cuối" />}
-                                    </div>
-                                    <span className={`text-[9px] font-bold text-${getEvaluationLabel(scoreObj.breakdown.quality).color}-500 uppercase`}>
-                                      {getEvaluationLabel(scoreObj.breakdown.quality).label}
-                                    </span>
+                           <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 pt-3 border-t border-slate-50 dark:border-slate-700/50">
+                              <div className="space-y-0.5">
+                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Chất lượng (40%)</p>
+                                 <div className="flex items-center gap-1.5">
+                                    <span className="text-[12px] font-black text-slate-700 dark:text-slate-200">{scoreObj.breakdown.quality}</span>
+                                    {scoreObj.warnings.quality && <Info size={10} className="text-amber-500" title="Chưa có điểm chốt cuối" />}
                                  </div>
+                                 <p className={`text-[8px] font-black text-${getEvaluationLabel(scoreObj.breakdown.quality).color}-500 uppercase tracking-tighter`}>
+                                   {getEvaluationLabel(scoreObj.breakdown.quality).label}
+                                 </p>
                               </div>
-                              <div className="space-y-1">
-                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tiến độ (25%)</p>
-                                 <div className="flex flex-col">
-                                    <span className="text-[13px] font-black text-slate-700 dark:text-slate-200">{scoreObj.breakdown.progress}</span>
-                                    <span className={`text-[9px] font-bold text-${getEvaluationLabel(scoreObj.breakdown.progress).color}-500 uppercase`}>
-                                      {getEvaluationLabel(scoreObj.breakdown.progress).label}
-                                    </span>
-                                 </div>
+                              <div className="space-y-0.5">
+                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Tiến độ (25%)</p>
+                                 <span className="text-[12px] font-black text-slate-700 dark:text-slate-200">{scoreObj.breakdown.progress}</span>
+                                 <p className={`text-[8px] font-black text-${getEvaluationLabel(scoreObj.breakdown.progress).color}-500 uppercase tracking-tighter`}>
+                                   {getEvaluationLabel(scoreObj.breakdown.progress).label}
+                                 </p>
                               </div>
-                              <div className="space-y-1">
-                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tỷ lệ hoàn thành (20%)</p>
-                                 <span className="text-[13px] font-black text-slate-700 dark:text-slate-200">
-                                    {scoreObj.breakdown.completion !== null ? `${scoreObj.breakdown.completion}%` : 'Chưa cập nhật'}
+                              <div className="space-y-0.5">
+                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Hoàn thành (20%)</p>
+                                 <span className="text-[12px] font-black text-slate-700 dark:text-slate-200">
+                                    {scoreObj.breakdown.completion !== null ? `${scoreObj.breakdown.completion}%` : '-'}
                                  </span>
                               </div>
-                              <div className="space-y-1">
-                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Khối lượng (15%)</p>
-                                 <div className="flex flex-col">
-                                    <span className="text-[13px] font-black text-slate-700 dark:text-slate-200">{scoreObj.breakdown.workload}</span>
-                                    <span className={`text-[9px] font-bold text-${getEvaluationLabel(scoreObj.breakdown.workload).color}-500 uppercase`}>
-                                      {getEvaluationLabel(scoreObj.breakdown.workload).label}
-                                    </span>
-                                 </div>
+                              <div className="space-y-0.5">
+                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Khối lượng (15%)</p>
+                                 <span className="text-[12px] font-black text-slate-700 dark:text-slate-200">{scoreObj.breakdown.workload}</span>
+                                 <p className={`text-[8px] font-black text-${getEvaluationLabel(scoreObj.breakdown.workload).color}-500 uppercase tracking-tighter`}>
+                                   {getEvaluationLabel(scoreObj.breakdown.workload).label}
+                                 </p>
                               </div>
-                              <div className="space-y-1">
-                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Điểm Cộng/Trừ</p>
+                              <div className="space-y-0.5">
+                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Cộng/Trừ</p>
                                  <div className="flex items-center gap-1">
-                                    <span className="text-[13px] font-black text-emerald-600">+{scoreObj.breakdown.priorityBonus}</span>
-                                    <span className="text-[13px] font-black text-rose-600">-{scoreObj.breakdown.penalty}</span>
+                                    <span className="text-[11px] font-black text-emerald-600">+{scoreObj.breakdown.priorityBonus}</span>
+                                    <span className="text-[11px] font-black text-rose-600">-{scoreObj.breakdown.penalty}</span>
                                  </div>
                               </div>
-                              <div className="space-y-1">
-                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tổng điểm</p>
-                                 <span className="text-[13px] font-black text-indigo-600">{scoreObj.total}</span>
+                              <div className="space-y-0.5">
+                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Tổng</p>
+                                 <span className="text-[12px] font-black text-indigo-600">{scoreObj.total}</span>
                               </div>
                            </div>
                            
-                           <div className="mt-3 py-2 px-4 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-800">
-                              <p className="text-[10px] font-bold text-slate-500 italic">
+                           <div className="mt-2.5 py-1.5 px-3 bg-slate-50/50 dark:bg-slate-900/40 rounded-lg border border-slate-100/50 dark:border-slate-800/50">
+                              <p className="text-[9px] font-bold text-slate-400 italic">
                                 Công thức: {scoreObj.formula}
                               </p>
                            </div>

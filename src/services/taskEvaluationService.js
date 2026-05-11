@@ -44,6 +44,13 @@ export const taskEvaluationService = {
       .single();
 
     if (error) throw error;
+
+    // Cập nhật trạng thái nhiệm vụ sang Chờ chốt cuối nếu đây là người thực hiện chính
+    const { data: taskData } = await supabase.from('tasks').select('assignee_id').eq('id', taskId).single();
+    if (taskData?.assignee_id === userId) {
+      await supabase.from('tasks').update({ evaluation_status: 'pending_final' }).eq('id', taskId);
+    }
+
     return data;
   },
 
@@ -110,6 +117,23 @@ export const taskEvaluationService = {
       status: 'finalized',
       updated_at: new Date().toISOString()
     };
+
+    // Nếu người được chốt là người thực hiện chính, cập nhật luôn trạng thái nhiệm vụ
+    if (role === 'main_assignee') {
+      const now = new Date();
+      const currentPeriod = `${now.getFullYear()}-M${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const rank = score >= 90 ? 'Xuất sắc' : score >= 80 ? 'Tốt' : score >= 50 ? 'Hoàn thành' : 'Chưa hoàn thành';
+
+      await supabase.from('tasks').update({ 
+        evaluation_status: 'finalized',
+        evaluation_score: score,
+        evaluation_comment: comment,
+        evaluation_period: currentPeriod, // Ưu tiên period hiện tại nếu chưa có
+        evaluation_rank: rank,
+        evaluated_by: finalizedBy,
+        evaluated_at: now.toISOString()
+      }).eq('id', taskId);
+    }
 
     // Nếu có evaluationId thì update theo Id cho chắc chắn, 
     // Nếu chưa có thì upsert dựa trên task_id + evaluated_user_id

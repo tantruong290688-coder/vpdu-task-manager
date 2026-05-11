@@ -243,28 +243,6 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
 
       const actualEvalId = evalId || result.id;
 
-      // Nếu là đánh giá người thực hiện chính, cập nhật luôn vào bảng tasks để tương thích cũ
-      if (userId === task.assignee_id) {
-        const now = new Date();
-        const currentPeriod = `${now.getFullYear()}-M${String(now.getMonth() + 1).padStart(2, '0')}`;
-        
-        await supabase.from('tasks').update({
-          evaluation_score: scoreVal,
-          evaluation_comment: commentVal,
-          evaluation_period: task.evaluation_period || currentPeriod,
-          evaluated_by: profile.id,
-          evaluated_at: now.toISOString(),
-          evaluation_rank: scoreVal >= 90 ? 'Xuất sắc' : scoreVal >= 80 ? 'Tốt' : scoreVal >= 50 ? 'Hoàn thành' : 'Chưa hoàn thành'
-        }).eq('id', task.id);
-        
-        // Ghi vào nhật ký điều phối của nhiệm vụ
-        if (currentFinalScore !== undefined && currentFinalScore !== null && Number(currentFinalScore) !== Number(scoreVal)) {
-          await writeLog(task.id, profile.id, 'ADJUST_SCORE', 
-            `Lãnh đạo điều chỉnh điểm chốt từ ${currentFinalScore} thành ${scoreVal}. Lý do: ${reasonVal}`
-          );
-        }
-      }
-
       toast.success('Đã chốt đánh giá. Nhiệm vụ đã được lưu vào hồ sơ hoàn thành.');
       
       const { data: latestEvals } = await supabase.from('task_evaluations').select('*').eq('task_id', task.id);

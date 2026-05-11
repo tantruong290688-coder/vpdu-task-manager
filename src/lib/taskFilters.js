@@ -15,23 +15,20 @@ export function getDashboardFilter(query, filterType) {
         .not('due_date', 'is', null)
         .lt('due_date', todayStr)
         .neq('status', 'completed')
-        .is('evaluation_score', null);
+        .eq('evaluation_status', 'pending_eval');
     case 'due_soon':
       return query
         .not('due_date', 'is', null)
         .gte('due_date', todayStr)
         .lte('due_date', threeDaysStr)
         .neq('status', 'completed')
-        .is('evaluation_score', null);
+        .eq('evaluation_status', 'pending_eval');
     case 'pending_eval':
-      return query
-        .eq('status', 'completed')
-        .is('evaluation_score', null);
+      return query.eq('evaluation_status', 'pending_eval');
     case 'pending_final':
-      // Chỉ nhiệm vụ đã hoàn thành VÀ đã có điểm đánh giá
-      return query
-        .eq('status', 'completed')
-        .not('evaluation_score', 'is', null);
+      return query.eq('evaluation_status', 'pending_final');
+    case 'finalized':
+      return query.eq('evaluation_status', 'finalized');
     case 'pending':
       return query.eq('status', 'pending');
     case 'in_progress':
@@ -58,10 +55,11 @@ export function filterTasksLocal(tasks, filterType) {
       case 'due_soon':
         return d && d >= todayStr && d <= threeDaysStr && t.status !== 'completed' && t.evaluation_score == null;
       case 'pending_eval':
-        return t.status === 'completed' && t.evaluation_score == null;
+        return t.evaluation_status === 'pending_eval';
       case 'pending_final':
-        // Chỉ nhiệm vụ đã hoàn thành VÀ đã có điểm đánh giá
-        return t.status === 'completed' && t.evaluation_score != null;
+        return t.evaluation_status === 'pending_final';
+      case 'finalized':
+        return t.evaluation_status === 'finalized';
       case 'pending':
         return t.status === 'pending';
       case 'in_progress':

@@ -508,7 +508,7 @@ export default function Tasks() {
         onEvaluated={() => { 
           queryClient.invalidateQueries({ queryKey: ['tasks'] });
           queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-          setEvalModalTask(null); 
+          // Giữ modal mở để chấm điểm những người khác trong cùng nhiệm vụ
         }}
       />
 

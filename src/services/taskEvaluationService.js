@@ -19,7 +19,7 @@ export const taskEvaluationService = {
    */
   async submitSelfEvaluation({ 
     taskId, userId, score, comment, participationLevel, progressLevel,
-    qualityScore = 0, progressScore = 0, completionRate = 0, note = '' 
+    qualityScore = 0, progressScore = 0, completionRate = 0, difficultyScore = 0, note = '' 
   }) {
     // Tự động xác định vai trò dựa trên assignee_id của nhiệm vụ
     const { data: taskData } = await supabase.from('tasks').select('assignee_id').eq('id', taskId).single();
@@ -36,6 +36,7 @@ export const taskEvaluationService = {
       self_quality_score: qualityScore,
       self_progress_score: progressScore,
       self_completion_rate: completionRate,
+      self_difficulty_score: difficultyScore,
       self_note: note || comment,
       self_submitted_at: new Date().toISOString(),
       status: 'self_submitted',

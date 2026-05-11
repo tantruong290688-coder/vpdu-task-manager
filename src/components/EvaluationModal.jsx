@@ -58,6 +58,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
   const [selfQualityScore, setSelfQualityScore] = useState(80);
   const [selfProgressScore, setSelfProgressScore] = useState(80);
   const [selfCompletionRate, setSelfCompletionRate] = useState(100);
+  const [selfDifficultyScore, setSelfDifficultyScore] = useState(80);
 
   // --- Form States: Main Assignee Review ---
   const [selectedCollabId, setSelectedCollabId] = useState(null);
@@ -124,6 +125,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         setSelfQualityScore(myEval.self_quality_score || 80);
         setSelfProgressScore(myEval.self_progress_score || 80);
         setSelfCompletionRate(myEval.self_completion_rate || 100);
+        setSelfDifficultyScore(myEval.self_difficulty_score || 80);
       }
     } catch (err) {
       console.error('Lỗi tải đánh giá:', err);
@@ -154,7 +156,8 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         progressLevel: selfProgress,
         qualityScore: selfQualityScore,
         progressScore: selfProgressScore,
-        completionRate: selfCompletionRate
+        completionRate: selfCompletionRate,
+        difficultyScore: selfDifficultyScore
       });
 
       toast.success('Đã gửi tự đề xuất đánh giá');
@@ -412,7 +415,12 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                        value={selfQualityScore} onChange={e => {
                                          const val = Number(e.target.value);
                                          setSelfQualityScore(val);
-                                         setSelfScore(calculateFinalScore({ qualityScore: val, progressScore: selfProgressScore, completionRate: selfCompletionRate }));
+                                         setSelfScore(calculateFinalScore({ 
+                                           qualityScore: val, 
+                                           progressScore: selfProgressScore, 
+                                           completionRate: selfCompletionRate,
+                                           difficultyScore: selfDifficultyScore 
+                                         }));
                                        }}
                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-3 rounded-2xl text-[12.5px] font-black text-indigo-600 outline-none focus:border-indigo-500 transition-colors"
                                      >
@@ -425,7 +433,12 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                        value={selfProgressScore} onChange={e => {
                                          const val = Number(e.target.value);
                                          setSelfProgressScore(val);
-                                         setSelfScore(calculateFinalScore({ qualityScore: selfQualityScore, progressScore: val, completionRate: selfCompletionRate }));
+                                         setSelfScore(calculateFinalScore({ 
+                                           qualityScore: selfQualityScore, 
+                                           progressScore: val, 
+                                           completionRate: selfCompletionRate,
+                                           difficultyScore: selfDifficultyScore 
+                                         }));
                                        }}
                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-[14px] font-black text-indigo-600 outline-none"
                                      >
@@ -438,7 +451,30 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                        value={selfCompletionRate} onChange={e => {
                                          const val = Number(e.target.value);
                                          setSelfCompletionRate(val);
-                                         setSelfScore(calculateFinalScore({ qualityScore: selfQualityScore, progressScore: selfProgressScore, completionRate: val }));
+                                         setSelfScore(calculateFinalScore({ 
+                                           qualityScore: selfQualityScore, 
+                                           progressScore: selfProgressScore, 
+                                           completionRate: val,
+                                           difficultyScore: selfDifficultyScore 
+                                         }));
+                                       }}
+                                       className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-[14px] font-black text-indigo-600 outline-none"
+                                     >
+                                        {SCORE_OPTIONS.map(opt => <option key={opt.score} value={opt.score}>{opt.label}</option>)}
+                                     </select>
+                                 </div>
+                                 <div className="space-y-2">
+                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Khối lượng / Độ khó (15%)</label>
+                                    <select 
+                                       value={selfDifficultyScore} onChange={e => {
+                                         const val = Number(e.target.value);
+                                         setSelfDifficultyScore(val);
+                                         setSelfScore(calculateFinalScore({ 
+                                           qualityScore: selfQualityScore, 
+                                           progressScore: selfProgressScore, 
+                                           completionRate: selfCompletionRate,
+                                           difficultyScore: val 
+                                         }));
                                        }}
                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-[14px] font-black text-indigo-600 outline-none"
                                      >
@@ -469,9 +505,9 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                        ))}
                                     </select>
                                  </div>
-                                 <div className="space-y-2">
-                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Điểm đề xuất (Tổng)</label>
-                                    <div className="w-full bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 px-4 py-3 rounded-2xl text-2xl font-black text-indigo-600 flex items-center justify-center">
+                                 <div className="col-span-1 sm:col-span-2 lg:col-span-3 space-y-2">
+                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Điểm tự đề xuất (Tổng cộng)</label>
+                                    <div className="w-full bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 px-6 py-4 rounded-[32px] text-4xl font-black text-indigo-600 flex items-center justify-center shadow-inner">
                                        {selfScore || 0}
                                     </div>
                                  </div>

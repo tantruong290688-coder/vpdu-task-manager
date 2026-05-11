@@ -137,9 +137,15 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
   // 1. Gửi tự đề xuất điểm
   const handleSelfPropose = async (e) => {
     e.preventDefault();
-    if (!canSelfProposeEvaluation(profile, task)) return;
+    if (!canSelfProposeEvaluation(profile, task)) {
+      if (profile.role !== 'admin') {
+        toast.error('Bạn không có quyền thực hiện tự đề xuất cho nhiệm vụ này');
+        return;
+      }
+      // Nếu là admin thì cho phép tiếp tục
+    }
 
-    const scoreVal = parseInt(selfScore);
+    const scoreVal = parseFloat(selfScore);
     if (isNaN(scoreVal) || scoreVal < 0 || scoreVal > 100) {
       toast.error('Vui lòng nhập điểm hợp lệ (0-100)');
       return;

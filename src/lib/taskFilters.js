@@ -76,11 +76,12 @@ export function getDashboardFilterTitle(filterType) {
   switch (filterType) {
     case 'overdue': return 'Danh sách nhiệm vụ quá hạn';
     case 'due_soon': return 'Danh sách nhiệm vụ sắp đến hạn';
-    case 'pending_eval': return 'Danh sách nhiệm vụ chờ đánh giá';
-    case 'pending_final': return 'Danh sách nhiệm vụ đã đánh giá';
+    case 'pending_eval': return 'Danh sách nhiệm vụ chờ tự đánh giá';
+    case 'pending_final': return 'Danh sách nhiệm vụ đang đợi duyệt';
     case 'pending': return 'Danh sách nhiệm vụ chưa bắt đầu';
     case 'in_progress': return 'Danh sách nhiệm vụ đang thực hiện';
     case 'completed': return 'Danh sách nhiệm vụ đã hoàn thành';
+    case 'finalized': return 'Danh sách nhiệm vụ đã chốt kết quả';
     default: return 'Danh sách nhiệm vụ';
   }
 }

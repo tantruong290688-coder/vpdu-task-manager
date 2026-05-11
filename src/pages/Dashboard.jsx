@@ -34,20 +34,20 @@ export default function Dashboard() {
     refetchStats();
   };
 
-  const cardsTop = [
+  const executionCards = [
     { label: 'Tổng số nhiệm vụ', value: stats.total,      desc: 'Tổng số dòng nhiệm vụ trong phạm vi đang xem.', icon: Pin,          iconBg: 'bg-cyan-50',    iconColor: 'text-cyan-500',    filter: '' },
-    { label: 'Chưa bắt đầu',     value: stats.notStarted, desc: 'Những việc chưa khởi động.',                    icon: Hourglass,     iconBg: 'bg-orange-50',  iconColor: 'text-orange-500',  filter: 'pending' },
+    { label: 'Chưa bắt đầu',     value: stats.notStarted, desc: 'Những việc chưa khởi động.',                    icon: Hourglass,     iconBg: 'bg-slate-50',   iconColor: 'text-slate-500',   filter: 'pending' },
     { label: 'Đang thực hiện',   value: stats.inProgress, desc: 'Nhiệm vụ đang được xử lý.',                     icon: Rocket,        iconBg: 'bg-blue-50',    iconColor: 'text-blue-500',    filter: 'in_progress' },
-    { label: 'Hoàn thành',       value: stats.completed,  desc: 'Đã hoàn thành theo trạng thái.',                icon: CheckSquare,   iconBg: 'bg-green-50',   iconColor: 'text-green-500',   filter: 'completed' },
     { label: 'Quá hạn',          value: stats.overdue,    desc: 'Cần ưu tiên xử lý.',                            icon: AlertCircle,   iconBg: 'bg-red-50',     iconColor: 'text-red-500',     filter: 'overdue' },
+    { label: 'Sắp đến hạn',      value: stats.dueSoon,    desc: 'Cần đôn đốc trong ngắn hạn.',                    icon: AlertTriangle, iconBg: 'bg-yellow-50',  iconColor: 'text-yellow-500',  filter: 'due_soon' },
   ];
 
-  const cardsBottom = [
-    { label: 'Sắp đến hạn',   value: stats.dueSoon,                    desc: 'Cần đôn đốc trong ngắn hạn.',          icon: AlertTriangle, iconBg: 'bg-yellow-50',  iconColor: 'text-yellow-500',  filter: 'due_soon' },
-    { label: 'Chờ đề xuất',   value: stats.pendingEval,                desc: 'Cán bộ chưa tự đề xuất điểm.',          icon: Smartphone,    iconBg: 'bg-amber-50',   iconColor: 'text-amber-500',   filter: 'pending_eval' },
-    { label: 'Chờ chốt cuối', value: stats.pendingFinal,               desc: 'Đang chờ lãnh đạo chốt điểm.',          icon: Flag,          iconBg: 'bg-purple-50',  iconColor: 'text-purple-500',  filter: 'pending_final' },
-    { label: 'Đã đánh giá',   value: stats.finalized,                  desc: 'Nhiệm vụ đã được chốt điểm.',           icon: CheckSquare,   iconBg: 'bg-emerald-50', iconColor: 'text-emerald-500', filter: 'finalized' },
-    { label: 'Tỷ lệ đúng hạn',  value: stats.onTimeRate + '%',         desc: 'Trên số nhiệm vụ đã hoàn thành.',      icon: Clock,         iconBg: 'bg-sky-50',     iconColor: 'text-sky-500',     filter: '' },
+  const evaluationCards = [
+    { label: 'Đã hoàn thành',    value: stats.completed,  desc: 'Đã hoàn thành theo trạng thái.',                icon: CheckSquare,   iconBg: 'bg-green-50',   iconColor: 'text-green-500',   filter: 'completed' },
+    { label: 'Chờ tự đánh giá',  value: stats.pendingEval, desc: 'Cán bộ chưa tự chấm điểm.',                     icon: Smartphone,    iconBg: 'bg-amber-50',   iconColor: 'text-amber-500',   filter: 'pending_eval' },
+    { label: 'Đang đợi duyệt',   value: stats.pendingFinal,desc: 'Đang chờ lãnh đạo duyệt điểm.',                 icon: Flag,          iconBg: 'bg-purple-50',  iconColor: 'text-purple-500',  filter: 'pending_final' },
+    { label: 'Đã chốt kết quả',  value: stats.finalized,   desc: 'Nhiệm vụ đã được chốt kết quả.',                icon: CheckSquare,   iconBg: 'bg-emerald-50', iconColor: 'text-emerald-500', filter: 'finalized' },
+    { label: 'Tỷ lệ đúng hạn',   value: stats.onTimeRate + '%', desc: 'Trên số nhiệm vụ đã hoàn thành.',         icon: Clock,         iconBg: 'bg-sky-50',     iconColor: 'text-sky-500',     filter: '' },
   ];
 
   const handleCardClick = (filter) => {
@@ -82,40 +82,53 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Grid Thống kê */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-2.5 md:gap-4 mb-3">
-        {cardsTop.map((card, idx) => (
-          <div 
-            key={idx} 
-            onClick={() => handleCardClick(card.filter)}
-            className="group bg-white dark:bg-[#111827] p-3.5 md:p-5 rounded-[22px] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800 transition-all cursor-pointer relative overflow-hidden"
-          >
-            <div className={`w-9 h-9 md:w-12 md:h-12 ${card.iconBg} rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 group-hover:scale-110 transition-transform`}>
-              <card.icon size={18} className={card.iconColor} />
+      {/* Cụm I: Quản lý Thực hiện */}
+      <div className="mt-8 mb-4">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-6 w-1.5 bg-blue-600 rounded-full"></div>
+          <h2 className="text-[15px] md:text-[17px] font-black text-slate-800 dark:text-white uppercase tracking-wider">I. Quản lý Thực hiện</h2>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-2.5 md:gap-4">
+          {executionCards.map((card, idx) => (
+            <div 
+              key={idx} 
+              onClick={() => handleCardClick(card.filter)}
+              className="group bg-white dark:bg-[#111827] p-3.5 md:p-5 rounded-[22px] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800 transition-all cursor-pointer relative overflow-hidden"
+            >
+              <div className={`w-9 h-9 md:w-12 md:h-12 ${card.iconBg} rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 group-hover:scale-110 transition-transform`}>
+                <card.icon size={18} className={card.iconColor} />
+              </div>
+              <div className="flex items-baseline gap-1">
+                 <h4 className="text-xl md:text-3xl font-black text-slate-800 dark:text-white leading-tight">{card.value}</h4>
+                 <span className="text-[10px] md:text-[12px] font-bold text-slate-400 uppercase tracking-tight">Việc</span>
+              </div>
+              <p className="text-[12px] md:text-[14px] font-black text-slate-600 dark:text-slate-400 mt-0.5 truncate">{card.label}</p>
             </div>
-            <div className="flex items-baseline gap-1">
-               <h4 className="text-xl md:text-3xl font-black text-slate-800 dark:text-white leading-tight">{card.value}</h4>
-               <span className="text-[10px] md:text-[12px] font-bold text-slate-400 uppercase tracking-tight">Việc</span>
-            </div>
-            <p className="text-[12px] md:text-[14px] font-black text-slate-600 dark:text-slate-400 mt-0.5 truncate">{card.label}</p>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-2.5 md:gap-4">
-        {cardsBottom.map((card, idx) => (
-          <div 
-            key={idx} 
-            onClick={() => handleCardClick(card.filter)}
-            className="group bg-white dark:bg-[#111827] p-3.5 md:p-5 rounded-[22px] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800 transition-all cursor-pointer overflow-hidden"
-          >
-            <div className={`w-9 h-9 md:w-12 md:h-12 ${card.iconBg} rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 group-hover:scale-110 transition-transform`}>
-              <card.icon size={18} className={card.iconColor} />
+      {/* Cụm II: Quy trình Đánh giá */}
+      <div className="mt-10 mb-4">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-6 w-1.5 bg-emerald-600 rounded-full"></div>
+          <h2 className="text-[15px] md:text-[17px] font-black text-slate-800 dark:text-white uppercase tracking-wider">II. Quy trình Đánh giá</h2>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-2.5 md:gap-4">
+          {evaluationCards.map((card, idx) => (
+            <div 
+              key={idx} 
+              onClick={() => handleCardClick(card.filter)}
+              className="group bg-white dark:bg-[#111827] p-3.5 md:p-5 rounded-[22px] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800 transition-all cursor-pointer overflow-hidden"
+            >
+              <div className={`w-9 h-9 md:w-12 md:h-12 ${card.iconBg} rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 group-hover:scale-110 transition-transform`}>
+                <card.icon size={18} className={card.iconColor} />
+              </div>
+              <h4 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white leading-tight">{card.value}</h4>
+              <p className="text-[12px] md:text-[14px] font-black text-slate-600 dark:text-slate-400 mt-0.5 truncate">{card.label}</p>
             </div>
-            <h4 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white leading-tight">{card.value}</h4>
-            <p className="text-[12px] md:text-[14px] font-black text-slate-600 dark:text-slate-400 mt-0.5 truncate">{card.label}</p>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* Biểu đồ */}

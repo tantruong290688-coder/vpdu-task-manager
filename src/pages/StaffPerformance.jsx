@@ -411,10 +411,9 @@ export default function StaffPerformance() {
                 <h3 className="text-[14px] font-black text-slate-800 dark:text-white uppercase tracking-tight mb-6">Cơ cấu tính hiệu suất cán bộ</h3>
                 <div className="space-y-3">
                     {[
-                      { label: 'Chất lượng công việc', weight: '40%', color: 'bg-indigo-500' },
-                      { label: 'Tiến độ thực hiện', weight: '25%', color: 'bg-blue-500' },
-                      { label: 'Tỷ lệ hoàn thành', weight: '20%', color: 'bg-emerald-500' },
-                      { label: 'Khối lượng (Độ khó)', weight: '15%', color: 'bg-amber-500' }
+                      { label: 'Chất lượng công việc', weight: '60%', color: 'bg-indigo-500' },
+                      { label: 'Tiến độ thực hiện', weight: '30%', color: 'bg-blue-500' },
+                      { label: 'Khối lượng (Độ khó)', weight: '10%', color: 'bg-amber-500' }
                     ].map((item, i) => (
                       <div key={i} className="flex items-center justify-between group">
                         <div className="flex items-center gap-2">
@@ -428,7 +427,7 @@ export default function StaffPerformance() {
                 <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
                     <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-tighter mb-1">Công thức bình quân</p>
                     <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                      Hiệu suất = (Chất lượng × 40%) + (Tiến độ × 25%) + (Hoàn thành × 20%) + (Khối lượng × 15%)
+                      Hiệu suất = (Chất lượng × 60%) + (Tiến độ × 30%) + (Khối lượng × 10%)
                     </p>
                     <p className="text-[10px] text-slate-400 mt-2 leading-tight">
                       * Dữ liệu được tính dựa trên trung bình tất cả nhiệm vụ đã được lãnh đạo chốt điểm.
@@ -674,7 +673,7 @@ function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
 
                            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 pt-3 border-t border-slate-50 dark:border-slate-700/50">
                               <div className="space-y-0.5">
-                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Chất lượng (40%)</p>
+                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Chất lượng (60%)</p>
                                  <div className="flex items-center gap-1.5">
                                     <span className="text-[12px] font-black text-slate-700 dark:text-slate-200">{scoreObj.breakdown.quality}</span>
                                     {scoreObj.warnings.quality && <Info size={10} className="text-amber-500" title="Chưa có điểm chốt cuối" />}
@@ -684,20 +683,14 @@ function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
                                  </p>
                               </div>
                               <div className="space-y-0.5">
-                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Tiến độ (25%)</p>
+                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Tiến độ (30%)</p>
                                  <span className="text-[12px] font-black text-slate-700 dark:text-slate-200">{scoreObj.breakdown.progress}</span>
                                  <p className={`text-[8px] font-black text-${getEvaluationLabel(scoreObj.breakdown.progress).color}-500 uppercase tracking-tighter`}>
                                    {getEvaluationLabel(scoreObj.breakdown.progress).label}
                                  </p>
                               </div>
                               <div className="space-y-0.5">
-                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Hoàn thành (20%)</p>
-                                 <span className="text-[12px] font-black text-slate-700 dark:text-slate-200">
-                                    {scoreObj.breakdown.completion !== null ? `${scoreObj.breakdown.completion}%` : '-'}
-                                 </span>
-                              </div>
-                              <div className="space-y-0.5">
-                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Khối lượng (15%)</p>
+                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Khối lượng (10%)</p>
                                  <span className="text-[12px] font-black text-slate-700 dark:text-slate-200">{scoreObj.breakdown.workload}</span>
                                  <p className={`text-[8px] font-black text-${getEvaluationLabel(scoreObj.breakdown.workload).color}-500 uppercase tracking-tighter`}>
                                    {getEvaluationLabel(scoreObj.breakdown.workload).label}

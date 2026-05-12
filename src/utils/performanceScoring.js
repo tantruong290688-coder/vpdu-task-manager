@@ -3,22 +3,20 @@
 // ═══════════════════════════════════════════════════════════
 
 /**
- * Tính điểm cuối cùng theo công thức chuẩn:
- * (Chất lượng × 40%) + (Tiến độ × 25%) + (Tỷ lệ hoàn thành × 20%) + (Độ khó/Khối lượng × 15%) + Thưởng - Phạt
+ * Tính điểm cuối cùng theo công thức chuẩn mới (Tập trung vào Chất lượng và Tiến độ):
+ * (Chất lượng × 60%) + (Tiến độ × 30%) + (Khối lượng/Độ khó × 10%) + Thưởng - Phạt
  */
 export function calculateFinalScore({
   qualityScore = 0,
   progressScore = 0,
-  completionRate = 0,
   difficultyScore = 0,
   bonusPoint = 0,
   penaltyPoint = 0
 }) {
   const rawScore =
-    Number(qualityScore) * 0.4 +
-    Number(progressScore) * 0.25 +
-    Number(completionRate) * 0.2 +
-    Number(difficultyScore) * 0.15 +
+    Number(qualityScore) * 0.6 +
+    Number(progressScore) * 0.3 +
+    Number(difficultyScore) * 0.1 +
     Number(bonusPoint) -
     Number(penaltyPoint);
 
@@ -37,7 +35,6 @@ export function calculateTaskScore(task, evaluation = null) {
     const finalParams = {
       qualityScore: evaluation.final_quality_score ?? evaluation.final_score ?? 0,
       progressScore: evaluation.final_progress_score ?? 0,
-      completionRate: evaluation.final_completion_rate ?? 0,
       difficultyScore: evaluation.final_difficulty_score ?? 0,
       bonusPoint: evaluation.final_bonus_point ?? 0,
       penaltyPoint: evaluation.final_penalty_point ?? 0
@@ -50,12 +47,11 @@ export function calculateTaskScore(task, evaluation = null) {
       breakdown: {
         quality: finalParams.qualityScore,
         progress: finalParams.progressScore,
-        completion: finalParams.completionRate,
         workload: finalParams.difficultyScore,
         priorityBonus: finalParams.bonusPoint,
         penalty: finalParams.penaltyPoint
       },
-      formula: `${finalParams.qualityScore}×40% + ${finalParams.progressScore}×25% + ${finalParams.completionRate}×20% + ${finalParams.difficultyScore}×15% + ${finalParams.bonusPoint} - ${finalParams.penaltyPoint} = ${total}`,
+      formula: `${finalParams.qualityScore}×60% + ${finalParams.progressScore}×30% + ${finalParams.difficultyScore}×10% + ${finalParams.bonusPoint} - ${finalParams.penaltyPoint} = ${total}`,
       warnings: { quality: false },
       isFinalized: true
     };
@@ -134,7 +130,6 @@ export function calculateTaskScore(task, evaluation = null) {
   const total = calculateFinalScore({
     qualityScore,
     progressScore,
-    completionRate: completionScore,
     difficultyScore: workloadScore,
     bonusPoint: priorityBonus,
     penaltyPoint: penalty
@@ -145,12 +140,11 @@ export function calculateTaskScore(task, evaluation = null) {
     breakdown: {
       quality: qualityScore,
       progress: progressScore,
-      completion: task.progress !== null && task.progress !== undefined ? task.progress : null,
       workload: workloadScore,
       priorityBonus,
       penalty
     },
-    formula: `${qualityScore}×40% + ${progressScore}×25% + ${completionRate}×20% + ${workloadScore}×15% + ${priorityBonus} - ${penalty} = ${total}`,
+    formula: `${qualityScore}×60% + ${progressScore}×30% + ${workloadScore}×10% + ${priorityBonus} - ${penalty} = ${total}`,
     warnings: {
       quality: qualityWarning
     },
@@ -196,7 +190,6 @@ export function calculateStaffPerformance(primaryTasks, collaboratorTasks, evalu
     const total = calculateFinalScore({
       qualityScore: ev.final_quality_score ?? ev.final_score ?? 0,
       progressScore: ev.final_progress_score ?? 0,
-      completionRate: ev.final_completion_rate ?? 0,
       difficultyScore: ev.final_difficulty_score ?? 0,
       bonusPoint: ev.final_bonus_point ?? 0,
       penaltyPoint: ev.final_penalty_point ?? 0
@@ -207,7 +200,6 @@ export function calculateStaffPerformance(primaryTasks, collaboratorTasks, evalu
       quality: ev.final_quality_score ?? ev.final_score ?? 0,
       progress: ev.final_progress_score ?? 0,
       workload: ev.final_difficulty_score ?? 0,
-      completion: ev.final_completion_rate ?? 0,
       role: ev.evaluated_role
     };
   });
@@ -229,7 +221,6 @@ export function calculateStaffPerformance(primaryTasks, collaboratorTasks, evalu
   const avgWorkload = results.reduce((a, b) => a + b.workload, 0) / results.length;
   const avgQuality = results.reduce((a, b) => a + b.quality, 0) / results.length;
   const avgProgress = results.reduce((a, b) => a + b.progress, 0) / results.length;
-  const avgCompletion = results.reduce((a, b) => a + b.completion, 0) / results.length;
 
   return {
     finalScore: Math.round(finalStaffScore),
@@ -238,7 +229,6 @@ export function calculateStaffPerformance(primaryTasks, collaboratorTasks, evalu
     avgProgress: Math.round(avgProgress),
     avgWorkload: Math.round(avgWorkload),
     avgQuality: Math.round(avgQuality),
-    avgCompletion: Math.round(avgCompletion),
     taskCount: {
       primary: primaryResults.length,
       collab: collabResults.length,

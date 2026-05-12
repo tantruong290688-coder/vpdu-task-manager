@@ -27,8 +27,8 @@ export function useStaffPerformance(period = null) {
 
       if (tError) throw tError;
 
-      // Lọc tasks theo kỳ
-      const filteredTasks = filterTasksByPeriod(tasks, period);
+      // Lọc tasks theo kỳ và chỉ lấy những nhiệm vụ đã được chốt (finalized)
+      const filteredTasks = filterTasksByPeriod(tasks, period).filter(t => t.evaluation_status === 'finalized');
 
       // 3. Lấy dữ liệu phối hợp
       const { data: collaborators, error: cError } = await supabase

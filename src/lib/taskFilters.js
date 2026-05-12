@@ -153,9 +153,27 @@ export function filterTasksByPeriod(tasks, period) {
   const isMonth = /^\d{4}-\d{2}$/.test(period);
 
   return tasks.filter(t => {
-    // 1. Khớp trực tiếp nhãn
+    // 1. Khớp trực tiếp hoặc khớp theo cấu trúc (Tháng -> Quý/Năm)
     if (t.evaluation_period === period) return true;
-    if (isYear && t.evaluation_period?.startsWith(period)) return true;
+    
+    // Nếu t.evaluation_period có dạng YYYY-MXX
+    if (t.evaluation_period?.includes('-M')) {
+      const [taskYear, taskMonthStr] = t.evaluation_period.split('-M');
+      const taskMonth = parseInt(taskMonthStr);
+      
+      if (isYear && taskYear === period) return true;
+      
+      if (isQuarter) {
+        const [pYear, pQ] = period.split('-Q');
+        const taskQuarter = Math.ceil(taskMonth / 3);
+        if (taskYear === pYear && taskQuarter === parseInt(pQ)) return true;
+      }
+      
+      if (isMonth) {
+        const [pYear, pMonth] = period.split('-');
+        if (taskYear === pYear && taskMonth === parseInt(pMonth)) return true;
+      }
+    }
 
     // Ưu tiên: 1. Nhãn kỳ đánh giá (Chính xác nhất), 2. Ngày hoàn thành, 3. Ngày đến hạn (Chỉ dùng nếu chưa hoàn thành)
     const taskDate = t.evaluation_period ? null : (t.completed_at || t.due_date);

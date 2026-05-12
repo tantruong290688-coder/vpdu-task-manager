@@ -65,13 +65,13 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4 px-4 sm:px-0">
-      {/* Welcome Header - Optimized for Viewer/Admin */}
-      <div className="bg-gradient-to-r from-blue-700 to-indigo-800 rounded-[32px] p-6 md:p-10 text-white shadow-xl relative overflow-hidden mb-6 flex flex-col md:flex-row items-center gap-6 md:gap-10">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+      {/* Welcome Header - Optimized for Viewer/Admin (Compact Version) */}
+      <div className="bg-gradient-to-r from-blue-700 to-indigo-800 rounded-[24px] p-4 md:p-6 text-white shadow-lg relative overflow-hidden mb-4 flex flex-col md:flex-row items-center gap-4 md:gap-8">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -mr-24 -mt-24 blur-3xl"></div>
         
-        {/* Profile Avatar in Header */}
+        {/* Profile Avatar in Header (Smaller) */}
         <div className="relative shrink-0">
-          <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white/20 p-1.5 bg-white/10 backdrop-blur-md overflow-hidden shadow-2xl">
+          <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-white/20 p-1 bg-white/10 backdrop-blur-md overflow-hidden shadow-xl">
              <img 
                 src={profile?.role === 'viewer' ? leaderAvatar : (profile?.role === 'admin' ? adminAvatar : (profile?.avatar_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile?.full_name || 'User') + '&background=fff&color=1d4ed8&size=256'))} 
                 alt="Avatar"
@@ -82,22 +82,22 @@ export default function Dashboard() {
         </div>
 
         <div className="relative z-10 text-center md:text-left flex-1">
-          <h1 className="text-2xl md:text-4xl font-black mb-3">
+          <h1 className="text-xl md:text-2xl font-black mb-1">
             {profile?.role === 'viewer' 
               ? `Xin chào! đồng chí ${profile?.full_name}`
               : `Xin chào, ${profile?.full_name}!`}
           </h1>
           
-          <div className="space-y-2">
+          <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4">
             {profile?.position && (
-              <p className="text-yellow-300 text-sm md:text-xl font-black uppercase tracking-wide drop-shadow-md">
+              <p className="text-yellow-300 text-[11px] md:text-[13px] font-black uppercase tracking-wide drop-shadow-md">
                 {profile.position}
               </p>
             )}
-            <p className="text-blue-100 text-[13px] md:text-base font-medium opacity-90 leading-relaxed max-w-2xl">
+            <p className="text-blue-100 text-[11px] md:text-[13px] font-medium opacity-80 leading-tight">
               {profile?.role === 'viewer' 
-                ? 'Chào mừng bạn đến với hệ thống giám sát nhiệm vụ cơ quan. Dưới đây là báo cáo tổng hợp tiến độ mới nhất.'
-                : 'Hệ thống quản trị nhiệm vụ đã sẵn sàng. Hãy cùng kiểm tra các đầu việc cần xử lý.'}
+                ? 'Báo cáo tổng hợp tiến độ mới nhất.'
+                : 'Hệ thống quản trị nhiệm vụ đã sẵn sàng.'}
             </p>
           </div>
         </div>

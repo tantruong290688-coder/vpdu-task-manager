@@ -23,7 +23,7 @@ export default function Sidebar({ isOpen, onClose }) {
     { name: 'Tất cả nhiệm vụ', path: '/all-tasks', icon: LayoutList },
     { name: 'Nhiệm vụ của tôi', path: '/my-tasks', icon: ClipboardList, hiddenFor: ['viewer'] },
     { name: 'To-do cá nhân', path: '/todo', icon: ListTodo },
-    { name: 'Thông báo', path: '/notifications', icon: Bell, badge: notifUnread },
+    { name: 'Thông báo', path: '/notifications', icon: Bell, badge: notifUnread, hiddenFor: ['viewer'] },
     { name: 'Phân tích Hiệu suất', path: '/performance', icon: TrendingUp, restricted: true },
     { name: 'Nhật ký thao tác', path: '/logs', icon: History },
     { name: 'Quản trị hệ thống', path: '/admin', icon: Settings, adminOnly: true },

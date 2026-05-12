@@ -63,8 +63,18 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4 px-4 sm:px-0">
-      {/* Ngày của tôi Widget */}
-      <MyDayWidget tasks={tasks} notifications={notifications} profile={profile} />
+      {/* Welcome Header - Optimized for Viewer/Admin */}
+      <div className="bg-gradient-to-r from-blue-700 to-indigo-800 rounded-[32px] p-6 md:p-10 text-white shadow-xl relative overflow-hidden mb-6">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+        <div className="relative z-10">
+          <h1 className="text-2xl md:text-4xl font-black mb-2">Xin chào, {profile?.full_name}!</h1>
+          <p className="text-blue-100 text-sm md:text-lg font-medium opacity-90">
+            {profile?.role === 'viewer' 
+              ? 'Chào mừng bạn đến với hệ thống giám sát nhiệm vụ cơ quan. Dưới đây là tổng hợp dữ liệu mới nhất.'
+              : 'Chào mừng bạn quay trở lại. Hãy cùng theo dõi tiến độ công việc hôm nay.'}
+          </p>
+        </div>
+      </div>
 
       {/* Cảnh báo Rủi ro */}
       <RiskTasksWidget tasks={tasks} profile={profile} />

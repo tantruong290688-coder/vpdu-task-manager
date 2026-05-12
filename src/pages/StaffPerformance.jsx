@@ -42,7 +42,8 @@ export default function StaffPerformance() {
   const canReview = isAdmin || isManager;
 
   const filteredData = performanceData.filter(p => 
-    p.full_name.toLowerCase().includes(searchTerm.toLowerCase())
+    p.full_name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+    p.stats.taskCount.total > 0
   );
 
   const stats = useMemo(() => {
@@ -139,7 +140,7 @@ export default function StaffPerformance() {
             {isAdmin && debugInfo && (
               <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-xl text-[11px] text-amber-700 dark:text-amber-400 font-bold">
                 <Info size={14} />
-                <span>Dữ liệu: {debugInfo.tasksInPeriod}/{debugInfo.totalTasksFetched} nv</span>
+                <span>Dữ liệu: {debugInfo.tasksInPeriod}/{debugInfo.totalTasksFetched} nvụ</span>
               </div>
             )}
 

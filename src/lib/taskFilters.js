@@ -157,9 +157,9 @@ export function filterTasksByPeriod(tasks, period) {
     if (t.evaluation_period === period) return true;
     if (isYear && t.evaluation_period?.startsWith(period)) return true;
 
-    // 2. Khớp theo ngày tháng
-    const taskDate = t.completed_at || t.due_date;
-    if (!taskDate) return false;
+    // Ưu tiên: 1. Nhãn kỳ đánh giá (Chính xác nhất), 2. Ngày hoàn thành, 3. Ngày đến hạn (Chỉ dùng nếu chưa hoàn thành)
+    const taskDate = t.evaluation_period ? null : (t.completed_at || t.due_date);
+    if (!t.evaluation_period && !taskDate) return false;
 
     const d = new Date(taskDate);
     const tYear = d.getFullYear();

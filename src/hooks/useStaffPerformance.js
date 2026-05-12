@@ -78,7 +78,12 @@ export function useStaffPerformance(period = null) {
           evaluation: myEvaluations.find(e => e.task_id === t.id)
         }));
 
-        const stats = calculateStaffPerformance(primaryTasksWithEval, collabTasksWithEval, myEvaluations);
+        // Chỉ tính toán hiệu suất dựa trên các bản ghi đánh giá thuộc về các nhiệm vụ trong kỳ này
+        const myEvaluationsInPeriod = myEvaluations.filter(e => 
+          filteredTasks.some(t => t.id === e.task_id)
+        );
+        
+        const stats = calculateStaffPerformance(primaryTasksWithEval, collabTasksWithEval, myEvaluationsInPeriod);
         const officialReview = reviews.find(r => r.user_id === profile.id);
 
         return {

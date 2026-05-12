@@ -4,7 +4,7 @@ import {
   Plus, Edit2, Trash2, CheckCircle, SlidersHorizontal, X,
   Star, AlertCircle, Clock, Check, Eye, Calendar,
   ArrowUp, ArrowDown, ArrowUpDown, ArrowDownUp, Filter,
-  LayoutList, Layers
+  LayoutList, Layers, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import TaskModal from '../components/TaskModal';
@@ -428,25 +428,47 @@ export default function Tasks() {
                       </div>
                       
                       <div className="flex items-center gap-1.5 justify-center w-full sm:w-auto">
-                        <button
-                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                          disabled={currentPage === 1}
-                          className="px-3 md:px-4 py-1.5 md:py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-[13px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:bg-transparent transition-colors"
-                        >
-                          Trước
-                        </button>
+                        <div className="flex items-center gap-1 mr-1">
+                          <button
+                            onClick={() => setCurrentPage(1)}
+                            disabled={currentPage === 1}
+                            className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                            title="Trang đầu"
+                          >
+                            <ChevronsLeft size={16} />
+                          </button>
+                          <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                            title="Trang trước"
+                          >
+                            <ChevronLeft size={16} />
+                          </button>
+                        </div>
                         
-                        <div className="hidden sm:flex items-center gap-0.5">
+                        <div className="flex items-center gap-1">
                           {renderPageNumbers()}
                         </div>
 
-                        <button
-                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                          disabled={currentPage === totalPages}
-                          className="px-3 md:px-4 py-1.5 md:py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-[13px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:bg-transparent transition-colors"
-                        >
-                          Sau
-                        </button>
+                        <div className="flex items-center gap-1 ml-1">
+                          <button
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                            title="Trang sau"
+                          >
+                            <ChevronRight size={16} />
+                          </button>
+                          <button
+                            onClick={() => setCurrentPage(totalPages)}
+                            disabled={currentPage === totalPages}
+                            className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                            title="Trang cuối"
+                          >
+                            <ChevronsRight size={16} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}

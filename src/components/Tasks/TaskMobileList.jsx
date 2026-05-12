@@ -40,7 +40,11 @@ export default function TaskMobileList({
               {task.evaluation_score !== null && (
                 <div className="flex flex-col items-end leading-none">
                   <span className="text-[14px] font-black text-blue-600">{task.evaluation_score}</span>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">điểm</span>
+                  {task.evaluation_rank ? (
+                    <span className="text-[9px] font-bold text-blue-500/80 uppercase tracking-tighter mt-0.5">{task.evaluation_rank}</span>
+                  ) : (
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">điểm</span>
+                  )}
                 </div>
               )}
             </div>
@@ -50,7 +54,7 @@ export default function TaskMobileList({
               {task.title}
             </h3>
 
-            {/* Row 3: Meta info & Evaluation */}
+            {/* Row 3: Meta info */}
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-3 text-[12px] text-slate-500 dark:text-slate-400 font-bold truncate">
                 <span className="flex items-center gap-1 truncate max-w-[120px]">
@@ -64,9 +68,12 @@ export default function TaskMobileList({
                   </span>
                 )}
               </div>
-              <div className="shrink-0 scale-90 origin-right">
-                <EvaluationStatusBadge task={task} showScore={false} />
-              </div>
+              {/* Chỉ hiển thị badge trạng thái nếu chưa chốt điểm (để biết đang ở bước nào) */}
+              {task.evaluation_score === null && (
+                <div className="shrink-0 scale-90 origin-right">
+                  <EvaluationStatusBadge task={task} showScore={false} />
+                </div>
+              )}
             </div>
 
             {/* Row 4: Actions (Optional visibility or more compact) */}

@@ -384,9 +384,9 @@ export default function ScheduleDetail() {
                       </td>
                       <td className="p-1.5">
                         <select value={item.type || 'meeting'} onChange={e => handleItemChange(item.id, 'type', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/40 border-none rounded-lg px-2 py-1.5 text-[11px] font-black uppercase tracking-tight focus:ring-1 focus:ring-blue-500/30 transition-all dark:text-white appearance-none cursor-pointer">
-                          <option value="meeting">Họp</option>
-                          <option value="office_work">CQ</option>
-                          <option value="other">SK</option>
+                          <option value="meeting">Hội nghị</option>
+                          <option value="office_work">Làm việc CQ</option>
+                          <option value="other">Sự kiện</option>
                           <option value="holiday">Nghỉ</option>
                         </select>
                       </td>
@@ -395,16 +395,17 @@ export default function ScheduleDetail() {
                           {item.type === 'meeting' && (
                             item.is_task_created ? (
                               <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-[9px] font-black uppercase tracking-tighter bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded">
-                                <CheckSquare size={12} strokeWidth={3} />
+                                <CheckSquare size={14} strokeWidth={3} />
                               </span>
                             ) : (
                               canAddTasks && (
                                 <button 
                                   onClick={() => handleOpenTaskModal(item)} 
                                   disabled={item.id.toString().startsWith('temp_')} 
-                                  className="text-[9px] font-black uppercase tracking-widest bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/30 px-2 py-1 rounded-lg hover:bg-blue-600 hover:text-white transition-all disabled:opacity-30"
+                                  className="flex items-center justify-center w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md transition-all active:scale-90 disabled:opacity-30 disabled:pointer-events-none"
+                                  title="Tạo nhiệm vụ phục vụ"
                                 >
-                                  +
+                                  <Plus size={20} strokeWidth={3} />
                                 </button>
                               )
                             )

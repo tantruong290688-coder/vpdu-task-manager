@@ -73,11 +73,29 @@ export default function Sidebar({ isOpen, onClose }) {
         </div>
 
         {/* User profile block */}
-        <div className="bg-white dark:bg-slate-800 rounded-[18px] p-3 md:p-5 border border-slate-100 dark:border-slate-700 shadow-sm mb-4 md:mb-6 text-center transition-all hover:bg-slate-50/50 dark:hover:bg-slate-800/80 group shrink-0">
-          <h3 className="font-extrabold text-[#b91c1c] dark:text-red-400 text-[14px] md:text-[16px] leading-tight truncate">
+        <div className="bg-white dark:bg-slate-800 rounded-[22px] p-4 md:p-5 border border-slate-100 dark:border-slate-700 shadow-sm mb-4 md:mb-6 flex flex-col items-center transition-all hover:shadow-md group shrink-0">
+          {/* Avatar Container */}
+          <div className="relative mb-3 group-hover:scale-105 transition-transform duration-300">
+            <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-4 border-[#b91c1c]/10 dark:border-red-900/30 p-1 bg-white dark:bg-slate-900 overflow-hidden shadow-inner">
+              <img 
+                src={profile?.avatar_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile?.full_name || 'User') + '&background=b91c1c&color=fff&size=128'} 
+                alt="Avatar"
+                className="w-full h-full object-cover rounded-full"
+                onError={(e) => { e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile?.full_name || 'User') + '&background=b91c1c&color=fff&size=128'; }}
+              />
+            </div>
+            <div className="absolute bottom-0 right-1 w-5 h-5 bg-green-500 border-4 border-white dark:border-slate-800 rounded-full" title="Đang trực tuyến"></div>
+          </div>
+
+          <h3 className="font-black text-[#b91c1c] dark:text-red-400 text-[15px] md:text-[17px] leading-tight text-center">
             {profile?.full_name || 'Bùi Tấn Trường'}
           </h3>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-medium tracking-tight truncate">
+          {profile?.position && (
+            <p className="text-[11px] md:text-[12px] text-slate-500 dark:text-slate-400 mt-1.5 font-bold uppercase tracking-wider text-center max-w-[200px]">
+              {profile.position}
+            </p>
+          )}
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 font-medium italic truncate w-full text-center">
             {profile?.email || 'tantruong290688@gmail.com'}
           </p>
         </div>

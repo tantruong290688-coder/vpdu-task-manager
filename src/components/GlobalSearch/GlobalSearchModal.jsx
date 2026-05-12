@@ -69,24 +69,22 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
     }
   };
 
-  const navigateToSelected = () => {
-    const all = [
-      ...results.tasks.map(t => ({ type: 'task', id: t.id })),
-      ...results.profiles.map(p => ({ type: 'profile', id: p.id })),
-      ...results.messages.map(m => ({ type: 'message', id: m.id, taskId: m.task_id }))
-    ];
-    
-    const selected = all[selectedIndex];
-    if (!selected) return;
+  const handleNavigate = (item) => {
+    if (!item) return;
 
-    if (selected.type === 'task') {
-      navigate(`/all-tasks?open=${selected.id}`);
-    } else if (selected.type === 'profile') {
-      navigate(`/admin?user=${selected.id}`);
-    } else if (selected.type === 'message') {
-      navigate(`/all-tasks?open=${selected.taskId}`); // Mở task chứa tin nhắn
+    if (item._type === 'task') {
+      navigate(`/all-tasks?open=${item.id}`);
+    } else if (item._type === 'profile') {
+      navigate(`/admin?user=${item.id}`);
+    } else if (item._type === 'message') {
+      navigate(`/all-tasks?open=${item.task_id}`); // Sử dụng task_id trực tiếp từ item message
     }
     onClose();
+  };
+
+  const navigateToSelected = () => {
+    const item = flatResults[selectedIndex];
+    handleNavigate(item);
   };
 
   if (!isOpen) return null;
@@ -131,7 +129,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
                 return (
                   <button
                     key={`${item._type}-${item.id}`}
-                    onClick={() => { setSelectedIndex(idx); navigateToSelected(); }}
+                    onClick={() => { handleNavigate(item); }}
                     className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all ${
                       isSelected ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
                     }`}

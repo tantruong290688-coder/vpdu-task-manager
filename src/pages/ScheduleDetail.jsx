@@ -322,7 +322,14 @@ export default function ScheduleDetail() {
             </div>
             <div className="flex flex-col gap-1.5">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Trạng thái</span>
-              <select value={schedule.status} onChange={e => {setSchedule({...schedule, status: e.target.value}); setIsDirty(true);}} disabled={!canEdit} className="bg-slate-50 dark:bg-slate-900/50 border-none px-4 py-3 rounded-2xl text-[15px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all appearance-none cursor-          {/* Table Container */}
+              <select value={schedule.status} onChange={e => {setSchedule({...schedule, status: e.target.value}); setIsDirty(true);}} disabled={!canEdit} className="bg-slate-50 dark:bg-slate-900/50 border-none px-4 py-3 rounded-2xl text-[15px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all appearance-none cursor-pointer">
+                <option value="draft">Bản nháp (Nội bộ)</option>
+                <option value="published">Đã ban hành (Công khai)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Table Container */}
           <div className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-slate-700 overflow-hidden shadow-xl flex flex-col">
             <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full text-sm text-left min-w-[1300px] border-collapse">

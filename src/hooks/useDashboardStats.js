@@ -6,7 +6,8 @@ import { filterTasksLocal } from '../lib/taskFilters';
 // ── Hàm fetch dashboard stats qua RPC ────────────────────────────────────────
 async function fetchDashboardStats(profileId, role) {
   const isAdmin = role === 'admin';
-  const targetId = isAdmin ? null : profileId;
+  const isViewer = role === 'viewer';
+  const targetId = (isAdmin || isViewer) ? null : profileId;
 
   // 1. Ưu tiên gọi RPC
   try {

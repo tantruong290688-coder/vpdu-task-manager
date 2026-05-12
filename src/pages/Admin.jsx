@@ -37,12 +37,13 @@ const relTime = (ts) => {
   return d.toLocaleDateString('vi-VN');
 };
 
-const ROLE_LABELS = { admin: 'Quản trị', manager: 'Quản lý', specialist: 'Chuyên viên', staff: 'Nhân viên' };
+const ROLE_LABELS = { admin: 'Quản trị', manager: 'Quản lý', specialist: 'Chuyên viên', staff: 'Nhân viên', viewer: 'Người theo dõi' };
 const ROLE_COLORS = {
   admin: 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   manager: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   specialist: 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
   staff: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+  viewer: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -106,6 +107,7 @@ function RoleSelect({ value, onChange }) {
     <select value={value} onChange={onChange} className={inputCls}>
       <option value="staff">Nhân viên</option>
       <option value="specialist">Chuyên viên</option>
+      <option value="viewer">Người theo dõi (View-only)</option>
       <option value="manager">Quản lý</option>
       <option value="admin">Quản trị</option>
     </select>

@@ -8,6 +8,7 @@ const ROWS_PER_PAGE = 10;
 // ── Hàm fetch tasks thuần túy (tách ra để dễ test và tái sử dụng) ─────────────
 async function fetchTasksFromDB({ filters, sortConfig, currentPage, filterParam, searchStr, pathname, profileId, role }) {
   const isAdmin = role === 'admin';
+  const isViewer = role === 'viewer';
   const isMyTasksPage = pathname === '/my-tasks';
   const isAllTasksPage = pathname === '/all-tasks';
 
@@ -19,7 +20,7 @@ async function fetchTasksFromDB({ filters, sortConfig, currentPage, filterParam,
     );
 
   // 1. Lọc theo quyền hạn tham gia (cho cả My Tasks và All Tasks)
-  if (profileId && (isMyTasksPage || (!isAdmin && isAllTasksPage))) {
+  if (profileId && (isMyTasksPage || (!isAdmin && !isViewer && isAllTasksPage))) {
     try {
       const { data: collabData, error: collabErr } = await supabase
         .from('task_collaborators')

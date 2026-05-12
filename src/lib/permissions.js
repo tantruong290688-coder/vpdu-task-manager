@@ -5,7 +5,9 @@
 export const ROLES = {
   ADMIN: 'admin',
   MANAGER: 'manager',
-  STAFF: 'staff'
+  STAFF: 'staff',
+  SPECIALIST: 'specialist',
+  VIEWER: 'viewer'
 };
 
 /**
@@ -61,7 +63,7 @@ export function canUpdateProgress(profile, task) {
     task.assignee_id === profile.id ||
     (task.task_collaborators || []).some(c => c.user_id === profile.id) ||
     profile.id === task.assigned_by
-  );
+  ) && profile.role !== ROLES.VIEWER;
 }
 
 /**
@@ -74,7 +76,7 @@ export function canEvaluate(profile, task) {
     profile.role === ROLES.ADMIN ||
     profile.role === ROLES.MANAGER ||
     profile.id === task.assigned_by
-  );
+  ) && profile.role !== ROLES.VIEWER;
 }
 
 /**
@@ -82,6 +84,8 @@ export function canEvaluate(profile, task) {
  */
 export function canSelfProposeEvaluation(profile, task) {
   if (!profile || !task || task.status !== 'completed') return false;
+  
+  if (profile.role === ROLES.VIEWER) return false;
   
   const isMain = task.assignee_id === profile.id;
   const isCollab = (task.task_collaborators || []).some(c => c.user_id === profile.id);
@@ -95,6 +99,9 @@ export function canSelfProposeEvaluation(profile, task) {
 export function canMainAssigneeReview(profile, task) {
   if (!profile || !task || task.status !== 'completed') return false;
   
+  // Viewer không có quyền review
+  if (profile.role === ROLES.VIEWER) return false;
+
   // Admin/Manager luôn có quyền can thiệp
   if (profile.role === ROLES.ADMIN || profile.role === ROLES.MANAGER) return true;
   
@@ -107,11 +114,12 @@ export function canMainAssigneeReview(profile, task) {
  */
 export function canAdminFinalizeEvaluation(profile) {
   if (!profile) return false;
+  if (profile.role === ROLES.VIEWER) return false;
   return profile.role === ROLES.ADMIN || profile.role === ROLES.MANAGER;
 }
 
 /**
- * 5. Quyền mở Modal Đánh giá (Admin, Manager, Assignee, Collab)
+ * 5. Quyền mở Modal Đánh giá (Admin, Manager, Viewer, Assignee, Collab)
  */
 export function canOpenEvaluationModal(profile, task) {
   if (!profile || !task || task.status !== 'completed') return false;
@@ -121,7 +129,7 @@ export function canOpenEvaluationModal(profile, task) {
     (task.task_collaborators || []).some(c => c.user_id === profile.id) ||
     task.assigned_by === profile.id;
     
-  return profile.role === ROLES.ADMIN || profile.role === ROLES.MANAGER || isParticipant;
+  return profile.role === ROLES.ADMIN || profile.role === ROLES.MANAGER || profile.role === ROLES.VIEWER || isParticipant;
 }
 
 /**
@@ -135,7 +143,7 @@ export function canViewEvaluation(profile, task) {
     (task.task_collaborators || []).some(c => c.user_id === profile.id) ||
     task.assigned_by === profile.id;
     
-  return profile.role === ROLES.ADMIN || profile.role === ROLES.MANAGER || isParticipant;
+  return profile.role === ROLES.ADMIN || profile.role === ROLES.MANAGER || profile.role === ROLES.VIEWER || isParticipant;
 }
 
 /**
@@ -166,6 +174,7 @@ export function canManageSchedules(profile) {
   return (
     profile.role === ROLES.ADMIN ||
     profile.role === ROLES.MANAGER ||
+    profile.role === ROLES.VIEWER ||
     profile.email === 'phthuyet@gmail.com'
   );
 }
@@ -176,7 +185,7 @@ export function canManageSchedules(profile) {
 export function canCreateTask(profile) {
   if (!profile) return false;
   return (
-    profile.role === ROLES.ADMIN ||
-    profile.role === ROLES.MANAGER
+    (profile.role === ROLES.ADMIN || profile.role === ROLES.MANAGER) && 
+    profile.role !== ROLES.VIEWER
   );
 }

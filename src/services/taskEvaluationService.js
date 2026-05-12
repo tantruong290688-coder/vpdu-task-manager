@@ -19,7 +19,7 @@ export const taskEvaluationService = {
    */
   async submitSelfEvaluation({ 
     taskId, userId, score, comment, participationLevel, progressLevel,
-    qualityScore = 0, progressScore = 0, completionRate = 0, difficultyScore = 0, note = '' 
+    qualityScore = 0, progressScore = 0, difficultyScore = 0, note = '' 
   }) {
     // Tự động xác định vai trò dựa trên assignee_id của nhiệm vụ
     const { data: taskData } = await supabase.from('tasks').select('assignee_id').eq('id', taskId).single();
@@ -35,7 +35,6 @@ export const taskEvaluationService = {
       self_progress_level: progressLevel,
       self_quality_score: qualityScore,
       self_progress_score: progressScore,
-      self_completion_rate: completionRate,
       self_difficulty_score: difficultyScore,
       self_note: note || comment,
       self_submitted_at: new Date().toISOString(),
@@ -64,7 +63,7 @@ export const taskEvaluationService = {
    */
   async submitMainAssigneeReview({ 
     evaluationId, score, comment, participationLevel, progressLevel, reviewedBy,
-    qualityScore = 0, progressScore = 0, completionRate = 0, difficultyScore = 0, bonusPoint = 0, penaltyPoint = 0, note = ''
+    qualityScore = 0, progressScore = 0, difficultyScore = 0, bonusPoint = 0, penaltyPoint = 0, note = ''
   }) {
     const payload = {
       main_assignee_score: score,
@@ -73,7 +72,6 @@ export const taskEvaluationService = {
       main_assignee_progress_level: progressLevel,
       main_reviewer_quality_score: qualityScore,
       main_reviewer_progress_score: progressScore,
-      main_reviewer_completion_rate: completionRate,
       main_reviewer_difficulty_score: difficultyScore,
       main_reviewer_bonus_point: bonusPoint,
       main_reviewer_penalty_point: penaltyPoint,
@@ -100,7 +98,7 @@ export const taskEvaluationService = {
    */
   async finalizeByAdmin({ 
     evaluationId, userId, role, score, comment, adjustmentReason, progressLevel, progressScore, finalizedBy, oldScore, taskId, adjustedByName,
-    qualityScore = 0, completionRate = 0, difficultyScore = 0, bonusPoint = 0, penaltyPoint = 0, note = ''
+    qualityScore = 0, difficultyScore = 0, bonusPoint = 0, penaltyPoint = 0, note = ''
   }) {
     const payload = {
       task_id: taskId,
@@ -112,7 +110,6 @@ export const taskEvaluationService = {
       final_progress_level: progressLevel,
       final_progress_score: progressScore,
       final_quality_score: qualityScore,
-      final_completion_rate: completionRate,
       final_difficulty_score: difficultyScore,
       final_bonus_point: bonusPoint,
       final_penalty_point: penaltyPoint,

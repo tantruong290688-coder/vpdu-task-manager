@@ -173,7 +173,6 @@ export function calculateStaffPerformance(primaryTasks, collaboratorTasks, evalu
       avgProgress: 0,
       avgWorkload: 0,
       avgQuality: 0,
-      avgCompletion: 0,
       taskCount: {
         primary: 0,
         collab: 0,

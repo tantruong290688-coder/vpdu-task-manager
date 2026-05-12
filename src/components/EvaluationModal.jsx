@@ -57,7 +57,6 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
   const [selfDifficulty, setSelfDifficulty] = useState('');
   const [selfQualityScore, setSelfQualityScore] = useState(80);
   const [selfProgressScore, setSelfProgressScore] = useState(80);
-  const [selfCompletionRate, setSelfCompletionRate] = useState(100);
   const [selfDifficultyScore, setSelfDifficultyScore] = useState(80);
 
   // --- Form States: Main Assignee Review ---
@@ -69,7 +68,6 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
   const [mainRevDiffReason, setMainRevDiffReason] = useState('');
   const [mainRevQualityScore, setMainRevQualityScore] = useState(80);
   const [mainRevProgressScore, setMainRevProgressScore] = useState(80);
-  const [mainRevCompletionRate, setMainRevCompletionRate] = useState(100);
   const [mainRevDifficultyScore, setMainRevDifficultyScore] = useState(80);
   const [mainRevBonusPoint, setMainRevBonusPoint] = useState(0);
   const [mainRevPenaltyPoint, setMainRevPenaltyPoint] = useState(0);
@@ -81,7 +79,6 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
   const [finalProgress, setFinalProgress] = useState('');
   const [finalQualityScore, setFinalQualityScore] = useState(80);
   const [finalProgressScore, setFinalProgressScore] = useState(80);
-  const [finalCompletionRate, setFinalCompletionRate] = useState(100);
   const [finalDifficultyScore, setFinalDifficultyScore] = useState(80);
   const [finalBonusPoint, setFinalBonusPoint] = useState(0);
   const [finalPenaltyPoint, setFinalPenaltyPoint] = useState(0);
@@ -162,7 +159,6 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         progressLevel: selfProgress,
         qualityScore: selfQualityScore,
         progressScore: selfProgressScore,
-        completionRate: selfCompletionRate,
         difficultyScore: selfDifficultyScore
       });
 
@@ -196,7 +192,6 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         reviewedBy: profile.id,
         qualityScore: mainRevQualityScore,
         progressScore: mainRevProgressScore,
-        completionRate: mainRevCompletionRate,
         difficultyScore: mainRevDifficultyScore,
         bonusPoint: mainRevBonusPoint,
         penaltyPoint: mainRevPenaltyPoint
@@ -216,7 +211,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
   };
 
   // 3. Admin chốt điểm
-  const handleAdminFinalize = async (evalId, userId, role, proposedScore, selectedProgressLevel, currentFinalScore, newScore, newComment, newReason, q, c, d, b, p) => {
+  const handleAdminFinalize = async (evalId, userId, role, proposedScore, selectedProgressLevel, currentFinalScore, newScore, newComment, newReason, q, d, b, p) => {
     const scoreVal = parseInt(newScore || finalScore);
     if (isNaN(scoreVal)) {
       toast.error('Vui lòng nhập điểm cuối cùng');
@@ -230,7 +225,6 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
     
     // Capture granular values from params if provided (from AdminRow)
     const gQuality = q !== undefined ? q : finalQualityScore;
-    const gCompletion = c !== undefined ? c : finalCompletionRate;
     const gDifficulty = d !== undefined ? d : finalDifficultyScore;
     const gBonus = b !== undefined ? b : finalBonusPoint;
     const gPenalty = p !== undefined ? p : finalPenaltyPoint;
@@ -253,7 +247,6 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         taskId: task.id,
         adjustedByName: profile.full_name,
         qualityScore: gQuality,
-        completionRate: gCompletion,
         difficultyScore: gDifficulty,
         bonusPoint: gBonus,
         penaltyPoint: gPenalty
@@ -409,7 +402,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                            <form onSubmit={handleSelfPropose} className="space-y-8">
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                                  <div className="space-y-2">
-                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Chất lượng (40%)</label>
+                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Chất lượng (60%)</label>
                                     <select 
                                        value={selfQualityScore} onChange={e => {
                                          const val = Number(e.target.value);
@@ -417,7 +410,6 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                          setSelfScore(calculateFinalScore({ 
                                            qualityScore: val, 
                                            progressScore: selfProgressScore, 
-                                           completionRate: selfCompletionRate,
                                            difficultyScore: selfDifficultyScore 
                                          }));
                                        }}
@@ -427,7 +419,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                      </select>
                                  </div>
                                  <div className="space-y-2">
-                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Tiến độ (25%)</label>
+                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Tiến độ (30%)</label>
                                     <select 
                                        value={selfProgressScore} onChange={e => {
                                          const val = Number(e.target.value);
@@ -435,7 +427,6 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                          setSelfScore(calculateFinalScore({ 
                                            qualityScore: selfQualityScore, 
                                            progressScore: val, 
-                                           completionRate: selfCompletionRate,
                                            difficultyScore: selfDifficultyScore 
                                          }));
                                        }}
@@ -445,25 +436,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                      </select>
                                  </div>
                                  <div className="space-y-2">
-                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Tỷ lệ hoàn thành (20%)</label>
-                                    <select 
-                                       value={selfCompletionRate} onChange={e => {
-                                         const val = Number(e.target.value);
-                                         setSelfCompletionRate(val);
-                                         setSelfScore(calculateFinalScore({ 
-                                           qualityScore: selfQualityScore, 
-                                           progressScore: selfProgressScore, 
-                                           completionRate: val,
-                                           difficultyScore: selfDifficultyScore 
-                                         }));
-                                       }}
-                                       className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl text-[14px] font-black text-indigo-600 outline-none"
-                                     >
-                                        {SCORE_OPTIONS.map(opt => <option key={opt.score} value={opt.score}>{opt.label}</option>)}
-                                     </select>
-                                 </div>
-                                 <div className="space-y-2">
-                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Khối lượng / Độ khó (15%)</label>
+                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Khối lượng / Độ khó (10%)</label>
                                     <select 
                                        value={selfDifficultyScore} onChange={e => {
                                          const val = Number(e.target.value);
@@ -471,7 +444,6 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                          setSelfScore(calculateFinalScore({ 
                                            qualityScore: selfQualityScore, 
                                            progressScore: selfProgressScore, 
-                                           completionRate: selfCompletionRate,
                                            difficultyScore: val 
                                          }));
                                        }}
@@ -682,13 +654,13 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                        <div className="space-y-6">
                                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                              <div className="space-y-1">
-                                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Chất lượng (40%)</label>
+                                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Chất lượng (60%)</label>
                                                  <select 
                                                    value={mainRevQualityScore} onChange={e => {
                                                      const val = Number(e.target.value);
                                                      setMainRevQualityScore(val);
                                                      setMainRevScore(calculateFinalScore({ 
-                                                       qualityScore: val, progressScore: mainRevProgressScore, completionRate: mainRevCompletionRate, 
+                                                       qualityScore: val, progressScore: mainRevProgressScore, 
                                                        difficultyScore: mainRevDifficultyScore, bonusPoint: mainRevBonusPoint, penaltyPoint: mainRevPenaltyPoint 
                                                      }));
                                                    }}
@@ -698,13 +670,13 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                                  </select>
                                               </div>
                                               <div className="space-y-1">
-                                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tiến độ (25%)</label>
+                                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tiến độ (30%)</label>
                                                  <select 
                                                    value={mainRevProgressScore} onChange={e => {
                                                      const val = Number(e.target.value);
                                                      setMainRevProgressScore(val);
                                                      setMainRevScore(calculateFinalScore({ 
-                                                       qualityScore: mainRevQualityScore, progressScore: val, completionRate: mainRevCompletionRate, 
+                                                       qualityScore: mainRevQualityScore, progressScore: val, 
                                                        difficultyScore: mainRevDifficultyScore, bonusPoint: mainRevBonusPoint, penaltyPoint: mainRevPenaltyPoint 
                                                      }));
                                                    }}
@@ -714,29 +686,13 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                                  </select>
                                               </div>
                                               <div className="space-y-1">
-                                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tỷ lệ HT (20%)</label>
-                                                 <select 
-                                                   value={mainRevCompletionRate} onChange={e => {
-                                                     const val = Number(e.target.value);
-                                                     setMainRevCompletionRate(val);
-                                                     setMainRevScore(calculateFinalScore({ 
-                                                       qualityScore: mainRevQualityScore, progressScore: mainRevProgressScore, completionRate: val, 
-                                                       difficultyScore: mainRevDifficultyScore, bonusPoint: mainRevBonusPoint, penaltyPoint: mainRevPenaltyPoint 
-                                                     }));
-                                                   }}
-                                                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl text-[13px] font-black text-indigo-600 outline-none"
-                                                 >
-                                                    {SCORE_OPTIONS.map(opt => <option key={opt.score} value={opt.score}>{opt.label}</option>)}
-                                                 </select>
-                                              </div>
-                                              <div className="space-y-1">
-                                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Khối lượng (15%)</label>
+                                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Khối lượng (10%)</label>
                                                  <select 
                                                    value={mainRevDifficultyScore} onChange={e => {
                                                      const val = Number(e.target.value);
                                                      setMainRevDifficultyScore(val);
                                                      setMainRevScore(calculateFinalScore({ 
-                                                       qualityScore: mainRevQualityScore, progressScore: mainRevProgressScore, completionRate: mainRevCompletionRate, 
+                                                       qualityScore: mainRevQualityScore, progressScore: mainRevProgressScore, 
                                                        difficultyScore: val, bonusPoint: mainRevBonusPoint, penaltyPoint: mainRevPenaltyPoint 
                                                      }));
                                                    }}
@@ -752,7 +708,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                                     const val = Number(e.target.value);
                                                     setMainRevBonusPoint(val);
                                                     setMainRevScore(calculateFinalScore({ 
-                                                      qualityScore: mainRevQualityScore, progressScore: mainRevProgressScore, completionRate: mainRevCompletionRate, 
+                                                      qualityScore: mainRevQualityScore, progressScore: mainRevProgressScore, 
                                                       difficultyScore: mainRevDifficultyScore, bonusPoint: val, penaltyPoint: mainRevPenaltyPoint 
                                                     }));
                                                   }}
@@ -766,7 +722,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                                     const val = Number(e.target.value);
                                                     setMainRevPenaltyPoint(val);
                                                     setMainRevScore(calculateFinalScore({ 
-                                                      qualityScore: mainRevQualityScore, progressScore: mainRevProgressScore, completionRate: mainRevCompletionRate, 
+                                                      qualityScore: mainRevQualityScore, progressScore: mainRevProgressScore, 
                                                       difficultyScore: mainRevDifficultyScore, bonusPoint: mainRevBonusPoint, penaltyPoint: val 
                                                     }));
                                                   }}
@@ -964,7 +920,6 @@ function AdminRow({ user, roleLabel, roleType, roleCls, evaluation, onFinalize, 
    const [progressLevel, setProgressLevel] = useState('');
    const [isEditing, setIsEditing] = useState(false);
    const [qualityScore, setQualityScore] = useState(80);
-   const [completionRate, setCompletionRate] = useState(100);
    const [difficultyScore, setDifficultyScore] = useState(80);
    const [bonusPoint, setBonusPoint] = useState(0);
    const [penaltyPoint, setPenaltyPoint] = useState(0);
@@ -976,7 +931,6 @@ function AdminRow({ user, roleLabel, roleType, roleCls, evaluation, onFinalize, 
        setReason(evaluation.final_adjustment_reason || '');
        setProgressLevel(evaluation.final_progress_level || evaluation.main_assignee_progress_level || evaluation.self_progress_level || '');
        setQualityScore(evaluation.final_quality_score || evaluation.main_reviewer_quality_score || evaluation.self_quality_score || 80);
-       setCompletionRate(evaluation.final_completion_rate || evaluation.main_reviewer_completion_rate || evaluation.self_completion_rate || 100);
        setDifficultyScore(evaluation.final_difficulty_score || evaluation.main_reviewer_difficulty_score || 80);
        setBonusPoint(evaluation.final_bonus_point || evaluation.main_reviewer_bonus_point || 0);
        setPenaltyPoint(evaluation.final_penalty_point || evaluation.main_reviewer_penalty_point || 0);
@@ -1052,36 +1006,30 @@ function AdminRow({ user, roleLabel, roleType, roleCls, evaluation, onFinalize, 
                <div className="space-y-4 w-64 bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg">
                   <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-400 uppercase">Chất lượng</label>
-                        <select value={qualityScore} onChange={e => { setQualityScore(Number(e.target.value)); updateLiveScore(Number(e.target.value), completionRate, difficultyScore, bonusPoint, penaltyPoint, progressLevel); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-1 py-1 rounded text-[11px] font-black">
+                        <label className="text-[9px] font-black text-slate-400 uppercase">Chất lượng (60%)</label>
+                        <select value={qualityScore} onChange={e => { setQualityScore(Number(e.target.value)); updateLiveScore(Number(e.target.value), difficultyScore, bonusPoint, penaltyPoint, progressLevel); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-1 py-1 rounded text-[11px] font-black">
                            {SCORE_OPTIONS.map(opt => <option key={opt.score} value={opt.score}>{opt.score}</option>)}
                         </select>
                      </div>
                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-400 uppercase">Hoàn thành</label>
-                        <select value={completionRate} onChange={e => { setCompletionRate(Number(e.target.value)); updateLiveScore(qualityScore, Number(e.target.value), difficultyScore, bonusPoint, penaltyPoint, progressLevel); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-1 py-1 rounded text-[11px] font-black">
-                           {SCORE_OPTIONS.map(opt => <option key={opt.score} value={opt.score}>{opt.score}</option>)}
-                        </select>
-                     </div>
-                     <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-400 uppercase">Độ khó</label>
-                        <select value={difficultyScore} onChange={e => { setDifficultyScore(Number(e.target.value)); updateLiveScore(qualityScore, completionRate, Number(e.target.value), bonusPoint, penaltyPoint, progressLevel); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-1 py-1 rounded text-[11px] font-black">
-                           {DIFFICULTY_OPTIONS.map(opt => <option key={opt.score} value={opt.score}>{opt.score}</option>)}
-                        </select>
-                     </div>
-                     <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-400 uppercase">Tiến độ</label>
-                        <select value={progressLevel} onChange={e => { setProgressLevel(e.target.value); updateLiveScore(qualityScore, completionRate, difficultyScore, bonusPoint, penaltyPoint, e.target.value); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-1 py-1 rounded text-[11px] font-black">
+                        <label className="text-[9px] font-black text-slate-400 uppercase">Tiến độ (30%)</label>
+                        <select value={progressLevel} onChange={e => { setProgressLevel(e.target.value); updateLiveScore(qualityScore, difficultyScore, bonusPoint, penaltyPoint, e.target.value); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-1 py-1 rounded text-[11px] font-black">
                            {PROGRESS_LEVELS.map(l => <option key={l.id} value={l.label}>{l.label}</option>)}
                         </select>
                      </div>
                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase">Khối lượng (10%)</label>
+                        <select value={difficultyScore} onChange={e => { setDifficultyScore(Number(e.target.value)); updateLiveScore(qualityScore, Number(e.target.value), bonusPoint, penaltyPoint, progressLevel); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-1 py-1 rounded text-[11px] font-black">
+                           {DIFFICULTY_OPTIONS.map(opt => <option key={opt.score} value={opt.score}>{opt.score}</option>)}
+                        </select>
+                     </div>
+                     <div className="space-y-1">
                         <label className="text-[9px] font-black text-slate-400 uppercase text-emerald-500">Thưởng</label>
-                        <input type="number" value={bonusPoint} onChange={e => { setBonusPoint(Number(e.target.value)); updateLiveScore(qualityScore, completionRate, difficultyScore, Number(e.target.value), penaltyPoint, progressLevel); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded text-[13px] font-black text-emerald-600" />
+                        <input type="number" value={bonusPoint} onChange={e => { setBonusPoint(Number(e.target.value)); updateLiveScore(qualityScore, difficultyScore, Number(e.target.value), penaltyPoint, progressLevel); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded text-[13px] font-black text-emerald-600" />
                      </div>
                      <div className="space-y-1">
                         <label className="text-[9px] font-black text-slate-400 uppercase text-rose-500">Phạt</label>
-                        <input type="number" value={penaltyPoint} onChange={e => { setPenaltyPoint(Number(e.target.value)); updateLiveScore(qualityScore, completionRate, difficultyScore, bonusPoint, Number(e.target.value), progressLevel); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded text-[13px] font-black text-rose-600" />
+                        <input type="number" value={penaltyPoint} onChange={e => { setPenaltyPoint(Number(e.target.value)); updateLiveScore(qualityScore, difficultyScore, bonusPoint, Number(e.target.value), progressLevel); }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded text-[13px] font-black text-rose-600" />
                      </div>
                   </div>
 
@@ -1105,7 +1053,7 @@ function AdminRow({ user, roleLabel, roleType, roleCls, evaluation, onFinalize, 
                   />
                   <div className="flex gap-2">
                      <button 
-                       onClick={() => onFinalize(evaluation?.id, user.id, roleType, proposedScore, progressLevel, evaluation?.final_score, score, comment, reason, qualityScore, completionRate, difficultyScore, bonusPoint, penaltyPoint).then(() => setIsEditing(false))}
+                       onClick={() => onFinalize(evaluation?.id, user.id, roleType, proposedScore, progressLevel, evaluation?.final_score, score, comment, reason, qualityScore, difficultyScore, bonusPoint, penaltyPoint).then(() => setIsEditing(false))}
                        className="flex-1 py-2 bg-emerald-600 text-white rounded-xl text-[11px] font-black"
                      >Lưu</button>
                      <button 

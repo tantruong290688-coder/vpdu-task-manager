@@ -349,53 +349,62 @@ export default function ScheduleDetail() {
                 </thead>
                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                   {items.map((item, index) => (
-                    <tr key={item.id} className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors group">
-                      <td className="p-3">
-                        <div className="relative group/input">
-                          <input type="date" value={item.date || ''} onChange={e => handleItemChange(item.id, 'date', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-xl px-3 py-2.5 text-[13px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all dark:text-white" />
-                        </div>
+                    <tr key={item.id} className="hover:bg-blue-50/20 dark:hover:bg-blue-900/10 transition-colors group">
+                      <td className="p-1.5">
+                        <input type="date" value={item.date || ''} onChange={e => handleItemChange(item.id, 'date', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/40 border-none rounded-lg px-2 py-1.5 text-[12px] font-bold focus:ring-1 focus:ring-blue-500/30 transition-all dark:text-white" />
                       </td>
-                      <td className="p-3">
-                        <input type="text" placeholder="Sáng/Chiều" value={item.time || ''} onChange={e => handleItemChange(item.id, 'time', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-xl px-3 py-2.5 text-[13px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all dark:text-white" />
+                      <td className="p-1.5">
+                        <input type="text" placeholder="7h30..." value={item.time || ''} onChange={e => handleItemChange(item.id, 'time', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/40 border-none rounded-lg px-2 py-1.5 text-[12px] font-bold focus:ring-1 focus:ring-blue-500/30 transition-all dark:text-white" />
                       </td>
-                      <td className="p-3">
-                        <textarea rows="2" placeholder="Nội dung họp..." value={item.content || ''} onChange={e => handleItemChange(item.id, 'content', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-xl px-3 py-2.5 text-[13px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all dark:text-white resize-none leading-snug min-h-[70px]"></textarea>
+                      <td className="p-1.5">
+                        <textarea rows="1" placeholder="Nội dung..." value={item.content || ''} onChange={e => handleItemChange(item.id, 'content', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/40 border-none rounded-lg px-2 py-1.5 text-[12px] font-bold focus:ring-1 focus:ring-blue-500/30 transition-all dark:text-white resize-none leading-tight min-h-[40px]"></textarea>
                       </td>
-                      <td className="p-3">
-                        <input type="text" placeholder="Người chủ trì" value={item.host || ''} onChange={e => handleItemChange(item.id, 'host', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-xl px-3 py-2.5 text-[12px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all dark:text-white" />
+                      <td className="p-1.5">
+                        <select 
+                          value={item.host || ''} 
+                          onChange={e => handleItemChange(item.id, 'host', e.target.value)} 
+                          disabled={!canEdit} 
+                          className="w-full bg-slate-50 dark:bg-slate-900/40 border-none rounded-lg px-2 py-1.5 text-[12px] font-bold focus:ring-1 focus:ring-blue-500/30 transition-all dark:text-white appearance-none cursor-pointer"
+                        >
+                          <option value="">Chọn...</option>
+                          <option value="Đ/c Bí thư">Bí thư</option>
+                          <option value="Đ/c Phó Bí thư">Phó Bí thư</option>
+                          <option value="TTĐU">TTĐU</option>
+                          <option value="Khác">Khác...</option>
+                        </select>
                       </td>
-                      <td className="p-3">
-                        <textarea rows="2" placeholder="TP tham dự" value={item.attendees || ''} onChange={e => handleItemChange(item.id, 'attendees', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-xl px-3 py-2.5 text-[11px] font-bold focus:ring-2 focus:ring-blue-500/20 transition-all dark:text-white resize-none min-h-[70px]"></textarea>
+                      <td className="p-1.5">
+                        <textarea rows="1" placeholder="Thành phần..." value={item.attendees || ''} onChange={e => handleItemChange(item.id, 'attendees', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/40 border-none rounded-lg px-2 py-1.5 text-[11px] font-bold focus:ring-1 focus:ring-blue-500/30 transition-all dark:text-white resize-none leading-tight min-h-[40px]"></textarea>
                       </td>
-                      <td className="p-3">
-                        <input type="text" placeholder="Địa điểm" value={item.location || ''} onChange={e => handleItemChange(item.id, 'location', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-xl px-3 py-2.5 text-[12px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all dark:text-white" />
+                      <td className="p-1.5">
+                        <input type="text" placeholder="Địa điểm" value={item.location || ''} onChange={e => handleItemChange(item.id, 'location', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/40 border-none rounded-lg px-2 py-1.5 text-[12px] font-bold focus:ring-1 focus:ring-blue-500/30 transition-all dark:text-white" />
                       </td>
-                      <td className="p-3">
-                        <input type="text" placeholder="Chuẩn bị" value={item.prepare_by || ''} onChange={e => handleItemChange(item.id, 'prepare_by', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-xl px-3 py-2.5 text-[11px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all dark:text-white" />
+                      <td className="p-1.5">
+                        <input type="text" placeholder="Chuẩn bị" value={item.prepare_by || ''} onChange={e => handleItemChange(item.id, 'prepare_by', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/40 border-none rounded-lg px-2 py-1.5 text-[11px] font-bold focus:ring-1 focus:ring-blue-500/30 transition-all dark:text-white" />
                       </td>
-                      <td className="p-3">
-                        <select value={item.type || 'meeting'} onChange={e => handleItemChange(item.id, 'type', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-xl px-3 py-2.5 text-[11px] font-black uppercase tracking-tight focus:ring-2 focus:ring-blue-500/20 transition-all dark:text-white appearance-none cursor-pointer">
+                      <td className="p-1.5">
+                        <select value={item.type || 'meeting'} onChange={e => handleItemChange(item.id, 'type', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/40 border-none rounded-lg px-2 py-1.5 text-[11px] font-black uppercase tracking-tight focus:ring-1 focus:ring-blue-500/30 transition-all dark:text-white appearance-none cursor-pointer">
                           <option value="meeting">Họp</option>
-                          <option value="office_work">Làm việc CQ</option>
-                          <option value="other">Sự kiện</option>
+                          <option value="office_work">CQ</option>
+                          <option value="other">SK</option>
                           <option value="holiday">Nghỉ</option>
                         </select>
                       </td>
-                      <td className="p-3 text-center">
-                        <div className="flex flex-col items-center gap-1.5">
+                      <td className="p-1.5 text-center">
+                        <div className="flex flex-col items-center gap-1">
                           {item.type === 'meeting' && (
                             item.is_task_created ? (
-                              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-tighter bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg">
-                                <CheckSquare size={14} strokeWidth={3} /> Link
+                              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-[9px] font-black uppercase tracking-tighter bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded">
+                                <CheckSquare size={12} strokeWidth={3} />
                               </span>
                             ) : (
                               canAddTasks && (
                                 <button 
                                   onClick={() => handleOpenTaskModal(item)} 
                                   disabled={item.id.toString().startsWith('temp_')} 
-                                  className="text-[10px] font-black uppercase tracking-widest bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/30 px-3 py-1.5 rounded-xl hover:bg-blue-600 hover:text-white transition-all disabled:opacity-30"
+                                  className="text-[9px] font-black uppercase tracking-widest bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/30 px-2 py-1 rounded-lg hover:bg-blue-600 hover:text-white transition-all disabled:opacity-30"
                                 >
-                                  + NV
+                                  +
                                 </button>
                               )
                             )
@@ -403,9 +412,9 @@ export default function ScheduleDetail() {
                         </div>
                       </td>
                       {canEdit && (
-                        <td className="p-3 text-center">
-                          <button onClick={() => handleRemoveItem(item.id)} className="text-slate-300 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 p-2 rounded-xl transition-all">
-                            <Trash2 size={18} />
+                        <td className="p-1.5 text-center">
+                          <button onClick={() => handleRemoveItem(item.id)} className="text-slate-300 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 p-1 rounded-lg transition-all">
+                            <Trash2 size={16} />
                           </button>
                         </td>
                       )}

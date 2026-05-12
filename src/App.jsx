@@ -6,7 +6,6 @@ import MainLayout from './layouts/MainLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Tasks from './pages/Tasks';
-import Evaluations from './pages/Evaluations';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import Logs from './pages/Logs';
 import Admin from './pages/Admin';
@@ -167,7 +166,6 @@ function App() {
               <Tasks />
             </ErrorBoundary>
           } />
-          <Route path="evaluations"   element={<ErrorBoundary><Evaluations /></ErrorBoundary>} />
           <Route path="logs"          element={<ErrorBoundary><Logs /></ErrorBoundary>} />
           <Route path="admin"         element={<ErrorBoundary><Admin /></ErrorBoundary>} />
           <Route path="todo"          element={<ErrorBoundary><TodoPage /></ErrorBoundary>} />

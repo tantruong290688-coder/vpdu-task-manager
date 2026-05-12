@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Plus, Save, Trash2, Calendar as CalendarIcon, CheckSquare, Download } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Trash2, Calendar as CalendarIcon, CheckSquare, Download, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import TaskModal from '../components/TaskModal';
 import { exportScheduleToExcel, sortSchedulesForExport } from '../utils/exportSchedule';
@@ -258,17 +258,20 @@ export default function ScheduleDetail() {
   return (
     <div className="flex flex-col h-[calc(100vh-60px-env(safe-area-inset-top))] sm:h-[calc(100vh-70px)] md:h-[calc(100vh-80px)] bg-slate-50 dark:bg-[#0b1120]">
       {/* Header */}
-      <div className="flex-none p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827] flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/schedules')} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full hover:bg-slate-200 transition">
-            <ArrowLeft size={18} className="text-slate-700 dark:text-slate-300" />
+      <div className="sticky top-0 z-30 flex-none p-4 md:p-5 border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-[#111827]/90 backdrop-blur-md flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <button onClick={() => navigate('/schedules')} className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-2xl hover:bg-slate-200 transition-all active:scale-95 shadow-sm">
+            <ArrowLeft size={20} className="text-slate-700 dark:text-slate-300" />
           </button>
-          <h1 className="text-[18px] md:text-[20px] font-extrabold text-slate-800 dark:text-white">
-            {id === 'new' ? 'Tạo lịch công tác tuần' : `Chi tiết lịch tuần ${schedule.week}/${schedule.year}`}
-          </h1>
+          <div className="flex flex-col">
+            <h1 className="text-[18px] md:text-[22px] font-black text-slate-900 dark:text-white leading-tight tracking-tight">
+              {id === 'new' ? 'Tạo lịch công tác tuần' : `Lịch công tác tuần ${schedule.week}/${schedule.year}`}
+            </h1>
+            {isDirty && <span className="text-[10px] font-black text-rose-500 uppercase animate-pulse">Chưa lưu thay đổi</span>}
+          </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ml-auto">
           {id !== 'new' && (
             <button 
               onClick={async () => {
@@ -281,141 +284,153 @@ export default function ScheduleDetail() {
                 setExporting(false);
               }} 
               disabled={exporting}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-bold shadow hover:bg-green-700 transition-colors disabled:opacity-50"
-              title="Xuất Excel"
+              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-2xl text-[13px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50"
             >
-              <Download size={18} className={exporting ? 'animate-bounce' : ''} />
-              <span className="hidden md:inline">{exporting ? 'Đang xuất...' : 'Xuất Excel'}</span>
+              <Download size={18} strokeWidth={3} className={exporting ? 'animate-bounce' : ''} />
+              <span className="hidden sm:inline">{exporting ? 'Đang xuất...' : 'Xuất Excel'}</span>
             </button>
           )}
           {canEdit && (
             <button 
               onClick={handleSave} 
               disabled={saving} 
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow hover:bg-blue-700 disabled:opacity-50"
-              title="Lưu dữ liệu"
+              className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-[13px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50"
             >
-              <Save size={18} />
-              <span className="hidden md:inline">{saving ? 'Đang lưu...' : 'Lưu dữ liệu'}</span>
+              <Save size={18} strokeWidth={3} />
+              <span className="hidden sm:inline">{saving ? 'Đang lưu...' : 'Lưu dữ liệu'}</span>
             </button>
           )}
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto p-4">
-        {/* Meta Info */}
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 mb-4 flex flex-wrap gap-4">
-          <label className="flex flex-col gap-1 flex-1 min-w-[80px]">
-            <span className="text-xs font-bold text-slate-500">Tuần</span>
-            <input type="number" value={schedule.week} onChange={e => {setSchedule({...schedule, week: parseInt(e.target.value)}); setIsDirty(true);}} disabled={!canEdit} className="border p-2 rounded-lg w-full text-[16px] sm:text-sm bg-transparent" />
-          </label>
-          <label className="flex flex-col gap-1 flex-1 min-w-[80px]">
-            <span className="text-xs font-bold text-slate-500">Năm</span>
-            <input type="number" value={schedule.year} onChange={e => {setSchedule({...schedule, year: parseInt(e.target.value)}); setIsDirty(true);}} disabled={!canEdit} className="border p-2 rounded-lg w-full text-[16px] sm:text-sm bg-transparent" />
-          </label>
-          <label className="flex flex-col gap-1 flex-1 min-w-[80px]">
-            <span className="text-xs font-bold text-slate-500">Phiên bản</span>
-            <input type="number" value={schedule.version} onChange={e => {setSchedule({...schedule, version: parseInt(e.target.value)}); setIsDirty(true);}} disabled={!canEdit} className="border p-2 rounded-lg w-full text-[16px] sm:text-sm bg-transparent" />
-          </label>
-          <label className="flex flex-col gap-1 flex-1 min-w-[120px]">
-            <span className="text-xs font-bold text-slate-500">Trạng thái</span>
-            <select value={schedule.status} onChange={e => {setSchedule({...schedule, status: e.target.value}); setIsDirty(true);}} disabled={!canEdit} className="border p-2 rounded-lg text-[16px] sm:text-sm bg-transparent">
-              <option value="draft">Bản nháp</option>
-              <option value="published">Đã ban hành</option>
-            </select>
-          </label>
-        </div>
-
-        {/* Grid Items */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-x-auto shadow-sm custom-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
-          <table className="w-full text-sm text-left min-w-[1200px] border-collapse">
-            <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
-              <tr>
-                <th className="py-2 px-3 font-bold w-32">Ngày</th>
-                <th className="py-2 px-3 font-bold w-24">Thời gian</th>
-                <th className="py-2 px-3 font-bold min-w-[200px]">Nội dung</th>
-                <th className="py-2 px-3 font-bold w-32">Chủ trì</th>
-                <th className="py-2 px-3 font-bold w-40">Thành phần</th>
-                <th className="py-2 px-3 font-bold w-32">Địa điểm</th>
-                <th className="py-2 px-3 font-bold w-32">Chuẩn bị</th>
-                <th className="py-2 px-3 font-bold w-24">Loại</th>
-                <th className="py-2 px-3 font-bold w-24">Nhiệm vụ</th>
-                {canEdit && <th className="py-2 px-3 font-bold w-12 text-center">Xóa</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, index) => (
-                <tr key={item.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                  <td className="p-2">
-                    <input type="date" value={item.date || ''} onChange={e => handleItemChange(item.id, 'date', e.target.value)} disabled={!canEdit} className="w-full border border-slate-200 dark:border-slate-700 rounded p-2 text-[16px] sm:text-xs bg-transparent" />
-                  </td>
-                  <td className="p-2">
-                    <input type="text" placeholder="Sáng/Chiều/Giờ" value={item.time || ''} onChange={e => handleItemChange(item.id, 'time', e.target.value)} disabled={!canEdit} className="w-full border border-slate-200 dark:border-slate-700 rounded p-2 text-[16px] sm:text-xs bg-transparent" />
-                  </td>
-                  <td className="p-2">
-                    <textarea rows="2" placeholder="Nội dung họp..." value={item.content || ''} onChange={e => handleItemChange(item.id, 'content', e.target.value)} disabled={!canEdit} className="w-full border border-slate-200 dark:border-slate-700 rounded p-2 text-[16px] sm:text-xs bg-transparent resize-none leading-snug min-h-[60px]"></textarea>
-                  </td>
-                  <td className="p-2">
-                    <input type="text" value={item.host || ''} onChange={e => handleItemChange(item.id, 'host', e.target.value)} disabled={!canEdit} className="w-full border border-slate-200 dark:border-slate-700 rounded p-2 text-[16px] sm:text-xs bg-transparent" />
-                  </td>
-                  <td className="p-2">
-                    <textarea rows="2" value={item.attendees || ''} onChange={e => handleItemChange(item.id, 'attendees', e.target.value)} disabled={!canEdit} className="w-full border border-slate-200 dark:border-slate-700 rounded p-2 text-[16px] sm:text-xs bg-transparent resize-none min-h-[60px]"></textarea>
-                  </td>
-                  <td className="p-2">
-                    <input type="text" value={item.location || ''} onChange={e => handleItemChange(item.id, 'location', e.target.value)} disabled={!canEdit} className="w-full border border-slate-200 dark:border-slate-700 rounded p-2 text-[16px] sm:text-xs bg-transparent" />
-                  </td>
-                  <td className="p-2">
-                    <input type="text" value={item.prepare_by || ''} onChange={e => handleItemChange(item.id, 'prepare_by', e.target.value)} disabled={!canEdit} className="w-full border border-slate-200 dark:border-slate-700 rounded p-2 text-[16px] sm:text-xs bg-transparent" />
-                  </td>
-                  <td className="p-2">
-                    <select value={item.type || 'meeting'} onChange={e => handleItemChange(item.id, 'type', e.target.value)} disabled={!canEdit} className="w-full border border-slate-200 dark:border-slate-700 rounded p-2 text-[16px] sm:text-xs bg-transparent">
-                      <option value="meeting">Họp/Hội nghị</option>
-                      <option value="office_work">Làm việc CQ</option>
-                      <option value="other">Sự kiện/HĐ khác</option>
-                      <option value="holiday">Nghỉ</option>
-                    </select>
-                  </td>
-                  <td className="p-2 text-center">
-                    {item.type === 'meeting' && (
-                      item.is_task_created ? (
-                        <span className="inline-flex items-center gap-1 text-green-600 text-xs font-bold"><CheckSquare size={14}/> Đã tạo</span>
-                      ) : (
-                        canAddTasks && (
-                          <button onClick={() => handleOpenTaskModal(item)} disabled={item.id.toString().startsWith('temp_')} className="text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 px-2 py-1 rounded font-bold disabled:opacity-50 whitespace-nowrap">
-                            + Nhiệm vụ
-                          </button>
-                        )
-                      )
-                    )}
-                  </td>
-                  {canEdit && (
-                    <td className="p-2 text-center">
-                      <button onClick={() => handleRemoveItem(item.id)} className="text-red-500 hover:bg-red-50 p-1.5 rounded">
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {canEdit && (
-            <div className="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-              <button onClick={handleAddItem} className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-bold px-3 py-1.5 bg-blue-50 rounded-lg">
-                <Plus size={16} /> Thêm dòng
-              </button>
-              <button onClick={() => {
-                const sorted = sortSchedulesForExport(items);
-                setItems(sorted);
-                setIsDirty(true);
-                toast.success('Đã tự động sắp xếp danh sách lịch');
-              }} className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 text-sm font-bold px-3 py-1.5 bg-indigo-50 rounded-lg">
-                <svg xmlns="http://www.0.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/></svg>
-                Tự động sắp xếp
-              </button>
+      <div className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
+        <div className="max-w-[1500px] mx-auto space-y-6">
+          {/* Meta Info - Modern Style */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Số tuần</span>
+              <input type="number" value={schedule.week} onChange={e => {setSchedule({...schedule, week: parseInt(e.target.value)}); setIsDirty(true);}} disabled={!canEdit} className="bg-slate-50 dark:bg-slate-900/50 border-none px-4 py-3 rounded-2xl w-full text-[15px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all" />
             </div>
-          )}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Năm</span>
+              <input type="number" value={schedule.year} onChange={e => {setSchedule({...schedule, year: parseInt(e.target.value)}); setIsDirty(true);}} disabled={!canEdit} className="bg-slate-50 dark:bg-slate-900/50 border-none px-4 py-3 rounded-2xl w-full text-[15px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phiên bản</span>
+              <input type="number" value={schedule.version} onChange={e => {setSchedule({...schedule, version: parseInt(e.target.value)}); setIsDirty(true);}} disabled={!canEdit} className="bg-slate-50 dark:bg-slate-900/50 border-none px-4 py-3 rounded-2xl w-full text-[15px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Trạng thái</span>
+              <select value={schedule.status} onChange={e => {setSchedule({...schedule, status: e.target.value}); setIsDirty(true);}} disabled={!canEdit} className="bg-slate-50 dark:bg-slate-900/50 border-none px-4 py-3 rounded-2xl text-[15px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all appearance-none cursor-          {/* Table Container */}
+          <div className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-slate-700 overflow-hidden shadow-xl flex flex-col">
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="w-full text-sm text-left min-w-[1300px] border-collapse">
+                <thead className="sticky top-0 z-20 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
+                  <tr>
+                    <th className="py-4 px-4 font-black text-[11px] text-slate-400 uppercase tracking-widest w-40">Ngày công tác</th>
+                    <th className="py-4 px-4 font-black text-[11px] text-slate-400 uppercase tracking-widest w-32">Thời gian</th>
+                    <th className="py-4 px-4 font-black text-[11px] text-slate-400 uppercase tracking-widest min-w-[300px]">Nội dung công việc</th>
+                    <th className="py-4 px-4 font-black text-[11px] text-slate-400 uppercase tracking-widest w-40">Chủ trì</th>
+                    <th className="py-4 px-4 font-black text-[11px] text-slate-400 uppercase tracking-widest w-48">Thành phần</th>
+                    <th className="py-4 px-4 font-black text-[11px] text-slate-400 uppercase tracking-widest w-40">Địa điểm</th>
+                    <th className="py-4 px-4 font-black text-[11px] text-slate-400 uppercase tracking-widest w-40">Chuẩn bị</th>
+                    <th className="py-4 px-4 font-black text-[11px] text-slate-400 uppercase tracking-widest w-32">Loại hình</th>
+                    <th className="py-4 px-4 font-black text-[11px] text-slate-400 uppercase tracking-widest w-28 text-center">Nhiệm vụ</th>
+                    {canEdit && <th className="py-4 px-4 font-black text-[11px] text-slate-400 uppercase tracking-widest w-16 text-center">Xóa</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                  {items.map((item, index) => (
+                    <tr key={item.id} className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors group">
+                      <td className="p-3">
+                        <div className="relative group/input">
+                          <input type="date" value={item.date || ''} onChange={e => handleItemChange(item.id, 'date', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-xl px-3 py-2.5 text-[13px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all dark:text-white" />
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <input type="text" placeholder="Sáng/Chiều" value={item.time || ''} onChange={e => handleItemChange(item.id, 'time', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-xl px-3 py-2.5 text-[13px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all dark:text-white" />
+                      </td>
+                      <td className="p-3">
+                        <textarea rows="2" placeholder="Nội dung họp..." value={item.content || ''} onChange={e => handleItemChange(item.id, 'content', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-xl px-3 py-2.5 text-[13px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all dark:text-white resize-none leading-snug min-h-[70px]"></textarea>
+                      </td>
+                      <td className="p-3">
+                        <input type="text" placeholder="Người chủ trì" value={item.host || ''} onChange={e => handleItemChange(item.id, 'host', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-xl px-3 py-2.5 text-[12px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all dark:text-white" />
+                      </td>
+                      <td className="p-3">
+                        <textarea rows="2" placeholder="TP tham dự" value={item.attendees || ''} onChange={e => handleItemChange(item.id, 'attendees', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-xl px-3 py-2.5 text-[11px] font-bold focus:ring-2 focus:ring-blue-500/20 transition-all dark:text-white resize-none min-h-[70px]"></textarea>
+                      </td>
+                      <td className="p-3">
+                        <input type="text" placeholder="Địa điểm" value={item.location || ''} onChange={e => handleItemChange(item.id, 'location', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-xl px-3 py-2.5 text-[12px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all dark:text-white" />
+                      </td>
+                      <td className="p-3">
+                        <input type="text" placeholder="Chuẩn bị" value={item.prepare_by || ''} onChange={e => handleItemChange(item.id, 'prepare_by', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-xl px-3 py-2.5 text-[11px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all dark:text-white" />
+                      </td>
+                      <td className="p-3">
+                        <select value={item.type || 'meeting'} onChange={e => handleItemChange(item.id, 'type', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-xl px-3 py-2.5 text-[11px] font-black uppercase tracking-tight focus:ring-2 focus:ring-blue-500/20 transition-all dark:text-white appearance-none cursor-pointer">
+                          <option value="meeting">Họp</option>
+                          <option value="office_work">Làm việc CQ</option>
+                          <option value="other">Sự kiện</option>
+                          <option value="holiday">Nghỉ</option>
+                        </select>
+                      </td>
+                      <td className="p-3 text-center">
+                        <div className="flex flex-col items-center gap-1.5">
+                          {item.type === 'meeting' && (
+                            item.is_task_created ? (
+                              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-tighter bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg">
+                                <CheckSquare size={14} strokeWidth={3} /> Link
+                              </span>
+                            ) : (
+                              canAddTasks && (
+                                <button 
+                                  onClick={() => handleOpenTaskModal(item)} 
+                                  disabled={item.id.toString().startsWith('temp_')} 
+                                  className="text-[10px] font-black uppercase tracking-widest bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/30 px-3 py-1.5 rounded-xl hover:bg-blue-600 hover:text-white transition-all disabled:opacity-30"
+                                >
+                                  + NV
+                                </button>
+                              )
+                            )
+                          )}
+                        </div>
+                      </td>
+                      {canEdit && (
+                        <td className="p-3 text-center">
+                          <button onClick={() => handleRemoveItem(item.id)} className="text-slate-300 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 p-2 rounded-xl transition-all">
+                            <Trash2 size={18} />
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {canEdit && (
+              <div className="p-6 bg-slate-50/50 dark:bg-slate-900/30 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between gap-4">
+                <button 
+                  onClick={handleAddItem} 
+                  className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-black text-[13px] uppercase tracking-widest rounded-2xl border border-blue-100 dark:border-blue-800/30 shadow-sm hover:bg-blue-50 transition-all active:scale-95"
+                >
+                  <Plus size={18} strokeWidth={3} /> Thêm dòng mới
+                </button>
+                <button 
+                  onClick={() => {
+                    const sorted = sortSchedulesForExport(items);
+                    setItems(sorted);
+                    setIsDirty(true);
+                    toast.success('Đã tự động sắp xếp theo thứ tự lãnh đạo và thời gian');
+                  }} 
+                  className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-black text-[13px] uppercase tracking-widest rounded-2xl border border-indigo-100 dark:border-indigo-800/30 shadow-sm hover:bg-indigo-50 transition-all active:scale-95"
+                >
+                  <RefreshCw size={18} strokeWidth={3} className="mr-1" />
+                  Sắp xếp tự động
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

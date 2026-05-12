@@ -941,11 +941,10 @@ function AdminRow({ user, roleLabel, roleType, roleCls, evaluation, onFinalize, 
 
    const proposedScore = evaluation?.main_assignee_score || evaluation?.self_score || 0;
 
-   const updateLiveScore = (q, c, d, b, p, prog) => {
+   const updateLiveScore = (q, d, b, p, prog) => {
      const s = calculateFinalScore({
        qualityScore: q,
        progressScore: getScoreFromLevel(prog),
-       completionRate: c,
        difficultyScore: d,
        bonusPoint: b,
        penaltyPoint: p

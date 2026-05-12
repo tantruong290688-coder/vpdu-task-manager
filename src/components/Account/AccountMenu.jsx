@@ -42,7 +42,7 @@ export default function AccountMenu() {
     <div className="relative">
       <button 
         ref={buttonRef}
-        onClick={() => setIsOpen(!isOpen)}
+        onPointerDown={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
         aria-expanded={isOpen}
         aria-haspopup="menu"
         className={`flex items-center gap-1.5 sm:gap-2 p-2 sm:px-4 sm:py-2 border rounded-full transition-colors bg-white shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500
@@ -53,17 +53,28 @@ export default function AccountMenu() {
       </button>
 
       {isOpen && (
-        <div 
-          ref={menuRef}
-          role="menu"
-          className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 py-2 z-50 transform origin-top-right transition-all animate-in fade-in slide-in-from-top-2"
-        >
-          <MenuItem icon={Palette} iconColor="text-orange-500" label="Đổi giao diện" onClick={() => openModal('theme')} />
-          <MenuItem icon={Key} iconColor="text-orange-500" label="Đổi mật khẩu" onClick={() => openModal('password')} />
-          <MenuItem icon={ShieldAlert} iconColor="text-blue-600" label="Quên mật khẩu / đặt lại" onClick={() => openModal('forgot')} />
-          <div className="h-px bg-slate-100 my-2 mx-4"></div>
-          <MenuItem icon={LogOut} iconColor="text-red-600" label="Đăng xuất" onClick={() => openModal('logout')} isDanger />
-        </div>
+        <>
+          {/* Mobile Backdrop */}
+          <div className="fixed inset-0 z-[90] sm:hidden bg-black/5" onPointerDown={() => setIsOpen(false)} />
+          
+          <div 
+            ref={menuRef}
+            role="menu"
+            className="
+              fixed top-[calc(60px+env(safe-area-inset-top))] left-0 right-0 mx-4
+              sm:absolute sm:top-[calc(100%+12px)] sm:right-0 sm:left-auto sm:mx-0 sm:w-64
+              bg-white dark:bg-[#1e293b] rounded-2xl shadow-[0_16px_40px_rgba(0,0,0,0.15)] 
+              border border-slate-100 dark:border-slate-700 py-2 z-[100] 
+              transform origin-top-right transition-all animate-in fade-in slide-in-from-top-2
+            "
+          >
+            <MenuItem icon={Palette} iconColor="text-orange-500" label="Đổi giao diện" onClick={() => openModal('theme')} />
+            <MenuItem icon={Key} iconColor="text-orange-500" label="Đổi mật khẩu" onClick={() => openModal('password')} />
+            <MenuItem icon={ShieldAlert} iconColor="text-blue-600" label="Quên mật khẩu / đặt lại" onClick={() => openModal('forgot')} />
+            <div className="h-px bg-slate-100 dark:bg-slate-700/50 my-2 mx-4"></div>
+            <MenuItem icon={LogOut} iconColor="text-red-600" label="Đăng xuất" onClick={() => openModal('logout')} isDanger />
+          </div>
+        </>
       )}
 
       {activeModal === 'theme' && <ChangeThemeModal onClose={() => setActiveModal(null)} />}

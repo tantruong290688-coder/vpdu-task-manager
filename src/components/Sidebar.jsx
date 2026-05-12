@@ -19,15 +19,21 @@ export default function Sidebar({ isOpen, onClose }) {
   const menus = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'Lịch công tác', path: '/schedules', icon: Calendar },
-    { name: 'Giao nhiệm vụ', path: '/tasks', icon: Send },
+    { name: 'Giao nhiệm vụ', path: '/tasks', icon: Send, hiddenFor: ['viewer'] },
     { name: 'Tất cả nhiệm vụ', path: '/all-tasks', icon: LayoutList },
-    { name: 'Nhiệm vụ của tôi', path: '/my-tasks', icon: ClipboardList },
+    { name: 'Nhiệm vụ của tôi', path: '/my-tasks', icon: ClipboardList, hiddenFor: ['viewer'] },
     { name: 'To-do cá nhân', path: '/todo', icon: ListTodo },
     { name: 'Thông báo', path: '/notifications', icon: Bell, badge: notifUnread },
     { name: 'Phân tích Hiệu suất', path: '/performance', icon: TrendingUp, restricted: true },
     { name: 'Nhật ký thao tác', path: '/logs', icon: History },
-    { name: 'Quản trị hệ thống', path: '/admin', icon: Settings, restricted: true },
-  ].filter(m => !m.restricted || profile?.role === 'admin' || profile?.role === 'viewer');
+    { name: 'Quản trị hệ thống', path: '/admin', icon: Settings, adminOnly: true },
+  ].filter(m => {
+    const role = profile?.role;
+    if (m.adminOnly && role !== 'admin') return false;
+    if (m.hiddenFor?.includes(role)) return false;
+    if (m.restricted && !['admin', 'viewer'].includes(role)) return false;
+    return true;
+  });
 
   return (
     <>

@@ -88,11 +88,11 @@ async function fetchTasksFromDB({ filters, sortConfig, currentPage, filterParam,
 
   // Tìm kiếm nhanh từ URL
   if (searchStr) {
-    query = query.or(`title.ilike.%${searchStr}%,code.ilike.%${searchStr}%`);
+    query = query.or(`title.ilike.%${searchStr}%,code.ilike.%${searchStr}%,description.ilike.%${searchStr}%,expected_output.ilike.%${searchStr}%,task_group.ilike.%${searchStr}%,work_area.ilike.%${searchStr}%`);
   }
 
   // Bộ lọc nâng cao
-  if (filters.keyword)         query = query.or(`title.ilike.%${filters.keyword}%,code.ilike.%${filters.keyword}%,description.ilike.%${filters.keyword}%`);
+  if (filters.keyword)         query = query.or(`title.ilike.%${filters.keyword}%,code.ilike.%${filters.keyword}%,description.ilike.%${filters.keyword}%,expected_output.ilike.%${filters.keyword}%,task_group.ilike.%${filters.keyword}%,work_area.ilike.%${filters.keyword}%`);
   if (filters.assignerId)      query = query.eq('assigned_by', filters.assignerId);
   if (filters.assigneeId)      query = query.eq('assignee_id', filters.assigneeId);
   if (filters.workArea)        query = query.eq('work_area', filters.workArea);

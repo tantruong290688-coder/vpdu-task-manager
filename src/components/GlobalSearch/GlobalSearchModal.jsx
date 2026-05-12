@@ -37,7 +37,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
     setLoading(true);
     try {
       const [tasksRes, profilesRes, messagesRes] = await Promise.all([
-        supabase.from('tasks').select('id, title, code').or(`title.ilike.%${q}%,code.ilike.%${q}%`).limit(5),
+        supabase.from('tasks').select('id, title, code').or(`title.ilike.%${q}%,code.ilike.%${q}%,description.ilike.%${q}%`).limit(5),
         supabase.from('profiles').select('id, full_name, role').ilike('full_name', `%${q}%`).limit(5),
         supabase.from('messages').select('id, content, task_id').ilike('content', `%${q}%`).limit(5)
       ]);

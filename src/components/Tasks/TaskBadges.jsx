@@ -35,7 +35,7 @@ export function PriorityBadge({ priority }) {
   );
 }
 
-export function ScoreBadge({ score, rank }) {
+export function ScoreBadge({ score, rank, showScore = true }) {
   const RANK_COLOR = {
     'Hoàn thành xuất sắc': 'text-purple-700 bg-purple-50 dark:bg-purple-900/20 dark:text-purple-400',
     'Hoàn thành tốt': 'text-blue-700 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400',
@@ -44,7 +44,7 @@ export function ScoreBadge({ score, rank }) {
   };
   return (
     <div className="flex flex-col items-center gap-1">
-      <span className="text-[13px] font-black text-blue-600 dark:text-blue-400">{score}</span>
+      {showScore && <span className="text-[13px] font-black text-blue-600 dark:text-blue-400">{score}</span>}
       {rank && (
         <span className={`px-1.5 py-0.5 text-[9px] font-black rounded-md whitespace-nowrap ${RANK_COLOR[rank] || ''}`}>{rank}</span>
       )}
@@ -52,7 +52,7 @@ export function ScoreBadge({ score, rank }) {
   );
 }
 
-export function EvaluationStatusBadge({ task }) {
+export function EvaluationStatusBadge({ task, showScore = true }) {
   if (task.status !== 'completed') return <span className="text-slate-300 dark:text-slate-700">—</span>;
 
   // Nếu đã chốt điểm chính thức (Admin đã chốt)
@@ -60,7 +60,7 @@ export function EvaluationStatusBadge({ task }) {
   const hasCollabs = task.task_collaborators?.length > 0;
   
   if (isFinalized) {
-    return <ScoreBadge score={task.evaluation_score} rank={task.evaluation_rank} />;
+    return <ScoreBadge score={task.evaluation_score} rank={task.evaluation_rank} showScore={showScore} />;
   }
 
   // Logic thô để xác định bước hiện tại (có thể tinh chỉnh thêm khi join data)

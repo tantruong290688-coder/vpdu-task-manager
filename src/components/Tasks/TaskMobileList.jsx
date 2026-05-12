@@ -65,7 +65,7 @@ export default function TaskMobileList({
                 )}
               </div>
               <div className="shrink-0 scale-90 origin-right">
-                <EvaluationStatusBadge task={task} />
+                <EvaluationStatusBadge task={task} showScore={false} />
               </div>
             </div>
 

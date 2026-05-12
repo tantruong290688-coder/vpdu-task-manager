@@ -15,11 +15,30 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 100);
       setSelectedIndex(0);
+      // Fetch initial suggestions (recent tasks)
+      fetchInitialSuggestions();
     } else {
       setQuery('');
       setResults({ tasks: [], profiles: [], messages: [] });
     }
   }, [isOpen]);
+
+  const fetchInitialSuggestions = async () => {
+    setLoading(true);
+    try {
+      const { data } = await supabase
+        .from('tasks')
+        .select('id, title, code, status')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      setResults(prev => ({ ...prev, tasks: data || [] }));
+    } catch (err) {
+      console.error('Initial fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -37,9 +56,18 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
     setLoading(true);
     try {
       const [tasksRes, profilesRes, messagesRes] = await Promise.all([
-        supabase.from('tasks').select('id, title, code').or(`title.ilike.%${q}%,code.ilike.%${q}%,description.ilike.%${q}%`).limit(5),
-        supabase.from('profiles').select('id, full_name, role').ilike('full_name', `%${q}%`).limit(5),
-        supabase.from('messages').select('id, content, task_id').ilike('content', `%${q}%`).limit(5)
+        supabase.from('tasks')
+          .select('id, title, code, status, task_group, work_area')
+          .or(`title.ilike.%${q}%,code.ilike.%${q}%,description.ilike.%${q}%,task_group.ilike.%${q}%,work_area.ilike.%${q}%`)
+          .limit(8),
+        supabase.from('profiles')
+          .select('id, full_name, role')
+          .ilike('full_name', `%${q}%`)
+          .limit(5),
+        supabase.from('messages')
+          .select('id, content, task_id')
+          .ilike('content', `%${q}%`)
+          .limit(5)
       ]);
 
       setResults({
@@ -142,13 +170,22 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
                       {item._type === 'message' && <MessageSquare size={20} className={isSelected ? 'text-white' : 'text-amber-500'} />}
                     </div>
 
-                    <div className="flex-1 text-left">
-                      <p className={`text-[14px] font-black ${isSelected ? 'text-white' : 'text-slate-800 dark:text-slate-200'}`}>
+                    <div className="flex-1 text-left min-w-0">
+                      <p className={`text-[14px] font-black truncate ${isSelected ? 'text-white' : 'text-slate-800 dark:text-slate-200'}`}>
                         {item.title || item.full_name || item.content}
                       </p>
-                      <p className={`text-[11px] font-bold uppercase tracking-widest opacity-60 ${isSelected ? 'text-white' : 'text-slate-400'}`}>
-                        {item._type === 'task' ? `Nhiệm vụ • ${item.code}` : item._type === 'profile' ? `Cán bộ • ${item.role}` : 'Tin nhắn'}
-                      </p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className={`text-[10px] font-bold uppercase tracking-widest opacity-60 ${isSelected ? 'text-white' : 'text-slate-400'}`}>
+                          {item._type === 'task' ? `Mã: ${item.code}` : item._type === 'profile' ? `Vai trò: ${item.role}` : 'Tin nhắn'}
+                        </p>
+                        {item._type === 'task' && item.status && (
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
+                            isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                          }`}>
+                            {item.status === 'completed' ? 'Hoàn thành' : item.status === 'in_progress' ? 'Đang làm' : 'Chờ xử lý'}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <ChevronRight size={18} className={`opacity-40 ${isSelected ? 'text-white' : ''}`} />
@@ -162,13 +199,43 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
               <p className="font-bold text-[15px]">Không tìm thấy kết quả cho "{query}"</p>
             </div>
           ) : (
-            <div className="py-20 text-center text-slate-400">
-              <div className="max-w-[200px] mx-auto space-y-4">
-                <div className="flex items-center gap-3 text-[12px] font-bold">
+            <div className="py-12 px-6">
+              <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-6 px-2">Gợi ý nhiệm vụ gần đây</p>
+              <div className="space-y-1">
+                {results.tasks.map((task, idx) => {
+                  const isSelected = idx === selectedIndex;
+                  return (
+                    <button
+                      key={task.id}
+                      onClick={() => { handleNavigate({ ...task, _type: 'task' }); }}
+                      className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all ${
+                        isSelected ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                      }`}
+                    >
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                        isSelected ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-800'
+                      }`}>
+                        <CheckCircle2 size={20} className={isSelected ? 'text-white' : 'text-blue-500'} />
+                      </div>
+                      <div className="flex-1 text-left min-w-0">
+                        <p className={`text-[14px] font-black truncate ${isSelected ? 'text-white' : 'text-slate-800 dark:text-slate-200'}`}>
+                          {task.title}
+                        </p>
+                        <p className={`text-[10px] font-bold uppercase tracking-widest opacity-60 ${isSelected ? 'text-white' : 'text-slate-400'}`}>
+                          {task.code}
+                        </p>
+                      </div>
+                      <ChevronRight size={18} className={`opacity-40 ${isSelected ? 'text-white' : ''}`} />
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-4">
+                <div className="flex items-center gap-3 text-[12px] font-bold text-slate-400">
                   <span className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center">↑↓</span>
                   <span>Di chuyển</span>
                 </div>
-                <div className="flex items-center gap-3 text-[12px] font-bold">
+                <div className="flex items-center gap-3 text-[12px] font-bold text-slate-400">
                   <span className="w-8 h-6 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center">Enter</span>
                   <span>Mở chi tiết</span>
                 </div>
@@ -177,9 +244,8 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
           )}
         </div>
 
-        {/* Footer */}
         <div className="p-4 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between text-[11px] font-black uppercase text-slate-400 tracking-tighter">
-          <span>Hệ thống tìm kiếm thông minh v2.0</span>
+          <span>Hệ thống tìm kiếm thông minh v3.0</span>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-blue-500" /> Nhiệm vụ

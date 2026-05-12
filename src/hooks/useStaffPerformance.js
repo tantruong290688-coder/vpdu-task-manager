@@ -22,7 +22,7 @@ export function useStaffPerformance(period = null) {
           id, code, title, assignee_id, status, due_date, completed_at, evaluation_score, 
           progress, leader_score, auto_score, self_quality_eval, 
           responsibility_score, priority, return_count, reminder_count, 
-          include_in_report, evaluation_period
+          include_in_report, evaluation_period, evaluation_status
         `);
 
       if (tError) throw tError;

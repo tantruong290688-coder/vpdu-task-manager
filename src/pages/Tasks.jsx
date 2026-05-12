@@ -57,8 +57,9 @@ export default function Tasks() {
 
   // Params from Dashboard
   const searchParams = new URLSearchParams(location.search);
-  const filterParam  = searchParams.get('filter'); // e.g., 'due_soon'
-  const openParam    = searchParams.get('open');   // ID to open on load
+  const filterParam  = searchParams.get('filter'); 
+  const openParam    = searchParams.get('open');   
+  const urlSearchStr = searchParams.get('search'); 
 
   // Main UI State
   const [isModalOpen, setIsModalOpen]       = useState(false);
@@ -92,13 +93,14 @@ export default function Tasks() {
     currentPage,
     pathname: location.pathname,
     filterParam,
+    searchStr: urlSearchStr || activeFilters.keyword,
     profileId: profile?.id,
     role: profile?.role
   });
 
   const tasks      = data?.tasks      ?? [];
   const totalCount = data?.totalCount ?? 0;
-  const searchStr  = activeFilters.keyword;
+  const searchStr  = urlSearchStr || activeFilters.keyword;
 
   // ── Effects ─────────────────────────────────────────────────────────────────
 

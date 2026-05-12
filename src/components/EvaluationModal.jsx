@@ -400,7 +400,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                            </div>
                         ) : (
                            <form onSubmit={handleSelfPropose} className="space-y-8">
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                                  <div className="space-y-2">
                                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Chất lượng (60%)</label>
                                     <select 
@@ -436,7 +436,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                      </select>
                                  </div>
                                  <div className="space-y-2">
-                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Khối lượng / Độ khó (10%)</label>
+                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Khối lượng (10%)</label>
                                     <select 
                                        value={selfDifficultyScore} onChange={e => {
                                          const val = Number(e.target.value);
@@ -476,7 +476,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                        ))}
                                     </select>
                                  </div>
-                                 <div className="col-span-1 sm:col-span-2 lg:col-span-3 space-y-2">
+                                 <div className="col-span-1 sm:col-span-3 space-y-2">
                                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Điểm tự đề xuất (Tổng cộng)</label>
                                     <div className="w-full bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 px-6 py-4 rounded-[32px] text-4xl font-black text-indigo-600 flex items-center justify-center shadow-inner">
                                        {selfScore || 0}
@@ -652,7 +652,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                        </div>
                                     ) : (
                                        <div className="space-y-6">
-                                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                              <div className="space-y-1">
                                                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Chất lượng (60%)</label>
                                                  <select 

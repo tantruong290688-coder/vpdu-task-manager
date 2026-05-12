@@ -288,20 +288,21 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
   if (!isOpen || !task) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[500] flex sm:items-center justify-center sm:p-4">
-      <div className="bg-white dark:bg-[#0f172a] w-full sm:max-w-4xl shadow-2xl flex flex-col h-full sm:h-auto sm:max-h-[92vh] sm:rounded-[40px] border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[500] flex sm:items-center justify-center p-0 sm:p-4">
+      <div className="bg-white dark:bg-[#0f172a] w-full sm:max-w-4xl shadow-2xl flex flex-col h-full sm:h-auto sm:max-h-[92vh] sm:rounded-[40px] border-none sm:border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-200">
         
         {/* Header */}
-        <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900/40">
-           <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-3xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/20">
-                 <Star size={28} fill="currentColor" />
+        <div className="px-4 sm:px-8 py-5 sm:py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900/40">
+           <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-2xl sm:rounded-3xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/20">
+                 <Star size={20} className="sm:hidden" fill="currentColor" />
+                 <Star size={28} className="hidden sm:block" fill="currentColor" />
               </div>
               <div>
-                 <h2 className="text-2xl font-black text-slate-800 dark:text-white leading-none">Hệ thống đánh giá</h2>
-                 <p className="text-[12px] text-slate-400 font-black uppercase tracking-[0.2em] mt-2 flex items-center gap-2">
-                   <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-600">{task.code}</span>
-                   <span className="w-1.5 h-1.5 rounded-full bg-slate-200" />
+                 <h2 className="text-lg sm:text-2xl font-black text-slate-800 dark:text-white leading-none">Hệ thống đánh giá</h2>
+                 <p className="text-[10px] sm:text-[12px] text-slate-400 font-black uppercase tracking-wider sm:tracking-[0.2em] mt-1.5 sm:mt-2 flex items-center gap-1 sm:gap-2">
+                   <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-slate-600">{task.code}</span>
+                   <span className="w-1 h-1 rounded-full bg-slate-200" />
                    <span>VPĐU TRÀ BỒNG</span>
                  </p>
               </div>
@@ -312,38 +313,38 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex px-4 py-2 bg-slate-50/50 dark:bg-slate-900/20 gap-2 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex px-2 sm:px-4 py-2 bg-slate-50/50 dark:bg-slate-900/20 gap-1 sm:gap-2 border-b border-slate-100 dark:border-slate-800 overflow-x-auto no-scrollbar">
            <button 
              onClick={() => setActiveTab('self')}
-             className={`flex-1 flex items-center justify-center gap-2.5 py-4 rounded-[24px] text-[13px] font-black transition-all ${
-               activeTab === 'self' ? 'bg-white dark:bg-slate-800 text-indigo-600 shadow-xl shadow-slate-200/50 dark:shadow-none translate-y-[-2px]' : 'text-slate-400 hover:text-slate-600'
+             className={`flex-1 min-w-fit flex items-center justify-center gap-1.5 sm:gap-2.5 py-3 sm:py-4 px-3 sm:px-4 rounded-xl sm:rounded-[24px] text-[11px] sm:text-[13px] font-black transition-all ${
+               activeTab === 'self' ? 'bg-white dark:bg-slate-800 text-indigo-600 shadow-lg dark:shadow-none translate-y-[-2px]' : 'text-slate-400'
              }`}
            >
-             <User size={18} />
-             <span>Tự Đề Xuất</span>
+             <User size={16} className="sm:w-[18px] sm:h-[18px]" />
+             <span className="whitespace-nowrap">Tự Đề Xuất</span>
            </button>
            
            {(isAdmin || isMainAssignee) && (
              <button 
                onClick={() => setActiveTab('review')}
-               className={`flex-1 flex items-center justify-center gap-2.5 py-4 rounded-[24px] text-[13px] font-black transition-all ${
-                 activeTab === 'review' ? 'bg-white dark:bg-slate-800 text-indigo-600 shadow-xl shadow-slate-200/50 dark:shadow-none translate-y-[-2px]' : 'text-slate-400 hover:text-slate-600'
+               className={`flex-1 min-w-fit flex items-center justify-center gap-1.5 sm:gap-2.5 py-3 sm:py-4 px-3 sm:px-4 rounded-xl sm:rounded-[24px] text-[11px] sm:text-[13px] font-black transition-all ${
+                 activeTab === 'review' ? 'bg-white dark:bg-slate-800 text-indigo-600 shadow-lg dark:shadow-none translate-y-[-2px]' : 'text-slate-400'
                }`}
              >
-               <Users size={18} />
-               <span>Đánh Giá Cộng Sự</span>
+               <Users size={16} className="sm:w-[18px] sm:h-[18px]" />
+               <span className="whitespace-nowrap">Cộng Sự</span>
              </button>
            )}
 
            {(isAdmin || isManager) && (
              <button 
                onClick={() => setActiveTab('finalize')}
-               className={`flex-1 flex items-center justify-center gap-2.5 py-4 rounded-[24px] text-[13px] font-black transition-all ${
-                 activeTab === 'finalize' ? 'bg-white dark:bg-slate-800 text-emerald-600 shadow-xl shadow-slate-200/50 dark:shadow-none translate-y-[-2px]' : 'text-slate-400 hover:text-slate-600'
+               className={`flex-1 min-w-fit flex items-center justify-center gap-1.5 sm:gap-2.5 py-3 sm:py-4 px-3 sm:px-4 rounded-xl sm:rounded-[24px] text-[11px] sm:text-[13px] font-black transition-all ${
+                 activeTab === 'finalize' ? 'bg-white dark:bg-slate-800 text-emerald-600 shadow-lg dark:shadow-none translate-y-[-2px]' : 'text-slate-400'
                }`}
              >
-               <CheckCircle2 size={18} />
-               <span>Phê Duyệt Cuối</span>
+               <CheckCircle2 size={16} className="sm:w-[18px] sm:h-[18px]" />
+               <span className="whitespace-nowrap">Phê Duyệt Cuối</span>
              </button>
            )}
         </div>
@@ -824,16 +825,16 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
 
                      <div className="grid grid-cols-1 gap-6">
                         {/* Summary Table for Admin */}
-                        <div className="bg-white dark:bg-slate-900 rounded-[48px] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden">
-                           <table className="w-full text-left">
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[48px] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none overflow-x-auto">
+                           <table className="w-full text-left min-w-[850px] sm:min-w-0">
                               <thead>
                                  <tr className="bg-slate-50 dark:bg-slate-800/50">
-                                    <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">Thành viên</th>
-                                    <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">Vai trò</th>
-                                    <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">Tự Đề Xuất</th>
-                                    <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">Người Chính ĐG</th>
-                                    <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">Điểm Chốt</th>
-                                    <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Thao tác</th>
+                                    <th className="px-6 sm:px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">Thành viên</th>
+                                    <th className="px-4 sm:px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">Vai trò</th>
+                                    <th className="px-4 sm:px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">Tự Đề Xuất</th>
+                                    <th className="px-4 sm:px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">Người Chính ĐG</th>
+                                    <th className="px-4 sm:px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">Điểm Chốt</th>
+                                    <th className="px-6 sm:px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Thao tác</th>
                                  </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-50 dark:divide-slate-800">

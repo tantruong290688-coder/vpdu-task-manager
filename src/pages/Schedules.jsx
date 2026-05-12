@@ -160,7 +160,6 @@ export default function Schedules() {
                 <thead>
                   <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
                     <th className="py-4 px-6 font-black text-[11px] text-slate-400 uppercase tracking-widest">Thời gian</th>
-                    <th className="py-4 px-6 font-black text-[11px] text-slate-400 uppercase tracking-widest">Tên lịch công tác</th>
                     <th className="py-4 px-6 font-black text-[11px] text-slate-400 uppercase tracking-widest">Phiên bản</th>
                     <th className="py-4 px-6 font-black text-[11px] text-slate-400 uppercase tracking-widest text-center">Trạng thái</th>
                     <th className="py-4 px-6 font-black text-[11px] text-slate-400 uppercase tracking-widest text-right">Thao tác</th>
@@ -183,9 +182,6 @@ export default function Schedules() {
                             <span className="text-[11px] font-bold text-slate-400">Năm {schedule.year}</span>
                           </div>
                         </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <span className="text-[14px] font-bold text-slate-700 dark:text-slate-300">Lịch công tác TTĐU xã Trà Bồng</span>
                       </td>
                       <td className="py-4 px-6">
                         <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[11px] font-black text-slate-500 uppercase tracking-tighter">

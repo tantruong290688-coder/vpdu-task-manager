@@ -7,6 +7,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import { useAuth } from '../context/AuthContext';
 import MyDayWidget from '../components/Dashboard/MyDayWidget';
 import RiskTasksWidget from '../components/Dashboard/RiskTasksWidget';
+import leaderAvatar from '../assets/avatar_leader.jpg';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -71,10 +72,10 @@ export default function Dashboard() {
         <div className="relative shrink-0">
           <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white/20 p-1.5 bg-white/10 backdrop-blur-md overflow-hidden shadow-2xl">
              <img 
-                src={profile?.avatar_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile?.full_name || 'User') + '&background=fff&color=1d4ed8&size=256'} 
+                src={profile?.role === 'viewer' ? leaderAvatar : (profile?.avatar_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile?.full_name || 'User') + '&background=fff&color=1d4ed8&size=256')} 
                 alt="Avatar"
                 className="w-full h-full object-cover rounded-full"
-                onError={(e) => { e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile?.full_name || 'User') + '&background=fff&color=1d4ed8&size=256'; }}
+                onError={(e) => { if (profile?.role !== 'viewer') e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile?.full_name || 'User') + '&background=fff&color=1d4ed8&size=256'; }}
               />
           </div>
           <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-yellow-400 text-blue-900 text-[10px] md:text-[11px] font-black px-3 py-1 rounded-full shadow-lg whitespace-nowrap uppercase tracking-widest">

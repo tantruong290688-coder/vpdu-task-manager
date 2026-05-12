@@ -7,6 +7,7 @@ import { useNotification } from '../context/NotificationContext';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import partyLogo from '../assets/bieu-tuong-vp-cap-uy.png';
+import leaderAvatar from '../assets/avatar_leader.jpg';
 
 export default function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
@@ -78,10 +79,10 @@ export default function Sidebar({ isOpen, onClose }) {
           <div className="relative mb-3 group-hover:scale-105 transition-transform duration-300">
             <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-4 border-[#b91c1c]/10 dark:border-red-900/30 p-1 bg-white dark:bg-slate-900 overflow-hidden shadow-inner">
               <img 
-                src={profile?.avatar_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile?.full_name || 'User') + '&background=b91c1c&color=fff&size=128'} 
+                src={profile?.role === 'viewer' ? leaderAvatar : (profile?.avatar_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile?.full_name || 'User') + '&background=b91c1c&color=fff&size=128')} 
                 alt="Avatar"
                 className="w-full h-full object-cover rounded-full"
-                onError={(e) => { e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile?.full_name || 'User') + '&background=b91c1c&color=fff&size=128'; }}
+                onError={(e) => { if (profile?.role !== 'viewer') e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile?.full_name || 'User') + '&background=b91c1c&color=fff&size=128'; }}
               />
             </div>
             <div className="absolute bottom-0 right-1 w-5 h-5 bg-green-500 border-4 border-white dark:border-slate-800 rounded-full" title="Đang trực tuyến"></div>

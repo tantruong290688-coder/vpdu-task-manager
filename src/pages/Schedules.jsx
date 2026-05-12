@@ -86,25 +86,25 @@ export default function Schedules() {
               <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex-1 sm:flex-none">
                 <button 
                   onClick={() => setActiveTab('list')}
-                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-[13px] font-black uppercase tracking-widest transition-all ${activeTab === 'list' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  className={`flex-1 sm:flex-none flex items-center justify-center gap-1 md:gap-2 px-3 md:px-5 py-2 rounded-lg text-[11px] md:text-[13px] font-black uppercase tracking-widest transition-all ${activeTab === 'list' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                 >
-                  <LayoutList size={16} /> Danh sách
+                  <LayoutList size={16} /> <span className="hidden xs:inline">Danh sách</span>
                 </button>
                 <button 
                   onClick={() => setActiveTab('tracking')}
-                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-[13px] font-black uppercase tracking-widest transition-all ${activeTab === 'tracking' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  className={`flex-1 sm:flex-none flex items-center justify-center gap-1 md:gap-2 px-3 md:px-5 py-2 rounded-lg text-[11px] md:text-[13px] font-black uppercase tracking-widest transition-all ${activeTab === 'tracking' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                 >
-                  <CheckSquare size={16} /> Theo dõi
+                  <CheckSquare size={16} /> <span className="hidden xs:inline">Theo dõi</span>
                 </button>
               </div>
 
               {canEditSchedule && activeTab === 'list' && (
                 <button
                   onClick={handleCreateSchedule}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[13px] font-black uppercase tracking-widest shadow-lg shadow-rose-500/20 transition-all active:scale-95"
+                  className="flex items-center gap-2 px-4 md:px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[11px] md:text-[13px] font-black uppercase tracking-widest shadow-lg shadow-rose-500/20 transition-all active:scale-95"
                 >
                   <Plus size={18} strokeWidth={3} />
-                  Thêm lịch
+                  <span className="hidden md:inline">Thêm lịch</span>
                 </button>
               )}
             </div>
@@ -139,7 +139,7 @@ export default function Schedules() {
       </div>
 
       {/* Main content */}
-      <div className="max-w-[1400px] mx-auto w-full p-4 md:p-6">
+      <div className="max-w-[1400px] mx-auto w-full p-4 md:p-6 pb-24">
         {activeTab === 'tracking' ? (
           <ScheduleTracking />
         ) : loading ? (
@@ -154,68 +154,122 @@ export default function Schedules() {
             <p className="text-slate-500 font-bold text-sm mb-8">Không có dữ liệu phù hợp với tìm kiếm của bạn.</p>
           </div>
         ) : (
-          <div className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-slate-700 overflow-hidden shadow-xl">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
-                    <th className="py-4 px-6 font-black text-[11px] text-slate-400 uppercase tracking-widest">Thời gian</th>
-                    <th className="py-4 px-6 font-black text-[11px] text-slate-400 uppercase tracking-widest">Phiên bản</th>
-                    <th className="py-4 px-6 font-black text-[11px] text-slate-400 uppercase tracking-widest text-center">Trạng thái</th>
-                    <th className="py-4 px-6 font-black text-[11px] text-slate-400 uppercase tracking-widest text-right">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                  {filteredSchedules.map(schedule => (
-                    <tr 
-                      key={schedule.id} 
-                      onClick={() => navigate(`/schedules/${schedule.id}`)}
-                      className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all cursor-pointer group"
-                    >
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-[15px]">
-                            {schedule.week}
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-[14px] font-black text-slate-900 dark:text-white">Tuần {schedule.week}</span>
-                            <span className="text-[11px] font-bold text-slate-400">Năm {schedule.year}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[11px] font-black text-slate-500 uppercase tracking-tighter">
-                          Bản {schedule.version}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6 text-center">
-                        {schedule.status === 'published' ? (
-                          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-xl border border-emerald-100 dark:border-emerald-800/30">Đã ban hành</span>
-                        ) : (
-                          <span className="text-[10px] font-black uppercase tracking-widest text-orange-500 bg-orange-50 dark:bg-orange-900/20 px-3 py-1.5 rounded-xl border border-orange-100 dark:border-orange-800/30">Bản nháp</span>
-                        )}
-                      </td>
-                      <td className="py-4 px-6 text-right">
-                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all">
-                            <Eye size={18} />
-                          </button>
-                          {canEditSchedule && (
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); handleDelete(schedule.id); }} 
-                              className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-slate-700 overflow-hidden shadow-xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
+                      <th className="py-4 px-6 font-black text-[11px] text-slate-400 uppercase tracking-widest">Thời gian</th>
+                      <th className="py-4 px-6 font-black text-[11px] text-slate-400 uppercase tracking-widest">Phiên bản</th>
+                      <th className="py-4 px-6 font-black text-[11px] text-slate-400 uppercase tracking-widest text-center">Trạng thái</th>
+                      <th className="py-4 px-6 font-black text-[11px] text-slate-400 uppercase tracking-widest text-right">Thao tác</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                    {filteredSchedules.map(schedule => (
+                      <tr 
+                        key={schedule.id} 
+                        onClick={() => navigate(`/schedules/${schedule.id}`)}
+                        className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all cursor-pointer group"
+                      >
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-[15px]">
+                              {schedule.week}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[14px] font-black text-slate-900 dark:text-white">Tuần {schedule.week}</span>
+                              <span className="text-[11px] font-bold text-slate-400">Năm {schedule.year}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[11px] font-black text-slate-500 uppercase tracking-tighter">
+                            Bản {schedule.version}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          {schedule.status === 'published' ? (
+                            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-xl border border-emerald-100 dark:border-emerald-800/30">Đã ban hành</span>
+                          ) : (
+                            <span className="text-[10px] font-black uppercase tracking-widest text-orange-500 bg-orange-50 dark:bg-orange-900/20 px-3 py-1.5 rounded-xl border border-orange-100 dark:border-orange-800/30">Bản nháp</span>
+                          )}
+                        </td>
+                        <td className="py-4 px-6 text-right">
+                          <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all">
+                              <Eye size={18} />
+                            </button>
+                            {canEditSchedule && (
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleDelete(schedule.id); }} 
+                                className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+              {filteredSchedules.map(schedule => (
+                <div 
+                  key={schedule.id}
+                  onClick={() => navigate(`/schedules/${schedule.id}`)}
+                  className="bg-white dark:bg-slate-800 rounded-3xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm active:scale-[0.98] transition-all"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-lg shadow-inner">
+                        {schedule.week}
+                      </div>
+                      <div>
+                        <h3 className="text-base font-black text-slate-800 dark:text-white">Tuần {schedule.week}</h3>
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Năm {schedule.year}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[10px] font-black text-slate-500 uppercase tracking-tighter">
+                        Bản {schedule.version}
+                      </span>
+                      {schedule.status === 'published' ? (
+                        <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg border border-emerald-100 dark:border-emerald-800/30">Đã ban hành</span>
+                      ) : (
+                        <span className="text-[9px] font-black uppercase tracking-widest text-orange-500 bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded-lg border border-orange-100 dark:border-orange-800/30">Bản nháp</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-700/50">
+                    <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                      <Eye size={14} /> Chi tiết lịch
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {canEditSchedule && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleDelete(schedule.id); }}
+                          className="w-9 h-9 flex items-center justify-center rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                      <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-700/50 text-slate-400">
+                        <ChevronRight size={18} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>

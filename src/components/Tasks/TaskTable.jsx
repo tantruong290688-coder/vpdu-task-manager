@@ -1,8 +1,27 @@
+import { useState, useRef, useEffect } from 'react';
 import { SlidersHorizontal, ArrowUp, ArrowDown, ArrowUpDown, Eye, CheckCircle, Star, Edit2, Trash2, AlertTriangle, Flag as FlagIcon } from 'lucide-react';
 import { getTaskRisk } from '../../utils/taskAnalytics';
 import { StatusBadge, PriorityBadge, ScoreBadge, EvaluationStatusBadge } from './TaskBadges';
 import { canEditTask, canUpdateProgress, canEvaluate, canOpenEvaluationModal } from '../../lib/permissions';
 import { getDashboardEmptyState } from '../../lib/taskFilters';
+
+const DEFAULT_WIDTHS = {
+  code: 90,
+  assigned_date: 100,
+  assigner: 130,
+  assignee: 140,
+  collaborators: 150,
+  task_group: 140,
+  work_area: 140,
+  title: 220,
+  description: 200,
+  expected_output: 160,
+  priority: 80,
+  start_date: 100,
+  due_date: 110,
+  status: 110,
+  evaluation: 110,
+};
 
 export default function TaskTable({
   tasks,
@@ -18,6 +37,37 @@ export default function TaskTable({
   actions
 }) {
   const { openDrawer, handleStatusChange, setEvalModalTask, openEditModal, handleDelete } = actions;
+  const [widths, setWidths] = useState(DEFAULT_WIDTHS);
+  const resizingCol = useRef(null);
+  const startX = useRef(0);
+  const startWidth = useRef(0);
+
+  const handleResizeStart = (e, col) => {
+    e.stopPropagation();
+    resizingCol.current = col;
+    startX.current = e.pageX;
+    startWidth.current = widths[col];
+    
+    document.addEventListener('pointermove', handleResizeMove);
+    document.addEventListener('pointerup', handleResizeEnd);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+
+  const handleResizeMove = (e) => {
+    if (!resizingCol.current) return;
+    const diff = e.pageX - startX.current;
+    const newWidth = Math.max(50, startWidth.current + diff);
+    setWidths(prev => ({ ...prev, [resizingCol.current]: newWidth }));
+  };
+
+  const handleResizeEnd = () => {
+    resizingCol.current = null;
+    document.removeEventListener('pointermove', handleResizeMove);
+    document.removeEventListener('pointerup', handleResizeEnd);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  };
 
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—';
 
@@ -28,16 +78,23 @@ export default function TaskTable({
       : <ArrowDown size={12} className="text-blue-600 dark:text-blue-400 shrink-0" />;
   };
 
+  const Resizer = ({ col }) => (
+    <div 
+      onPointerDown={(e) => handleResizeStart(e, col)}
+      className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-400/50 group-hover:bg-slate-200/50 dark:group-hover:bg-slate-700/50 transition-colors z-20"
+    />
+  );
+
   return (
     <div className="hidden md:block relative">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto scrollbar-thin">
         <table
-          className="w-full text-left border-collapse"
-          style={{ minWidth: '1500px' }}
+          className="w-full text-left border-collapse table-fixed"
+          style={{ width: 'max-content' }}
         >
           <thead className="sticky top-0 z-10">
             <tr className="border-b-2 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 text-[10px] uppercase tracking-wider font-extrabold select-none">
-              <th className="sticky left-0 z-20 bg-slate-50 dark:bg-slate-900 p-3 w-[45px] min-w-[45px] border-r border-slate-100 dark:border-slate-800">
+              <th className="sticky left-0 z-20 bg-slate-50 dark:bg-slate-900 p-3 w-[45px] border-r border-slate-100 dark:border-slate-800">
                 <div className="flex items-center justify-center">
                   <input 
                     type="checkbox" 
@@ -48,46 +105,91 @@ export default function TaskTable({
                 </div>
               </th>
               {/* Sticky first column */}
-              <th className="sticky left-[45px] z-20 bg-slate-50 dark:bg-slate-900 p-3 w-[90px] min-w-[90px] border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)] cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('code')}>
-                <div className="flex items-center justify-between gap-1">A. Mã NV <SortIcon columnKey="code" /></div>
+              <th className="sticky left-[45px] z-20 bg-slate-50 dark:bg-slate-900 p-0 border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)] group" style={{ width: widths.code }}>
+                <div className="flex items-center justify-between gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('code')}>
+                  <span className="truncate">A. Mã NV</span> <SortIcon columnKey="code" />
+                </div>
+                <Resizer col="code" />
               </th>
-              <th className="p-3 w-[100px] min-w-[100px] whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('assigned_date')}>
-                <div className="flex items-center justify-between gap-1">B. Ngày giao <SortIcon columnKey="assigned_date" /></div>
+              <th className="p-0 group relative" style={{ width: widths.assigned_date }}>
+                <div className="flex items-center justify-between gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('assigned_date')}>
+                  <span className="truncate">B. Ngày giao</span> <SortIcon columnKey="assigned_date" />
+                </div>
+                <Resizer col="assigned_date" />
               </th>
-              <th className="p-3 w-[130px] min-w-[120px] whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('assigner.full_name')}>
-                <div className="flex items-center justify-between gap-1">C. Người giao <SortIcon columnKey="assigner.full_name" /></div>
+              <th className="p-0 group relative" style={{ width: widths.assigner }}>
+                <div className="flex items-center justify-between gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('assigner.full_name')}>
+                  <span className="truncate">C. Người giao</span> <SortIcon columnKey="assigner.full_name" />
+                </div>
+                <Resizer col="assigner" />
               </th>
-              <th className="p-3 w-[140px] min-w-[130px] whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('assignee.full_name')}>
-                <div className="flex items-center justify-between gap-1">D. Người TH <SortIcon columnKey="assignee.full_name" /></div>
+              <th className="p-0 group relative" style={{ width: widths.assignee }}>
+                <div className="flex items-center justify-between gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('assignee.full_name')}>
+                  <span className="truncate">D. Người TH</span> <SortIcon columnKey="assignee.full_name" />
+                </div>
+                <Resizer col="assignee" />
               </th>
-              <th className="p-3 w-[150px] min-w-[130px] whitespace-nowrap">E. Phối hợp</th>
-              <th className="p-3 w-[140px] min-w-[120px] whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('task_group')}>
-                <div className="flex items-center justify-between gap-1">F. Nhóm NV <SortIcon columnKey="task_group" /></div>
+              <th className="p-0 group relative" style={{ width: widths.collaborators }}>
+                <div className="p-3 truncate h-full">E. Phối hợp</div>
+                <Resizer col="collaborators" />
               </th>
-              <th className="p-3 w-[140px] min-w-[120px] whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('work_area')}>
-                <div className="flex items-center justify-between gap-1">G. Lĩnh vực <SortIcon columnKey="work_area" /></div>
+              <th className="p-0 group relative" style={{ width: widths.task_group }}>
+                <div className="flex items-center justify-between gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('task_group')}>
+                  <span className="truncate">F. Nhóm NV</span> <SortIcon columnKey="task_group" />
+                </div>
+                <Resizer col="task_group" />
               </th>
-              <th className="p-3 w-[220px] min-w-[180px] whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('title')}>
-                <div className="flex items-center justify-between gap-1">H. Tên nhiệm vụ <SortIcon columnKey="title" /></div>
+              <th className="p-0 group relative" style={{ width: widths.work_area }}>
+                <div className="flex items-center justify-between gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('work_area')}>
+                  <span className="truncate">G. Lĩnh vực</span> <SortIcon columnKey="work_area" />
+                </div>
+                <Resizer col="work_area" />
               </th>
-              <th className="p-3 w-[200px] min-w-[160px] whitespace-nowrap">I. Nội dung</th>
-              <th className="p-3 w-[160px] min-w-[130px] whitespace-nowrap">J. Sản phẩm</th>
-              <th className="p-3 w-[80px] min-w-[75px] text-center whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('priority')}>
-                <div className="flex items-center justify-center gap-1">K. UT <SortIcon columnKey="priority" /></div>
+              <th className="p-0 group relative" style={{ width: widths.title }}>
+                <div className="flex items-center justify-between gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('title')}>
+                  <span className="truncate">H. Tên nhiệm vụ</span> <SortIcon columnKey="title" />
+                </div>
+                <Resizer col="title" />
               </th>
-              <th className="p-3 w-[100px] min-w-[95px] whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('start_date')}>
-                <div className="flex items-center justify-between gap-1">L. Bắt đầu <SortIcon columnKey="start_date" /></div>
+              <th className="p-0 group relative" style={{ width: widths.description }}>
+                <div className="p-3 truncate h-full">I. Nội dung</div>
+                <Resizer col="description" />
               </th>
-              <th className="p-3 w-[110px] min-w-[105px] whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('due_date')}>
-                <div className="flex items-center justify-between gap-1">M. Hạn HT <SortIcon columnKey="due_date" /></div>
+              <th className="p-0 group relative" style={{ width: widths.expected_output }}>
+                <div className="p-3 truncate h-full">J. Sản phẩm</div>
+                <Resizer col="expected_output" />
               </th>
-              <th className="p-3 w-[110px] min-w-[100px] text-center whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('status')}>
-                <div className="flex items-center justify-center gap-1">N. Trạng thái <SortIcon columnKey="status" /></div>
+              <th className="p-0 group relative" style={{ width: widths.priority }}>
+                <div className="flex items-center justify-center gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('priority')}>
+                  <span className="truncate">K. UT</span> <SortIcon columnKey="priority" />
+                </div>
+                <Resizer col="priority" />
               </th>
-              <th className="p-3 w-[110px] min-w-[100px] text-center whitespace-nowrap cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors" onClick={() => requestSort('evaluation_score')}>
-                <div className="flex items-center justify-center gap-1">O. Đánh giá <SortIcon columnKey="evaluation_score" /></div>
+              <th className="p-0 group relative" style={{ width: widths.start_date }}>
+                <div className="flex items-center justify-between gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('start_date')}>
+                  <span className="truncate">L. Bắt đầu</span> <SortIcon columnKey="start_date" />
+                </div>
+                <Resizer col="start_date" />
               </th>
-              <th className="p-3 w-[90px] min-w-[85px] text-center whitespace-nowrap">P. Thao tác</th>
+              <th className="p-0 group relative" style={{ width: widths.due_date }}>
+                <div className="flex items-center justify-between gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('due_date')}>
+                  <span className="truncate">M. Hạn HT</span> <SortIcon columnKey="due_date" />
+                </div>
+                <Resizer col="due_date" />
+              </th>
+              <th className="p-0 group relative" style={{ width: widths.status }}>
+                <div className="flex items-center justify-center gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('status')}>
+                  <span className="truncate">N. Trạng thái</span> <SortIcon columnKey="status" />
+                </div>
+                <Resizer col="status" />
+              </th>
+              <th className="p-0 group relative" style={{ width: widths.evaluation }}>
+                <div className="flex items-center justify-center gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('evaluation_score')}>
+                  <span className="truncate">O. Đánh giá</span> <SortIcon columnKey="evaluation_score" />
+                </div>
+                <Resizer col="evaluation" />
+              </th>
+              <th className="p-3 w-[90px] text-center whitespace-nowrap">P. Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
@@ -136,7 +238,7 @@ export default function TaskTable({
                     'bg-white dark:bg-[#111827] group-hover:bg-slate-50/80 dark:group-hover:bg-slate-800/30 text-slate-700 dark:text-slate-200'
                   }`}>
                     <div className="flex items-center gap-2">
-                      {task.code || 'NV-000'}
+                      <span className="truncate">{task.code || 'NV-000'}</span>
                       {(() => {
                         const risk = getTaskRisk(task);
                         if (risk.isRisk) {
@@ -156,17 +258,17 @@ export default function TaskTable({
                   <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
                     {fmtDate(task.assigned_date)}
                   </td>
-                  <td className="p-3 text-[12px] text-slate-600 dark:text-slate-400 max-w-[130px]">
+                  <td className="p-3 text-[12px] text-slate-600 dark:text-slate-400 overflow-hidden">
                     <span className="block truncate" title={task.assigner?.full_name}>
                       {task.assigner?.full_name || '—'}
                     </span>
                   </td>
-                  <td className="p-3 text-[12px] max-w-[140px]">
+                  <td className="p-3 text-[12px] overflow-hidden">
                     <span className="block truncate font-semibold text-slate-700 dark:text-slate-200" title={task.assignee?.full_name}>
                       {task.assignee?.full_name || '—'}
                     </span>
                   </td>
-                  <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 max-w-[150px]">
+                  <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 overflow-hidden">
                     {(() => {
                       const names = (task.task_collaborators || []).map(c => c.profiles?.full_name).filter(Boolean);
                       if (names.length === 0) return <span className="text-slate-300 dark:text-slate-700">—</span>;
@@ -178,13 +280,13 @@ export default function TaskTable({
                       );
                     })()}
                   </td>
-                  <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 max-w-[140px]">
+                  <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 overflow-hidden">
                     <span className="block truncate" title={task.task_group}>{task.task_group || '—'}</span>
                   </td>
-                  <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 max-w-[140px]">
+                  <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 overflow-hidden">
                     <span className="block truncate" title={task.work_area}>{task.work_area || '—'}</span>
                   </td>
-                  <td className="p-3 text-[12px] max-w-[220px]">
+                  <td className="p-3 text-[12px] overflow-hidden">
                     <span
                       className="font-bold text-slate-800 dark:text-white leading-snug line-clamp-2"
                       title={task.title}
@@ -192,12 +294,12 @@ export default function TaskTable({
                       {task.title}
                     </span>
                   </td>
-                  <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 max-w-[200px]">
+                  <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 overflow-hidden">
                     <span className="line-clamp-2 leading-relaxed" title={task.description}>
                       {task.description || <span className="text-slate-300 dark:text-slate-700 italic">—</span>}
                     </span>
                   </td>
-                  <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 max-w-[160px]">
+                  <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 overflow-hidden">
                     <span className="line-clamp-2" title={task.expected_output}>
                       {task.expected_output || <span className="text-slate-300 dark:text-slate-700 italic">—</span>}
                     </span>

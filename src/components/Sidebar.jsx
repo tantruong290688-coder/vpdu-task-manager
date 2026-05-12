@@ -24,10 +24,10 @@ export default function Sidebar({ isOpen, onClose }) {
     { name: 'Nhiệm vụ của tôi', path: '/my-tasks', icon: ClipboardList },
     { name: 'To-do cá nhân', path: '/todo', icon: ListTodo },
     { name: 'Thông báo', path: '/notifications', icon: Bell, badge: notifUnread },
-    { name: 'Phân tích Hiệu suất', path: '/performance', icon: TrendingUp, adminOnly: true },
+    { name: 'Phân tích Hiệu suất', path: '/performance', icon: TrendingUp, restricted: true },
     { name: 'Nhật ký thao tác', path: '/logs', icon: History },
-    { name: 'Quản trị hệ thống', path: '/admin', icon: Settings, adminOnly: true },
-  ].filter(m => !m.adminOnly || profile?.role === 'admin');
+    { name: 'Quản trị hệ thống', path: '/admin', icon: Settings, restricted: true },
+  ].filter(m => !m.restricted || profile?.role === 'admin' || profile?.role === 'viewer');
 
   return (
     <>

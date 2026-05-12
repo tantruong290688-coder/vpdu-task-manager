@@ -55,7 +55,9 @@ async function fetchDashboardStats(profileId, role) {
 
   if (error) throw error;
 
-  const filteredTasks = isAdmin || !targetId
+  const isViewer = role === 'viewer';
+
+  const filteredTasks = (isAdmin || isViewer || !targetId)
     ? tasks
     : tasks.filter(t => 
         t.assignee_id === targetId || 

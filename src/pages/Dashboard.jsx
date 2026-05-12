@@ -78,9 +78,6 @@ export default function Dashboard() {
                 onError={(e) => { if (profile?.role !== 'viewer') e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile?.full_name || 'User') + '&background=fff&color=1d4ed8&size=256'; }}
               />
           </div>
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-yellow-400 text-blue-900 text-[10px] md:text-[11px] font-black px-3 py-1 rounded-full shadow-lg whitespace-nowrap uppercase tracking-widest">
-            {profile?.role === 'viewer' ? 'Lãnh đạo' : 'Quản trị'}
-          </div>
         </div>
 
         <div className="relative z-10 text-center md:text-left flex-1">

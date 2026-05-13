@@ -165,7 +165,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
         {/* Footer info */}
         <div className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-4 border border-amber-100/50 dark:border-amber-900/30 text-[11px] text-amber-900/60 dark:text-amber-400/60 font-semibold mt-auto leading-relaxed transition-colors">
-          <p>Phiên bản: 4.2-PWA</p>
+          <p>Phiên bản: 6.1</p>
           <p>Creator: Bùi Tấn Trưởng</p>
           <p>Giao diện: {themeLabel}</p>
         </div>

@@ -23,6 +23,7 @@ import { canEditTask, canUpdateProgress, canEvaluate, canCreateTask, canOpenEval
 import { getDashboardFilter, getDashboardFilterTitle, getDashboardEmptyState } from '../lib/taskFilters';
 import { useTasks } from '../hooks/useTasks';
 import { useQueryClient } from '@tanstack/react-query';
+import confetti from 'canvas-confetti';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -166,7 +167,20 @@ export default function Tasks() {
         action: 'UPDATE_TASK_STATUS', taskId,
         note: `Đổi trạng thái thành: ${newStatus}`,
       });
-      toast.success('Cập nhật trạng thái thành công');
+      if (newStatus === 'completed') {
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#a855f7']
+        });
+        toast.success('Tuyệt vời! Đã hoàn thành nhiệm vụ.', {
+          icon: '🎉',
+          duration: 4000
+        });
+      } else {
+        toast.success(`Đã chuyển trạng thái sang ${newStatus}`);
+      }
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
     } catch (err) {

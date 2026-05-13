@@ -11,6 +11,7 @@ import { writeLog } from '../lib/logger';
 import toast from 'react-hot-toast';
 import { canEditTask, canUpdateProgress as checkCanUpdateProgress, canEvaluate as checkCanEvaluate, canOpenEvaluationModal, ROLES } from '../lib/permissions';
 import TaskChecklist from './Tasks/TaskChecklist';
+import confetti from 'canvas-confetti';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -228,6 +229,15 @@ export default function TaskDetailDrawer({
       note: `Hoàn thành nhiệm vụ: ${task.title}`,
     });
     toast.success('Đã đánh dấu hoàn thành!');
+    
+    // Celebratory effect
+    confetti({
+      particleCount: 150,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#a855f7']
+    });
+
     onRefresh?.();
     onComplete?.();
   };
@@ -326,9 +336,9 @@ export default function TaskDetailDrawer({
             <button
               onClick={handleComplete}
               disabled={completing}
-              className="flex items-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-[12px] font-bold rounded-xl transition-colors shadow-sm disabled:opacity-50"
+              className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 active:scale-95 text-white text-[13px] font-black rounded-xl transition-all shadow-lg shadow-green-600/20 disabled:opacity-50 group/btn"
             >
-              <CheckCircle size={14} />
+              <CheckCircle size={15} className="group-hover/btn:rotate-12 transition-transform" />
               {completing ? 'Đang lưu...' : 'Hoàn thành'}
             </button>
           )}

@@ -220,7 +220,7 @@ export default function StaffPerformance() {
         {/* KPI Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: 'Nhiệm vụ đã chốt', value: stats.totalTasks, icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+              { label: 'Lượt nhiệm vụ đã chốt', value: stats.totalTasks, icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
               { label: 'Điểm TB toàn đơn vị', value: `${stats.avgScore}/100`, icon: Target, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
               { label: 'Số cán bộ được chốt', value: performanceData?.length || 0, icon: Users, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20' },
               { label: 'Dữ liệu chưa chốt', value: stats.insufficientCount, icon: AlertTriangle, color: 'text-rose-600', bg: 'bg-rose-50 dark:bg-rose-900/20' },

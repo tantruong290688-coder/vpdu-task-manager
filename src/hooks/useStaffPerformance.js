@@ -11,6 +11,7 @@ export function useStaffPerformance(period = null) {
       const { data: profiles, error: pError } = await supabase
         .from('profiles')
         .select('id, full_name, role, department')
+        .neq('role', 'viewer')
         .order('full_name');
 
       if (pError) throw pError;

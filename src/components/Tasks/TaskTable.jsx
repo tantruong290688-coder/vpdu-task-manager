@@ -98,14 +98,14 @@ export default function TaskTable({
                 <div className="flex items-center justify-center">
                   <input 
                     type="checkbox" 
-                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-blue-600 focus:ring-blue-500 cursor-pointer"
                     checked={paginatedTasks.length > 0 && paginatedTasks.every(t => actions.selectedIds?.includes(t.id))}
                     onChange={(e) => actions.onSelectAll(e.target.checked)}
                   />
                 </div>
               </th>
               {/* Sticky first column */}
-              <th className="sticky left-[45px] z-20 bg-slate-50 dark:bg-slate-900 p-0 border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)] group" style={{ width: widths.code }}>
+              <th className="sticky left-[45px] z-20 bg-slate-50 dark:bg-slate-900 p-0 border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.1)] group" style={{ width: widths.code }}>
                 <div className="flex items-center justify-between gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('code')}>
                   <span className="truncate">A. Mã NV</span> <SortIcon columnKey="code" />
                 </div>
@@ -206,21 +206,22 @@ export default function TaskTable({
                   onClick={(e) => openDrawer(task, e)}
                   className={`
                     cursor-pointer align-top group transition-colors
+                    odd:bg-white dark:odd:bg-[#0f172a] even:bg-slate-50/80 dark:even:bg-slate-800/10
                     ${isSelected
-                      ? 'bg-blue-50 dark:bg-blue-900/10 ring-inset ring-1 ring-blue-200 dark:ring-blue-800/40'
+                      ? 'bg-blue-50 dark:bg-blue-900/20 ring-inset ring-1 ring-blue-200 dark:ring-blue-800/60'
                       : isOverdue
-                      ? 'bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 font-semibold [&_span]:!text-red-900 dark:[&_span]:!text-red-100 [&_td]:!text-red-900 dark:[&_td]:!text-red-100'
+                      ? 'bg-red-100/60 dark:bg-red-900/30 hover:bg-red-200/80 dark:hover:bg-red-900/50 font-semibold [&_span]:!text-red-900 dark:[&_span]:!text-red-100 [&_td]:!text-red-900 dark:[&_td]:!text-red-100'
                       : actions.selectedIds?.includes(task.id)
-                      ? 'bg-blue-50/50 dark:bg-blue-900/5'
-                      : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/30'}
+                      ? 'bg-blue-50/50 dark:bg-blue-900/10'
+                      : 'hover:bg-blue-50/30 dark:hover:bg-slate-800/50'}
                   `}
                   title="Click để xem chi tiết"
                 >
-                  <td className={`sticky left-0 z-[5] p-3 border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.06)] transition-colors ${
-                    isSelected ? 'bg-blue-50 dark:bg-blue-900/10' :
+                  <td className={`sticky left-0 z-[5] p-3 border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.1)] transition-colors ${
+                    isSelected ? 'bg-blue-50 dark:bg-[#111c33]' :
                     isOverdue ? 'bg-red-100 dark:bg-red-900/30 group-hover:bg-red-200 dark:group-hover:bg-red-900/50' :
-                    actions.selectedIds?.includes(task.id) ? 'bg-blue-50 dark:bg-blue-900/10' :
-                    'bg-white dark:bg-[#111827] group-hover:bg-slate-50/80 dark:group-hover:bg-slate-800/30'
+                    actions.selectedIds?.includes(task.id) ? 'bg-blue-50 dark:bg-[#111c33]' :
+                    'bg-white dark:bg-[#0f172a] group-hover:bg-slate-50 dark:group-hover:bg-slate-800'
                   }`} onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-center">
                       <input 
@@ -231,11 +232,11 @@ export default function TaskTable({
                       />
                     </div>
                   </td>
-                  <td className={`sticky left-[45px] z-[5] p-3 border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.06)] text-[12px] font-black font-mono whitespace-nowrap transition-colors ${
-                    isSelected ? 'bg-blue-50 dark:bg-blue-900/10 text-slate-700 dark:text-slate-200' :
-                    isOverdue ? 'bg-red-100 dark:bg-red-900/30 group-hover:bg-red-200 dark:group-hover:bg-red-900/50 text-red-900 dark:text-red-100' :
-                    actions.selectedIds?.includes(task.id) ? 'bg-blue-50 dark:bg-blue-900/10 text-slate-700 dark:text-slate-200' :
-                    'bg-white dark:bg-[#111827] group-hover:bg-slate-50/80 dark:group-hover:bg-slate-800/30 text-slate-700 dark:text-slate-200'
+                  <td className={`sticky left-[45px] z-[5] p-3 border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.1)] text-[12px] font-black font-mono whitespace-nowrap transition-colors ${
+                    isSelected ? 'bg-blue-50 dark:bg-[#111c33] text-slate-700 dark:text-white' :
+                    isOverdue ? 'bg-red-100 dark:bg-red-900/30 group-hover:bg-red-200 dark:group-hover:bg-red-900/50 text-red-900 dark:text-white' :
+                    actions.selectedIds?.includes(task.id) ? 'bg-blue-50 dark:bg-[#111c33] text-slate-700 dark:text-white' :
+                    'bg-white dark:bg-[#0f172a] group-hover:bg-slate-50 dark:group-hover:bg-slate-800 text-slate-700 dark:text-white'
                   }`}>
                     <div className="flex items-center gap-2">
                       <span className="truncate">{task.code || 'NV-000'}</span>

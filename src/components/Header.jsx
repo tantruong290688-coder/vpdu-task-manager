@@ -22,17 +22,17 @@ export default function Header({ onMenuClick }) {
   else if (location.pathname.includes('/admin')) title = "Quản trị hệ thống";
 
   return (
-    <header className="bg-white dark:bg-[#111827] h-[calc(60px+env(safe-area-inset-top))] sm:h-[70px] md:h-[80px] pt-[env(safe-area-inset-top)] flex items-center justify-between px-3 sm:px-4 md:px-8 shrink-0 z-40 sticky top-0 shadow-[0_2px_10px_rgba(0,0,0,0.02)] border-b border-slate-100 dark:border-slate-800 gap-2">
+    <header className="bg-white dark:bg-[#0f172a] h-[calc(60px+env(safe-area-inset-top))] sm:h-[70px] md:h-[80px] pt-[env(safe-area-inset-top)] flex items-center justify-between px-3 sm:px-4 md:px-8 shrink-0 z-40 sticky top-0 shadow-[0_2px_10px_rgba(0,0,0,0.02)] border-b border-slate-100 dark:border-slate-800 gap-2">
       <div className="flex items-center gap-1 sm:gap-2 md:gap-3 flex-1 min-w-0">
         <button 
           onClick={onMenuClick}
-          className="lg:hidden p-1.5 sm:p-2 -ml-1 sm:-ml-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors shrink-0"
+          className="lg:hidden p-1.5 sm:p-2 -ml-1 sm:-ml-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors shrink-0"
         >
           <Menu size={22} className="sm:w-6 sm:h-6" />
         </button>
         <div className="min-w-0">
-          <h2 className="text-[16px] sm:text-[18px] md:text-[22px] font-extrabold text-slate-800 truncate">{title}</h2>
-          <p className="text-[12px] md:text-[13px] text-slate-500 font-medium hidden md:block truncate">Web App quản trị nhiệm vụ - {profile?.full_name || 'Bùi Tấn Trường'}</p>
+          <h2 className="text-[16px] sm:text-[18px] md:text-[22px] font-extrabold text-slate-800 dark:text-white truncate">{title}</h2>
+          <p className="text-[12px] md:text-[13px] text-slate-500 dark:text-slate-400 font-medium hidden md:block truncate">Web App quản trị nhiệm vụ - {profile?.full_name || 'Bùi Tấn Trường'}</p>
         </div>
       </div>
       
@@ -44,7 +44,7 @@ export default function Header({ onMenuClick }) {
               name="search"
               type="text" 
               placeholder="Tìm nhanh mã, tên nhiệm vụ, n..." 
-              className="w-72 pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium placeholder-slate-400"
+              className="w-72 pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-full text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:focus:ring-blue-600 focus:bg-white dark:focus:bg-[#27354d] focus:border-blue-400 dark:focus:border-blue-500 transition-all font-medium placeholder-slate-400 dark:placeholder-slate-500 dark:text-white"
             />
             <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-500">
               <Search size={18} />
@@ -69,11 +69,11 @@ export default function Header({ onMenuClick }) {
           {/* Message Icon - Visible on all devices */}
           <button 
             onClick={toggleChat}
-            className="relative flex w-9 h-9 md:w-10 md:h-10 rounded-xl bg-slate-50 hover:bg-slate-100 items-center justify-center text-slate-600 transition-colors"
+            className="relative flex w-9 h-9 md:w-10 md:h-10 rounded-xl bg-slate-50 dark:bg-[#1e293b] hover:bg-slate-100 dark:hover:bg-[#334155] items-center justify-center text-slate-600 dark:text-slate-200 transition-colors"
           >
             <MessageSquare size={18} />
             {unreadCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 bg-red-600 border-2 border-white rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-lg leading-none animate-in zoom-in duration-300">
+              <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 bg-red-600 border-2 border-white dark:border-[#0f172a] rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-lg leading-none animate-in zoom-in duration-300">
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
@@ -81,7 +81,7 @@ export default function Header({ onMenuClick }) {
           
           <NotificationsDropdown />
           
-          <button onClick={() => window.location.reload()} className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-600 transition-colors">
+          <button onClick={() => window.location.reload()} className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-slate-50 dark:bg-[#1e293b] hover:bg-slate-100 dark:hover:bg-[#334155] flex items-center justify-center text-slate-600 dark:text-slate-200 transition-colors">
             <RotateCcw size={18} />
           </button>
         </div>

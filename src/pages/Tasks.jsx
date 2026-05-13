@@ -291,9 +291,9 @@ export default function Tasks() {
   const activeFilterCount = Object.values(activeFilters).filter(v => v !== '').length;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900/50 pb-20">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#020617] pb-20">
         {/* Header Section */}
-        <div className="bg-white dark:bg-[#111827] border-b border-slate-100 dark:border-slate-800 pt-8 pb-6 px-4 sm:px-8">
+        <div className="bg-white dark:bg-[#0f172a] border-b border-slate-100 dark:border-slate-800 pt-8 pb-6 px-4 sm:px-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-blue-600 rounded-[18px] flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
@@ -351,7 +351,7 @@ export default function Tasks() {
 
         {/* View Controls */}
         <div className="px-4 sm:px-8 mb-6 mt-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm w-full sm:w-auto">
+          <div className="flex bg-white dark:bg-[#0f172a] p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm w-full sm:w-auto">
             <button 
               onClick={() => setViewMode('list')}
               className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-[13px] font-black transition-all flex items-center justify-center gap-2 ${
@@ -402,7 +402,7 @@ export default function Tasks() {
             <>
               {viewMode === 'list' && (
                 <>
-                  <div className="bg-white dark:bg-[#111827] rounded-[24px] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+                  <div className="bg-white dark:bg-[#0f172a] rounded-[24px] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
                     <TaskTable 
                       tasks={tasks} 
                       paginatedTasks={tasks}

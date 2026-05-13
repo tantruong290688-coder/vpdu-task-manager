@@ -24,8 +24,8 @@ export default function TaskMobileList({
           <div
             key={task.id}
             onClick={() => { setSelectedTask(task); setIsDrawerOpen(true); }}
-            className={`relative bg-white dark:bg-slate-800 px-4 py-3 cursor-pointer transition-all active:bg-slate-50 dark:active:bg-slate-900 border-b border-slate-100 dark:border-slate-800/50 ${
-              isOverdue ? 'bg-red-50/10' : ''
+            className={`relative bg-white dark:bg-[#0f172a] px-4 py-4 cursor-pointer transition-all active:bg-slate-50 dark:active:bg-slate-800 border-b border-slate-100 dark:border-slate-800/80 ${
+              isOverdue ? 'bg-red-50/10 dark:bg-red-900/10' : ''
             }`}
           >
             {/* Row 1: Mã + Priority + Status + Score */}
@@ -39,11 +39,11 @@ export default function TaskMobileList({
               </div>
               {task.evaluation_score !== null && (
                 <div className="flex flex-col items-end leading-none">
-                  <span className="text-[14px] font-black text-blue-600">{task.evaluation_score}</span>
+                  <span className="text-[14px] font-black text-blue-600 dark:text-blue-400">{task.evaluation_score}</span>
                   {task.evaluation_rank ? (
-                    <span className="text-[9px] font-bold text-blue-500/80 uppercase tracking-tighter mt-0.5">{task.evaluation_rank}</span>
+                    <span className="text-[9px] font-bold text-blue-500/80 dark:text-blue-400/80 uppercase tracking-tighter mt-0.5">{task.evaluation_rank}</span>
                   ) : (
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">điểm</span>
+                    <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tighter">điểm</span>
                   )}
                 </div>
               )}
@@ -62,7 +62,7 @@ export default function TaskMobileList({
                   {task.assignee?.full_name || 'Chưa phân công'}
                 </span>
                 {task.due_date && (
-                  <span className={`flex items-center gap-1 whitespace-nowrap shrink-0 ${isOverdue ? 'text-red-600' : 'text-slate-700 dark:text-slate-300'}`}>
+                  <span className={`flex items-center gap-1 whitespace-nowrap shrink-0 ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
                     <Calendar size={11} className="shrink-0 text-amber-500" />
                     {fmtDate(task.due_date)}
                   </span>

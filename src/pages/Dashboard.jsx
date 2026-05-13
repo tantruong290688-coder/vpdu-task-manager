@@ -136,7 +136,7 @@ export default function Dashboard() {
           <span>Làm mới</span>
         </button>
         
-        <div className="flex-[1.5] md:flex-none bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 px-3 py-2 rounded-xl flex items-center gap-2 overflow-hidden shadow-sm">
+        <div className="flex-[1.5] md:flex-none bg-green-50 dark:bg-green-500/10 border border-green-100 dark:border-green-500/20 px-3 py-2 rounded-xl flex items-center gap-2 overflow-hidden shadow-sm">
           <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shrink-0" />
           <span className="text-green-700 dark:text-green-400 text-[11px] md:text-[13px] font-bold truncate">Đồng bộ Realtime</span>
         </div>
@@ -146,23 +146,23 @@ export default function Dashboard() {
       <div className="mt-8 mb-4">
         <div className="flex items-center gap-3 mb-4">
           <div className="h-6 w-1.5 bg-blue-600 rounded-full"></div>
-          <h2 className="text-[15px] md:text-[17px] font-black text-slate-800 dark:text-white uppercase tracking-wider">I. Quản lý Thực hiện</h2>
+          <h2 className="text-[15px] md:text-[17px] font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider">I. Quản lý Thực hiện</h2>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-2.5 md:gap-4">
           {executionCards.map((card, idx) => (
             <div 
               key={idx} 
               onClick={() => handleCardClick(card.filter)}
-              className="group bg-white dark:bg-[#111827] p-3.5 md:p-5 rounded-[22px] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800 transition-all cursor-pointer relative overflow-hidden"
+              className="group bg-white dark:bg-[#0f172a] p-3.5 md:p-5 rounded-[22px] border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-blue-400 dark:hover:border-blue-500 transition-all cursor-pointer relative overflow-hidden"
             >
-              <div className={`w-9 h-9 md:w-12 md:h-12 ${card.iconBg} rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 group-hover:scale-110 transition-transform`}>
+              <div className={`w-9 h-9 md:w-12 md:h-12 ${card.iconBg} dark:bg-slate-800/50 rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 group-hover:scale-110 transition-transform`}>
                 <card.icon size={18} className={card.iconColor} />
               </div>
               <div className="flex items-baseline gap-1">
                  <h4 className="text-xl md:text-3xl font-black text-slate-800 dark:text-white leading-tight">{card.value}</h4>
-                 <span className="text-[10px] md:text-[12px] font-bold text-slate-400 uppercase tracking-tight">Việc</span>
+                 <span className="text-[10px] md:text-[12px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tight">Việc</span>
               </div>
-              <p className="text-[12px] md:text-[14px] font-black text-slate-600 dark:text-slate-400 mt-0.5 truncate">{card.label}</p>
+              <p className="text-[12px] md:text-[14px] font-black text-slate-600 dark:text-slate-300 mt-0.5 truncate">{card.label}</p>
             </div>
           ))}
         </div>
@@ -172,20 +172,20 @@ export default function Dashboard() {
       <div className="mt-10 mb-4">
         <div className="flex items-center gap-3 mb-4">
           <div className="h-6 w-1.5 bg-emerald-600 rounded-full"></div>
-          <h2 className="text-[15px] md:text-[17px] font-black text-slate-800 dark:text-white uppercase tracking-wider">II. Quy trình Đánh giá</h2>
+          <h2 className="text-[15px] md:text-[17px] font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider">II. Quy trình Đánh giá</h2>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-2.5 md:gap-4">
           {evaluationCards.map((card, idx) => (
             <div 
               key={idx} 
               onClick={() => handleCardClick(card.filter)}
-              className="group bg-white dark:bg-[#111827] p-3.5 md:p-5 rounded-[22px] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800 transition-all cursor-pointer overflow-hidden"
+              className="group bg-white dark:bg-[#0f172a] p-3.5 md:p-5 rounded-[22px] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800 transition-all cursor-pointer overflow-hidden"
             >
-              <div className={`w-9 h-9 md:w-12 md:h-12 ${card.iconBg} rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 group-hover:scale-110 transition-transform`}>
+              <div className={`w-9 h-9 md:w-12 md:h-12 ${card.iconBg} dark:bg-slate-800/50 rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 group-hover:scale-110 transition-transform`}>
                 <card.icon size={18} className={card.iconColor} />
               </div>
               <h4 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white leading-tight">{card.value}</h4>
-              <p className="text-[12px] md:text-[14px] font-black text-slate-600 dark:text-slate-400 mt-0.5 truncate">{card.label}</p>
+              <p className="text-[12px] md:text-[14px] font-black text-slate-600 dark:text-slate-300 mt-0.5 truncate">{card.label}</p>
             </div>
           ))}
         </div>
@@ -193,12 +193,12 @@ export default function Dashboard() {
 
       {/* Biểu đồ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
-        <div className="bg-white dark:bg-[#111827] p-5 md:p-8 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
+        <div className="bg-white dark:bg-[#0f172a] p-5 md:p-8 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
           <div className="flex items-center gap-3 mb-6 md:mb-8">
             <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
               <PieChart size={20} className="text-blue-600" />
             </div>
-            <h3 className="text-[16px] md:text-[18px] font-black text-slate-800 dark:text-white uppercase tracking-tight">Tỷ lệ Trạng thái</h3>
+            <h3 className="text-[16px] md:text-[18px] font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Tỷ lệ Trạng thái</h3>
           </div>
           <div className="h-[250px] md:h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -241,12 +241,12 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#111827] p-5 md:p-8 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
+        <div className="bg-white dark:bg-[#0f172a] p-5 md:p-8 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
           <div className="flex items-center gap-3 mb-6 md:mb-8">
             <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
               <BarChart size={20} className="text-indigo-600" />
             </div>
-            <h3 className="text-[16px] md:text-[18px] font-black text-slate-800 dark:text-white uppercase tracking-tight">Nhiệm vụ theo Phân loại</h3>
+            <h3 className="text-[16px] md:text-[18px] font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Nhiệm vụ theo Phân loại</h3>
           </div>
           <div className="h-[300px] md:h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">

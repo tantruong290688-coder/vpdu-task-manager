@@ -106,7 +106,7 @@ export default function TodoPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-[28px] font-black text-slate-800 dark:text-white flex items-center gap-3">
-            <ListTodo className="text-blue-600" size={32} />
+            <ListTodo className="text-blue-600 dark:text-blue-500" size={32} />
             To-do cá nhân
           </h1>
           <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">
@@ -153,11 +153,11 @@ export default function TodoPage() {
 
 function StatCard({ label, value, color, icon }) {
   const colors = {
-    blue: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
-    slate: 'bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-400',
-    amber: 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400',
-    green: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400',
-    red: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400',
+    blue: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    slate: 'bg-slate-50 text-slate-700 dark:bg-slate-800/50 dark:text-slate-400',
+    amber: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+    green: 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+    red: 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   };
 
   return (

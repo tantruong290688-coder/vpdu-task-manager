@@ -100,8 +100,8 @@ export default function StaffPerformance() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20">
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 pt-8 pb-6 px-4 sm:px-8">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#020617] pb-20">
+      <div className="bg-white dark:bg-[#0f172a] border-b border-slate-100 dark:border-slate-800 pt-8 pb-6 px-4 sm:px-8">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-indigo-600 rounded-[18px] flex items-center justify-center text-white shadow-lg shadow-indigo-600/20">
@@ -241,7 +241,7 @@ export default function StaffPerformance() {
           
           {/* Main List */}
           <div className="flex-1 space-y-6">
-            <div className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-[#0f172a] rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
                 <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
                     <h3 className="text-[16px] font-black text-slate-800 dark:text-white uppercase tracking-tight">Bảng tổng hợp hiệu suất kỳ {periodKey}</h3>
@@ -262,7 +262,7 @@ export default function StaffPerformance() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
                     <thead>
-                        <tr className="text-[10px] uppercase font-black text-slate-400 tracking-widest bg-slate-50/50 dark:bg-slate-900/30">
+                        <tr className="text-[10px] uppercase font-black text-slate-400 tracking-widest bg-slate-50/50 dark:bg-[#1e293b]/50">
                           <th className="px-8 py-4 w-16">Hạng</th>
                           <th className="px-4 py-4">Cán bộ</th>
                           <th className="px-4 py-4 text-center">Chủ trì</th>
@@ -408,7 +408,7 @@ export default function StaffPerformance() {
                 )}
               </div>
 
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
+              <div className="bg-white dark:bg-[#0f172a] p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
                 <h3 className="text-[14px] font-black text-slate-800 dark:text-white uppercase tracking-tight mb-6">Cơ cấu tính hiệu suất cán bộ</h3>
                 <div className="space-y-3">
                     {[
@@ -524,9 +524,9 @@ function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex justify-end">
-       <div className="w-full max-w-4xl bg-white dark:bg-slate-900 h-full overflow-y-auto animate-in slide-in-from-right-full duration-300 shadow-2xl">
+       <div className="w-full max-w-4xl bg-white dark:bg-[#0f172a] h-full overflow-y-auto animate-in slide-in-from-right-full duration-300 shadow-2xl">
           {/* Header */}
-          <div className="sticky top-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div className="sticky top-0 z-10 bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-md px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
              <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600">
                    <User size={24} />
@@ -558,7 +558,7 @@ function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
                    </div>
                 </div>
 
-                <div className="md:col-span-2 h-[280px] bg-white dark:bg-slate-900 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800">
+                <div className="md:col-span-2 h-[280px] bg-white dark:bg-[#0f172a] p-6 rounded-[32px] border border-slate-100 dark:border-slate-800">
                    <h3 className="text-[13px] font-black text-slate-500 uppercase tracking-wider mb-4">Radar Hiệu suất</h3>
                    <ResponsiveContainer width="100%" height="100%">
                       <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>

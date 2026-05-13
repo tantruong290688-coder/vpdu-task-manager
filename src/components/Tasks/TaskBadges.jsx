@@ -68,10 +68,10 @@ export function EvaluationStatusBadge({ task, showScore = true }) {
   const evalStatus = task.evaluation_status || 'waiting_self'; 
 
   const statusMap = {
-    waiting_self: { label: 'Chờ tự đề xuất', cls: 'bg-slate-100 text-slate-600 border-slate-200' },
-    waiting_main: { label: 'Chờ chính ĐG', cls: 'bg-blue-50 text-blue-600 border-blue-100' },
-    waiting_admin: { label: 'Chờ Admin chốt', cls: 'bg-amber-50 text-amber-600 border-amber-100' },
-    need_revision: { label: 'Yêu cầu bổ sung', cls: 'bg-red-50 text-red-600 border-red-100' },
+    waiting_self: { label: 'Chờ tự đề xuất', cls: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700' },
+    waiting_main: { label: 'Chờ chính ĐG', cls: 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/40' },
+    waiting_admin: { label: 'Chờ Admin chốt', cls: 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/40' },
+    need_revision: { label: 'Yêu cầu bổ sung', cls: 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/40' },
   };
 
   const info = statusMap[evalStatus] || statusMap.waiting_self;

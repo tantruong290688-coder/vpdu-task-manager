@@ -65,9 +65,9 @@ export default function Schedules() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-[#0b1120]">
+    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-[#020617]">
       {/* Header section */}
-      <div className="sticky top-0 z-30 bg-white/80 dark:bg-[#111827]/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 p-4 md:p-6">
+      <div className="sticky top-0 z-30 bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 p-4 md:p-6">
         <div className="max-w-[1400px] mx-auto space-y-4">
           <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
             <div>
@@ -156,11 +156,11 @@ export default function Schedules() {
         ) : (
           <>
             {/* Desktop Table View */}
-            <div className="hidden md:block bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-slate-700 overflow-hidden shadow-xl">
+            <div className="hidden md:block bg-white dark:bg-[#0f172a] rounded-[2rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xl">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
+                    <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
                       <th className="py-4 px-6 font-black text-[11px] text-slate-400 uppercase tracking-widest">Thời gian</th>
                       <th className="py-4 px-6 font-black text-[11px] text-slate-400 uppercase tracking-widest">Phiên bản</th>
                       <th className="py-4 px-6 font-black text-[11px] text-slate-400 uppercase tracking-widest text-center">Trạng thái</th>

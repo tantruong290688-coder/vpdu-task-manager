@@ -65,8 +65,8 @@ export default function AccountMenu() {
             className="
               fixed top-[calc(60px+env(safe-area-inset-top))] left-0 right-0 mx-4
               sm:absolute sm:top-[calc(100%+12px)] sm:right-0 sm:left-auto sm:mx-0 sm:w-64
-              bg-white dark:bg-[#1e293b] rounded-2xl shadow-[0_16px_40px_rgba(0,0,0,0.15)] 
-              border border-slate-100 dark:border-slate-700 py-2 z-[100] 
+              bg-white dark:bg-[#0f172a] rounded-2xl shadow-[0_16px_40px_rgba(0,0,0,0.15)] 
+              border border-slate-100 dark:border-slate-800 py-2 z-[100] 
               transform origin-top-right transition-all animate-in fade-in slide-in-from-top-2
             "
           >
@@ -94,8 +94,8 @@ function MenuItem({ icon: Icon, iconColor, label, onClick, isDanger }) {
     <button
       role="menuitem"
       onClick={onClick}
-      className={`w-full text-left px-5 py-3 text-[14px] font-semibold flex items-center gap-3 transition-colors outline-none focus-visible:bg-slate-50
-        ${isDanger ? 'text-red-600 hover:bg-red-50 focus-visible:bg-red-50' : 'text-slate-700 hover:bg-slate-50'}`}
+      className={`w-full text-left px-5 py-3 text-[14px] font-semibold flex items-center gap-3 transition-colors outline-none focus-visible:bg-slate-50 dark:focus-visible:bg-slate-800
+        ${isDanger ? 'text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 focus-visible:bg-red-50' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
     >
       <Icon size={18} className={iconColor} />
       {label}

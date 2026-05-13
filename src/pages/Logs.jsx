@@ -128,7 +128,7 @@ export default function Logs() {
   return (
     <div className="space-y-5">
       {/* Page Header */}
-      <div className="bg-white dark:bg-[#111827] rounded-[24px] shadow-sm border border-slate-100 dark:border-slate-800 p-6 transition-colors">
+      <div className="bg-white dark:bg-[#0f172a] rounded-[24px] shadow-sm border border-slate-100 dark:border-slate-800 p-6 transition-colors">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
@@ -158,7 +158,7 @@ export default function Logs() {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Tìm người thao tác, hành động, mã nhiệm vụ..."
-                className="w-full sm:w-72 pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-[#1f2937] border border-slate-200 dark:border-slate-700 rounded-xl text-[13px] font-medium text-slate-700 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                className="w-full sm:w-72 pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-xl text-[13px] font-medium text-slate-700 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 {searchInput && (
@@ -234,7 +234,7 @@ export default function Logs() {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-[#111827] rounded-[24px] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden transition-colors">
+      <div className="bg-white dark:bg-[#0f172a] rounded-[24px] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden transition-colors">
         {/* Filter tag */}
         {search && (
           <div className="px-6 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
@@ -370,7 +370,7 @@ export default function Logs() {
           {/* Mobile Card View */}
           <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800/50">
             {logs.map((log) => (
-              <div key={log.id} className="p-4 space-y-3 bg-white dark:bg-[#111827] hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+              <div key={log.id} className="p-4 space-y-3 bg-white dark:bg-[#0f172a] hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-[12px] font-bold shrink-0 shadow-sm">

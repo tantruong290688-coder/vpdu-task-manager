@@ -4,10 +4,12 @@ import ChangeThemeModal from './ChangeThemeModal';
 import ChangePasswordModal from './ChangePasswordModal';
 import ForgotPasswordModal from './ForgotPasswordModal';
 import LogoutConfirmDialog from './LogoutConfirmDialog';
+import ChangeAvatarModal from './ChangeAvatarModal';
+import { Camera } from 'lucide-react';
 
 export default function AccountMenu() {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeModal, setActiveModal] = useState(null); // 'theme', 'password', 'forgot', 'logout', null
+  const [activeModal, setActiveModal] = useState(null); // 'theme', 'avatar', 'password', 'forgot', 'logout', null
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
 
@@ -68,6 +70,7 @@ export default function AccountMenu() {
               transform origin-top-right transition-all animate-in fade-in slide-in-from-top-2
             "
           >
+            <MenuItem icon={Camera} iconColor="text-blue-500" label="Đổi ảnh đại diện" onClick={() => openModal('avatar')} />
             <MenuItem icon={Palette} iconColor="text-orange-500" label="Đổi giao diện" onClick={() => openModal('theme')} />
             <MenuItem icon={Key} iconColor="text-orange-500" label="Đổi mật khẩu" onClick={() => openModal('password')} />
             <MenuItem icon={ShieldAlert} iconColor="text-blue-600" label="Quên mật khẩu / đặt lại" onClick={() => openModal('forgot')} />
@@ -78,6 +81,7 @@ export default function AccountMenu() {
       )}
 
       {activeModal === 'theme' && <ChangeThemeModal onClose={() => setActiveModal(null)} />}
+      {activeModal === 'avatar' && <ChangeAvatarModal onClose={() => setActiveModal(null)} />}
       {activeModal === 'password' && <ChangePasswordModal onClose={() => setActiveModal(null)} />}
       {activeModal === 'forgot' && <ForgotPasswordModal onClose={() => setActiveModal(null)} />}
       {activeModal === 'logout' && <LogoutConfirmDialog onClose={() => setActiveModal(null)} />}

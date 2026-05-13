@@ -144,7 +144,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, onlineUsers, login, logout, changePassword, resetPasswordForEmail, loading }}>
+    <AuthContext.Provider value={{ user, profile, onlineUsers, login, logout, changePassword, resetPasswordForEmail, loading, refreshProfile: fetchProfile }}>
       {loading ? (
         <div className="min-h-screen flex items-center justify-center bg-slate-100">
           <div className="flex flex-col items-center gap-4">

@@ -80,18 +80,21 @@ export default function Dashboard() {
           <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-white/20 p-1 bg-white/10 backdrop-blur-md overflow-hidden shadow-xl">
               <img 
                 src={
-                  profile?.full_name === 'Nguyễn Đức Lợi' ? manager1Avatar :
-                  profile?.full_name === 'Lê Công Hào' ? manager2Avatar :
-                  profile?.full_name === 'Phạm Học Thuyết' ? staff1Avatar :
-                  profile?.full_name === 'Nguyễn Thị Hoài Thu' ? staff2Avatar :
-                  profile?.full_name === 'Nguyễn Thị Thanh Pháp' ? staff3Avatar :
-                  profile?.full_name === 'Phan Thị Linh' ? staff4Avatar :
-                  profile?.role === 'viewer' ? leaderAvatar : 
-                  (profile?.role === 'admin' ? adminAvatar : (profile?.avatar_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile?.full_name || 'User') + '&background=fff&color=1d4ed8&size=256'))
+                  profile?.avatar_url ? profile.avatar_url : (
+                    profile?.full_name === 'Nguyễn Đức Lợi' ? manager1Avatar :
+                    profile?.full_name === 'Lê Công Hào' ? manager2Avatar :
+                    profile?.full_name === 'Phạm Học Thuyết' ? staff1Avatar :
+                    profile?.full_name === 'Nguyễn Thị Hoài Thu' ? staff2Avatar :
+                    profile?.full_name === 'Nguyễn Thị Thanh Pháp' ? staff3Avatar :
+                    profile?.full_name === 'Phan Thị Linh' ? staff4Avatar :
+                    profile?.role === 'viewer' ? leaderAvatar : 
+                    (profile?.role === 'admin' ? adminAvatar : `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.full_name || 'User')}&background=fff&color=1d4ed8&size=256`)
+                  )
                 } 
                 alt="Avatar"
                 className="w-full h-full object-cover rounded-full"
                 onError={(e) => { 
+                  // Nếu avatar_url lỗi, hiển thị lại avatar mặc định hoặc UI Avatars
                   const specialUsers = ['Nguyễn Đức Lợi', 'Lê Công Hào', 'Phạm Học Thuyết', 'Nguyễn Thị Hoài Thu', 'Nguyễn Thị Thanh Pháp', 'Phan Thị Linh'];
                   if (profile?.role !== 'viewer' && profile?.role !== 'admin' && !specialUsers.includes(profile?.full_name)) {
                     e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile?.full_name || 'User') + '&background=fff&color=1d4ed8&size=256'; 

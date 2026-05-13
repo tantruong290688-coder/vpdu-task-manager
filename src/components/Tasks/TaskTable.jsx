@@ -71,6 +71,18 @@ export default function TaskTable({
 
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—';
 
+  const getLateDays = (task) => {
+    if (!task.due_date) return 0;
+    const due = new Date(task.due_date);
+    due.setHours(0, 0, 0, 0);
+    const end = task.status === 'completed' && task.completed_at 
+      ? new Date(task.completed_at) 
+      : new Date();
+    end.setHours(0, 0, 0, 0);
+    const diff = Math.floor((end - due) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : 0;
+  };
+
   const SortIcon = ({ columnKey }) => {
     if (sortConfig.key !== columnKey) return <ArrowUpDown size={12} className="opacity-20 hover:opacity-50 shrink-0" />;
     return sortConfig.direction === 'ascending' 
@@ -314,11 +326,18 @@ export default function TaskTable({
                   <td className="p-3 whitespace-nowrap">
                     <span className={`text-[12px] font-semibold ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-slate-600 dark:text-slate-400'}`}>
                       {fmtDate(task.due_date)}
-                      {isOverdue && (
-                        <span className="block text-[10px] bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded-md mt-0.5 font-bold w-fit">
-                          Quá hạn
-                        </span>
-                      )}
+                      {(() => {
+                        const lateDays = getLateDays(task);
+                        if (lateDays > 0) {
+                          const isFinishedLate = task.status === 'completed';
+                          return (
+                            <span className={`block text-[10px] ${isFinishedLate ? 'bg-slate-100 dark:bg-slate-800 text-slate-500' : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'} px-1.5 py-0.5 rounded-md mt-0.5 font-bold w-fit`}>
+                              Trễ {lateDays} ngày
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
                     </span>
                   </td>
                   <td className="p-3 text-center">

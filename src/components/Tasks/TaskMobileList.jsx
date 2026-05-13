@@ -16,6 +16,18 @@ export default function TaskMobileList({
 
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—';
 
+  const getLateDays = (task) => {
+    if (!task.due_date) return 0;
+    const due = new Date(task.due_date);
+    due.setHours(0, 0, 0, 0);
+    const end = task.status === 'completed' && task.completed_at 
+      ? new Date(task.completed_at) 
+      : new Date();
+    end.setHours(0, 0, 0, 0);
+    const diff = Math.floor((end - due) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : 0;
+  };
+
   return (
     <div className="md:hidden pb-6 divide-y divide-slate-100 dark:divide-slate-800">
       {paginatedTasks.map(task => {
@@ -65,6 +77,13 @@ export default function TaskMobileList({
                   <span className={`flex items-center gap-1 whitespace-nowrap shrink-0 ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
                     <Calendar size={11} className="shrink-0 text-amber-500" />
                     {fmtDate(task.due_date)}
+                    {(() => {
+                      const lateDays = getLateDays(task);
+                      if (lateDays > 0) {
+                        return <span className="ml-1 text-[10px] font-black uppercase">(Trễ {lateDays}n)</span>;
+                      }
+                      return null;
+                    })()}
                   </span>
                 )}
               </div>

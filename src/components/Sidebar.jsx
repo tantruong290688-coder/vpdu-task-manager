@@ -11,6 +11,10 @@ import leaderAvatar from '../assets/avatar_leader.jpg';
 import adminAvatar from '../assets/avatar_admin.jpg';
 import manager1Avatar from '../assets/avatar_manager1.jpg';
 import manager2Avatar from '../assets/avatar_manager2.jpg';
+import staff1Avatar from '../assets/avatar_staff1.jpg';
+import staff2Avatar from '../assets/avatar_staff2.jpg';
+import staff3Avatar from '../assets/avatar_staff3.jpg';
+import staff4Avatar from '../assets/avatar_staff4.jpg';
 
 export default function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
@@ -85,12 +89,21 @@ export default function Sidebar({ isOpen, onClose }) {
                 src={
                   profile?.full_name === 'Nguyễn Đức Lợi' ? manager1Avatar :
                   profile?.full_name === 'Lê Công Hào' ? manager2Avatar :
+                  profile?.full_name === 'Phạm Học Thuyết' ? staff1Avatar :
+                  profile?.full_name === 'Nguyễn Thị Hoài Thu' ? staff2Avatar :
+                  profile?.full_name === 'Nguyễn Thị Thanh Pháp' ? staff3Avatar :
+                  profile?.full_name === 'Phan Thị Linh' ? staff4Avatar :
                   profile?.role === 'viewer' ? leaderAvatar : 
                   (profile?.role === 'admin' ? adminAvatar : (profile?.avatar_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile?.full_name || 'User') + '&background=b91c1c&color=fff&size=128'))
                 } 
                 alt="Avatar"
                 className="w-full h-full object-cover rounded-full"
-                onError={(e) => { if (profile?.role !== 'viewer' && profile?.role !== 'admin' && profile?.full_name !== 'Nguyễn Đức Lợi' && profile?.full_name !== 'Lê Công Hào') e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile?.full_name || 'User') + '&background=b91c1c&color=fff&size=128'; }}
+                onError={(e) => { 
+                  const specialUsers = ['Nguyễn Đức Lợi', 'Lê Công Hào', 'Phạm Học Thuyết', 'Nguyễn Thị Hoài Thu', 'Nguyễn Thị Thanh Pháp', 'Phan Thị Linh'];
+                  if (profile?.role !== 'viewer' && profile?.role !== 'admin' && !specialUsers.includes(profile?.full_name)) {
+                    e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile?.full_name || 'User') + '&background=b91c1c&color=fff&size=128'; 
+                  }
+                }}
               />
             </div>
             <div className="absolute bottom-0 right-1 w-5 h-5 bg-green-500 border-4 border-white dark:border-slate-800 rounded-full" title="Đang trực tuyến"></div>

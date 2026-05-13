@@ -331,7 +331,13 @@ export default function TaskTable({
                         if (lateDays > 0) {
                           const isFinishedLate = task.status === 'completed';
                           return (
-                            <span className={`block text-[10px] ${isFinishedLate ? 'bg-slate-100 dark:bg-slate-800 text-slate-500' : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'} px-1.5 py-0.5 rounded-md mt-0.5 font-bold w-fit`}>
+                            <span className={`
+                              flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md mt-1 font-black uppercase tracking-tighter shadow-sm w-fit
+                              ${isFinishedLate 
+                                ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800' 
+                                : 'bg-red-600 text-white dark:bg-red-500 shadow-red-200 dark:shadow-none'}
+                            `}>
+                              {isFinishedLate ? <CheckCircle size={10} strokeWidth={3} /> : <AlertTriangle size={10} strokeWidth={3} />}
                               Trễ {lateDays} ngày
                             </span>
                           );

@@ -80,7 +80,12 @@ export default function TaskMobileList({
                     {(() => {
                       const lateDays = getLateDays(task);
                       if (lateDays > 0) {
-                        return <span className="ml-1 text-[10px] font-black uppercase">(Trễ {lateDays}n)</span>;
+                        return (
+                          <span className={`ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-black uppercase flex items-center gap-0.5 ${task.status === 'completed' ? 'bg-amber-100 text-amber-700' : 'bg-red-600 text-white'}`}>
+                            <AlertTriangle size={8} strokeWidth={4} />
+                            Trễ {lateDays}n
+                          </span>
+                        );
                       }
                       return null;
                     })()}

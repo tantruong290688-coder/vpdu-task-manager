@@ -5,11 +5,12 @@ import ChangePasswordModal from './ChangePasswordModal';
 import ForgotPasswordModal from './ForgotPasswordModal';
 import LogoutConfirmDialog from './LogoutConfirmDialog';
 import ChangeAvatarModal from './ChangeAvatarModal';
-import { Camera } from 'lucide-react';
+import { Camera, BookOpen } from 'lucide-react';
+import UserManualModal from './UserManualModal';
 
 export default function AccountMenu() {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeModal, setActiveModal] = useState(null); // 'theme', 'avatar', 'password', 'forgot', 'logout', null
+  const [activeModal, setActiveModal] = useState(null); // 'theme', 'avatar', 'password', 'forgot', 'logout', 'manual', null
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
 
@@ -74,6 +75,7 @@ export default function AccountMenu() {
             <MenuItem icon={Palette} iconColor="text-orange-500" label="Đổi giao diện" onClick={() => openModal('theme')} />
             <MenuItem icon={Key} iconColor="text-orange-500" label="Đổi mật khẩu" onClick={() => openModal('password')} />
             <MenuItem icon={ShieldAlert} iconColor="text-blue-600" label="Quên mật khẩu / đặt lại" onClick={() => openModal('forgot')} />
+            <MenuItem icon={BookOpen} iconColor="text-emerald-500" label="Hướng dẫn sử dụng" onClick={() => openModal('manual')} />
             <div className="h-px bg-slate-100 dark:bg-slate-700/50 my-2 mx-4"></div>
             <MenuItem icon={LogOut} iconColor="text-red-600" label="Đăng xuất" onClick={() => openModal('logout')} isDanger />
           </div>
@@ -85,6 +87,7 @@ export default function AccountMenu() {
       {activeModal === 'password' && <ChangePasswordModal onClose={() => setActiveModal(null)} />}
       {activeModal === 'forgot' && <ForgotPasswordModal onClose={() => setActiveModal(null)} />}
       {activeModal === 'logout' && <LogoutConfirmDialog onClose={() => setActiveModal(null)} />}
+      {activeModal === 'manual' && <UserManualModal onClose={() => setActiveModal(null)} />}
     </div>
   );
 }

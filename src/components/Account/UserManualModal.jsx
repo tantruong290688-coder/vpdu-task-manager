@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, BookOpen, Star, Flag, CheckCircle, MousePointer2, Keyboard, Zap, Info, Calendar, TrendingUp, Send, LayoutList, Layers, Bell, Smartphone } from 'lucide-react';
+import { X, BookOpen, Star, Flag, CheckCircle, MousePointer2, Keyboard, Zap, Info, Calendar, TrendingUp, Send, LayoutList, Layers, Bell, Smartphone, Users, Trash2, Shield, History } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function UserManualModal({ onClose }) {

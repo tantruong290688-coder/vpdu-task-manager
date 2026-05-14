@@ -163,53 +163,68 @@ export default function TaskDetailDrawer({
   const isAssignee = task && profile?.id === task.assignee_id;
   const isCollab   = task && (task.task_collaborators || []).some(c => c.user_id === profile?.id);
 
-  useEffect(() => {
-    if (isOpen && task?.id) {
-      fetchHistory();
-    }
-  }, [isOpen, task?.id]);
+  const [viewedUserIds, setViewedUserIds] = useState(new Set());
 
   // Tự động ghi nhận "Đã xem" khi mở drawer
   useEffect(() => {
-    if (isOpen && task?.id && history.length >= 0) {
+    if (isOpen && task?.id) {
       const isTrackedUser = profile?.id === task.assignee_id || (task.task_collaborators || []).some(c => c.user_id === profile?.id);
-      if (!isTrackedUser) return;
-
-      // Kiểm tra xem người dùng hiện tại đã có log "Xem nhiệm vụ" trong history chưa
-      const alreadyLogged = history.some(h => h.user_id === profile.id && h.action === 'Xem nhiệm vụ');
       
-      if (!alreadyLogged) {
+      if (isTrackedUser) {
         const recordView = async () => {
-          await supabase.from('task_updates').insert([{
-            task_id: task.id,
-            user_id: profile.id,
-            action: 'Xem nhiệm vụ',
-            details: `Đã mở xem chi tiết nhiệm vụ`
-          }]);
-          fetchHistory(); // Tải lại history để cập nhật UI ngay lập tức
+          // Kiểm tra xem đã có log xem nào của mình chưa (để tránh spam log)
+          const { data: existing } = await supabase
+            .from('activity_logs')
+            .select('id')
+            .eq('task_id', task.id)
+            .eq('actor_id', profile.id)
+            .eq('action', 'Xem nhiệm vụ')
+            .limit(1);
+
+          if (!existing || existing.length === 0) {
+            await writeLog({
+              actorId: profile.id,
+              actorName: profile.full_name,
+              actorRole: profile.role,
+              action: 'Xem nhiệm vụ',
+              taskId: task.id,
+              taskCode: task.code,
+              note: `Đã mở xem chi tiết nhiệm vụ`
+            });
+          }
+          fetchHistory(); // Tải lại để cập nhật UI
         };
         recordView();
+      } else {
+        fetchHistory();
       }
     }
-  }, [isOpen, task?.id, history.length]);
-
-  // Danh sách các ID người dùng đã xem nhiệm vụ này
-  const viewedUserIds = new Set(
-    history
-      .filter(h => h.action === 'Xem nhiệm vụ')
-      .map(h => h.user_id)
-  );
+  }, [isOpen, task?.id]);
 
   const fetchHistory = async () => {
+    if (!task?.id) return;
     setLoadingHistory(true);
     try {
-      const { data, error } = await supabase
+      // 1. Lấy lịch sử cập nhật (task_updates)
+      const { data: updates, error: err1 } = await supabase
         .from('task_updates')
         .select('*, profiles(full_name)')
         .eq('task_id', task.id)
         .order('created_at', { ascending: false });
-      if (error) throw error;
-      setHistory(data || []);
+      
+      if (err1) throw err1;
+
+      // 2. Lấy danh sách những người đã xem (activity_logs)
+      const { data: logs, error: err2 } = await supabase
+        .from('activity_logs')
+        .select('actor_id')
+        .eq('task_id', task.id)
+        .eq('action', 'Xem nhiệm vụ');
+
+      if (err2) throw err2;
+
+      setHistory(updates || []);
+      setViewedUserIds(new Set((logs || []).map(l => l.actor_id)));
     } catch (err) {
       console.error('Lỗi fetch history:', err);
     } finally {

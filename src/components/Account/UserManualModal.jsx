@@ -5,7 +5,11 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function UserManualModal({ onClose }) {
   const { profile } = useAuth();
-  const isManager = profile?.role === 'manager' || profile?.role === 'admin';
+  const role = profile?.role;
+  const isAdmin = role === 'admin';
+  const isManager = role === 'manager';
+  const isStaff = role === 'staff' || role === 'specialist';
+  const isViewer = role === 'viewer';
 
   // Chặn cuộn trang khi mở modal
   useEffect(() => {
@@ -32,7 +36,9 @@ export default function UserManualModal({ onClose }) {
             <div>
               <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Cẩm nang hướng dẫn sử dụng</h3>
               <p className="text-[12px] text-slate-400 font-bold uppercase tracking-widest mt-1">
-                Dành cho vai trò: <span className="text-blue-600 dark:text-blue-400">{isManager ? 'Manager / Quản lý' : 'Cán bộ / Nhân viên'}</span>
+                Dành cho vai trò: <span className="text-blue-600 dark:text-blue-400">
+                  {isAdmin ? 'Quản trị viên (Admin)' : isManager ? 'Quản lý (Manager)' : isViewer ? 'Người theo dõi (Viewer)' : 'Cán bộ (Staff)'}
+                </span>
               </p>
             </div>
           </div>
@@ -51,7 +57,9 @@ export default function UserManualModal({ onClose }) {
                 <Info size={14} /> Chương I: Tổng quan
               </div>
               <p className="text-[15px] text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
-                {isManager ? (
+                {isAdmin ? (
+                  <>Chào mừng đồng chí đến với hệ thống **Quản trị Nhiệm vụ VPĐU xã Trà Bồng**. Với vai trò **Quản trị viên (Admin)**, đồng chí nắm giữ quyền hạn tối cao để điều hành nhân sự, kiểm soát dữ liệu và đảm bảo hệ thống vận hành ổn định, an toàn.</>
+                ) : isManager ? (
                   <>Chào mừng đồng chí đến với hệ thống **Quản trị Nhiệm vụ VPĐU xã Trà Bồng**. Với vai trò **Quản lý**, đồng chí đóng vai trò then chốt trong việc điều hành, giao việc và đánh giá kết quả để đảm bảo đơn vị hoàn thành tốt các chỉ tiêu nhiệm vụ được giao.</>
                 ) : (
                   <>Chào mừng đồng chí đến với hệ thống **Quản trị Nhiệm vụ VPĐU xã Trà Bồng**. Với vai trò **Cán bộ/Nhân viên**, hệ thống này là công cụ giúp đồng chí quản lý công việc cá nhân, báo cáo tiến độ và tự đề xuất kết quả thi đua một cách minh bạch, công bằng và hiệu quả.</>
@@ -76,7 +84,35 @@ export default function UserManualModal({ onClose }) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50 text-[13px]">
-                    {isManager ? (
+                    {isAdmin ? (
+                      <>
+                        <GuideRow 
+                          icon={Users} iconColor="text-purple-500" label="Quản lý nhân sự" 
+                          action="Vào mục 'Quản trị hệ thống' -> Tạo tài khoản, đổi mật khẩu hoặc khóa tài khoản."
+                          note="Đặc quyền Admin: Kiểm soát toàn bộ danh sách cán bộ và quyền truy cập."
+                        />
+                        <GuideRow 
+                          icon={Trash2} iconColor="text-rose-500" label="Dọn dẹp hệ thống" 
+                          action="Nhấn [Xóa sạch tin nhắn] trong trang Admin để giải phóng dữ liệu cũ."
+                          note="Lưu ý: Thao tác này không thể hoàn tác. Chỉ dùng khi bảo trì hệ thống."
+                        />
+                        <GuideRow 
+                          icon={Shield} iconColor="text-blue-500" label="Phân quyền (RBAC)" 
+                          action="Sửa thông tin tài khoản -> Thay đổi Role (Admin/Manager/Staff/Viewer)."
+                          note="Admin có thể cấp quyền Quản lý cho các lãnh đạo khác trong đơn vị."
+                        />
+                        <GuideRow 
+                          icon={Star} iconColor="text-amber-500" label="Chốt điểm thi đua" 
+                          action="Có quyền phê duyệt và chốt điểm cuối cùng cho TOÀN BỘ nhiệm vụ."
+                          note="Dùng để xử lý khiếu nại điểm hoặc thay đổi kết quả khi cần thiết."
+                        />
+                        <GuideRow 
+                          icon={History} iconColor="text-slate-500" label="Nhật ký thao tác" 
+                          action="Vào mục 'Nhật ký' để truy vết mọi hành động sửa/xóa trên hệ thống."
+                          note="Giúp minh bạch hóa quá trình làm việc và xác định trách nhiệm."
+                        />
+                      </>
+                    ) : isManager ? (
                       <>
                         <GuideRow 
                           icon={Zap} iconColor="text-blue-500" label="Dashboard" 
@@ -86,7 +122,7 @@ export default function UserManualModal({ onClose }) {
                         <GuideRow 
                           icon={Send} iconColor="text-indigo-500" label="Giao nhiệm vụ" 
                           action="Nhấn [+ Thêm nhiệm vụ] -> Nhập nội dung -> Chọn Người thực hiện chính & Người phối hợp."
-                          note="Manager chỉ có quyền giao thêm người phối hợp cho cấp bậc Staff."
+                          note="Quản lý có quyền điều động nhân sự và ấn định thời hạn hoàn thành."
                         />
                         <GuideRow 
                           icon={Calendar} iconColor="text-orange-500" label="Lịch công tác" 
@@ -96,7 +132,7 @@ export default function UserManualModal({ onClose }) {
                         <GuideRow 
                           icon={Star} iconColor="text-amber-500" label="Đánh giá nhiệm vụ" 
                           action="Vào tab Đánh giá trong chi tiết nhiệm vụ -> Thực hiện 3 bước chấm điểm."
-                          note="Đây là quyền hạn cao nhất. Manager có quyền chốt điểm cuối cùng."
+                          note="Đây là quyền hạn quan trọng để chốt kết quả thi đua cho cán bộ."
                         />
                         <GuideRow 
                           icon={TrendingUp} iconColor="text-emerald-500" label="Hiệu suất cán bộ" 

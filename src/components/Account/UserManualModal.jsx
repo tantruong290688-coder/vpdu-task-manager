@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, BookOpen, Star, Flag, CheckCircle, MousePointer2, Keyboard, Zap, Info, Calendar, TrendingUp, Send, LayoutList, Layers, Bell, Smartphone, Users, Trash2, Shield, History } from 'lucide-react';
+import { X, BookOpen, Star, Flag, CheckCircle, MousePointer2, Keyboard, Zap, Info, Calendar, TrendingUp, Send, LayoutList, Layers, Bell, Smartphone, Users, Trash2, Shield, History, Eye } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function UserManualModal({ onClose }) {
@@ -90,6 +90,11 @@ export default function UserManualModal({ onClose }) {
                           icon={Users} iconColor="text-purple-500" label="Quản lý nhân sự" 
                           action="Vào mục 'Quản trị hệ thống' -> Tạo tài khoản, đổi mật khẩu hoặc khóa tài khoản."
                           note="Đặc quyền Admin: Kiểm soát toàn bộ danh sách cán bộ và quyền truy cập."
+                        />
+                        <GuideRow 
+                          icon={Eye} iconColor="text-blue-500" label="Giám sát tiếp nhận" 
+                          action="Vào 'Nhật ký thao tác' -> Tìm hành động 'Xem nhiệm vụ' của cán bộ."
+                          note="Admin có thể biết chính xác AI đã xem nhiệm vụ vào LÚC NÀO để đôn đốc."
                         />
                         <GuideRow 
                           icon={Trash2} iconColor="text-rose-500" label="Dọn dẹp hệ thống" 

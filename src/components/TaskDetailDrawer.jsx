@@ -166,6 +166,21 @@ export default function TaskDetailDrawer({
   useEffect(() => {
     if (isOpen && task?.id) {
       fetchHistory();
+      
+      // Ghi nhật ký "Xem nhiệm vụ" (Chỉ ghi nếu người xem là Assignee hoặc Collaborator)
+      const isTrackedUser = profile?.id === task.assignee_id || (task.task_collaborators || []).some(c => c.user_id === profile?.id);
+      
+      if (isTrackedUser) {
+        writeLog({
+          actorId: profile.id,
+          actorName: profile.full_name,
+          actorRole: profile.role,
+          action: 'Xem nhiệm vụ',
+          taskId: task.id,
+          taskCode: task.code,
+          note: `Đã mở xem chi tiết nhiệm vụ: ${task.title}`
+        });
+      }
     }
   }, [isOpen, task?.id]);
 

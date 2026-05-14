@@ -166,23 +166,39 @@ export default function TaskDetailDrawer({
   useEffect(() => {
     if (isOpen && task?.id) {
       fetchHistory();
-      
-      // Ghi nhật ký "Xem nhiệm vụ" (Chỉ ghi nếu người xem là Assignee hoặc Collaborator)
-      const isTrackedUser = profile?.id === task.assignee_id || (task.task_collaborators || []).some(c => c.user_id === profile?.id);
-      
-      if (isTrackedUser) {
-        writeLog({
-          actorId: profile.id,
-          actorName: profile.full_name,
-          actorRole: profile.role,
-          action: 'Xem nhiệm vụ',
-          taskId: task.id,
-          taskCode: task.code,
-          note: `Đã mở xem chi tiết nhiệm vụ: ${task.title}`
-        });
-      }
     }
   }, [isOpen, task?.id]);
+
+  // Tự động ghi nhận "Đã xem" khi mở drawer
+  useEffect(() => {
+    if (isOpen && task?.id && history.length >= 0) {
+      const isTrackedUser = profile?.id === task.assignee_id || (task.task_collaborators || []).some(c => c.user_id === profile?.id);
+      if (!isTrackedUser) return;
+
+      // Kiểm tra xem người dùng hiện tại đã có log "Xem nhiệm vụ" trong history chưa
+      const alreadyLogged = history.some(h => h.user_id === profile.id && h.action === 'Xem nhiệm vụ');
+      
+      if (!alreadyLogged) {
+        const recordView = async () => {
+          await supabase.from('task_updates').insert([{
+            task_id: task.id,
+            user_id: profile.id,
+            action: 'Xem nhiệm vụ',
+            details: `Đã mở xem chi tiết nhiệm vụ`
+          }]);
+          fetchHistory(); // Tải lại history để cập nhật UI ngay lập tức
+        };
+        recordView();
+      }
+    }
+  }, [isOpen, task?.id, history.length]);
+
+  // Danh sách các ID người dùng đã xem nhiệm vụ này
+  const viewedUserIds = new Set(
+    history
+      .filter(h => h.action === 'Xem nhiệm vụ')
+      .map(h => h.user_id)
+  );
 
   const fetchHistory = async () => {
     setLoadingHistory(true);
@@ -205,9 +221,6 @@ export default function TaskDetailDrawer({
   const isOverdue = task && task.due_date && new Date(task.due_date) < new Date() && task?.status !== 'completed' && task?.evaluation_score === null;
   const statusInfo = STATUS_MAP[task?.status] || STATUS_MAP.pending;
   const priorityInfo = PRIORITY_MAP[task?.priority] || PRIORITY_MAP.normal;
-  const collaboratorNames = (task?.task_collaborators || [])
-    .map(c => c.profiles?.full_name)
-    .filter(Boolean);
 
   // Close on Escape
   useEffect(() => {
@@ -432,22 +445,39 @@ export default function TaskDetailDrawer({
                   </span>
                 } />
                 <FieldRow label="Người thực hiện chính" value={
-                  <span className="flex items-center gap-1.5 font-semibold text-blue-700 dark:text-blue-400">
-                    <User size={13} className="shrink-0" />
-                    {task.assignee?.full_name || '—'}
-                  </span>
+                  <div className="flex flex-col gap-1">
+                    <span className="flex items-center gap-1.5 font-semibold text-blue-700 dark:text-blue-400">
+                      <User size={13} className="shrink-0" />
+                      {task.assignee?.full_name || '—'}
+                    </span>
+                    {viewedUserIds.has(task.assignee_id) && (
+                      <span className="text-[10px] text-green-600 dark:text-green-400 font-bold flex items-center gap-1 ml-4 animate-in fade-in slide-in-from-left-1">
+                        <Check size={10} /> Đã xem
+                      </span>
+                    )}
+                  </div>
                 } />
                 <div className="col-span-2">
                   <dt className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1.5">Người phối hợp</dt>
                   <dd>
-                    {collaboratorNames.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {collaboratorNames.map((name, i) => (
-                          <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[12px] font-semibold rounded-lg">
-                            <Users size={11} className="text-slate-400" />
-                            {name}
-                          </span>
-                        ))}
+                    {task.task_collaborators?.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {task.task_collaborators.map((c, i) => {
+                          const isViewed = viewedUserIds.has(c.user_id);
+                          return (
+                            <div key={i} className="flex flex-col gap-1">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[12px] font-semibold rounded-lg">
+                                <Users size={11} className="text-slate-400" />
+                                {c.profiles?.full_name}
+                              </span>
+                              {isViewed && (
+                                <span className="text-[9px] text-green-600 dark:text-green-400 font-bold flex items-center gap-0.5 ml-1 animate-in fade-in slide-in-from-left-1">
+                                  <Check size={9} /> Đã xem
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : (
                       <span className="text-[13px] text-slate-300 dark:text-slate-600 italic">Không có</span>

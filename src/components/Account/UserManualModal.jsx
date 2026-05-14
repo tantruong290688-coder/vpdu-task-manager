@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, BookOpen, Star, Flag, CheckCircle, MousePointer2, Keyboard, Zap, Info, Calendar, TrendingUp, Send, LayoutList, Layers, Bell, Smartphone } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -5,8 +7,16 @@ export default function UserManualModal({ onClose }) {
   const { profile } = useAuth();
   const isManager = profile?.role === 'manager' || profile?.role === 'admin';
 
-  return (
-    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+  // Chặn cuộn trang khi mở modal
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 md:p-10 bg-slate-900/80 backdrop-blur-xl animate-in fade-in duration-300">
       {/* Click outside overlay */}
       <div className="absolute inset-0" onClick={onClose}></div>
       
@@ -249,6 +259,8 @@ export default function UserManualModal({ onClose }) {
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
 
 function GuideRow({ icon: Icon, iconColor, label, action, note }) {
@@ -268,61 +280,6 @@ function GuideRow({ icon: Icon, iconColor, label, action, note }) {
       <td className="px-6 py-6 text-slate-400 dark:text-slate-500 font-medium italic leading-relaxed">
         {note}
       </td>
-    </tr>
-  );
-}
-
-function EvalStep({ step, title, desc }) {
-  return (
-    <div className="bg-white/10 p-6 rounded-[32px] border border-white/10 space-y-3">
-      <div className="w-10 h-10 rounded-2xl bg-white text-indigo-600 flex items-center justify-center font-black text-lg shadow-lg">{step}</div>
-      <h5 className="text-[16px] font-black uppercase tracking-tight">{title}</h5>
-      <p className="text-[13px] text-indigo-50/70 font-medium leading-relaxed">{desc}</p>
-    </div>
-  );
-}
-
-function ShortcutItem({ icon: Icon, keys, label }) {
-  return (
-    <div className="flex items-center gap-4 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
-      <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-600 flex items-center justify-center shrink-0">
-        <Icon size={20} />
-      </div>
-      <div className="flex-1">
-        <div className="flex items-center justify-between mb-0.5">
-          <span className="text-[13px] font-black text-slate-800 dark:text-white uppercase">{keys}</span>
-        </div>
-        <p className="text-[12px] text-slate-400 font-medium">{label}</p>
-      </div>
-    </div>
-  );
-}
-
-function IconLegend({ icon: Icon, color, label, desc }) {
-  return (
-    <div className="flex items-center gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
-      <Icon className={`${color} shrink-0`} size={20} />
-      <div>
-        <p className="text-[13px] font-black text-slate-800 dark:text-white">{label}</p>
-        <p className="text-[11px] text-slate-400 font-medium">{desc}</p>
-      </div>
-    </div>
-  );
-}
-
-function GuideRow({ icon: Icon, iconColor, label, action, note }) {
-  return (
-    <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
-      <td className="px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center ${iconColor} group-hover:scale-110 transition-transform`}>
-            <Icon size={16} />
-          </div>
-          <span className="font-black text-slate-800 dark:text-slate-100">{label}</span>
-        </div>
-      </td>
-      <td className="px-6 py-4 text-slate-600 dark:text-slate-300 font-bold leading-relaxed">{action}</td>
-      <td className="px-6 py-4 text-slate-400 dark:text-slate-500 font-medium italic">{note}</td>
     </tr>
   );
 }

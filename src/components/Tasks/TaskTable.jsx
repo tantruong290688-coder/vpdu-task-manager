@@ -1,19 +1,20 @@
 import { useState, useRef, useEffect } from 'react';
-import { SlidersHorizontal, ArrowUp, ArrowDown, ArrowUpDown, Eye, CheckCircle, Star, Edit2, Trash2, AlertTriangle, Flag as FlagIcon } from 'lucide-react';
+import { SlidersHorizontal, ArrowUp, ArrowDown, ArrowUpDown, Eye, CheckCircle, Star, Edit2, Trash2, AlertTriangle, Flag as FlagIcon, Settings2, Check, X } from 'lucide-react';
 import { getTaskRisk } from '../../utils/taskAnalytics';
 import { StatusBadge, PriorityBadge, ScoreBadge, EvaluationStatusBadge } from './TaskBadges';
+import toast from 'react-hot-toast';
 import { canEditTask, canUpdateProgress, canEvaluate, canOpenEvaluationModal } from '../../lib/permissions';
 import { getDashboardEmptyState } from '../../lib/taskFilters';
 
 const DEFAULT_WIDTHS = {
-  code: 90,
+  code: 100,
   assigned_date: 100,
   assigner: 130,
   assignee: 140,
   collaborators: 150,
   task_group: 140,
   work_area: 140,
-  title: 220,
+  title: 250,
   description: 200,
   expected_output: 160,
   priority: 80,
@@ -21,6 +22,24 @@ const DEFAULT_WIDTHS = {
   due_date: 110,
   status: 110,
   evaluation: 110,
+};
+
+const COLUMN_LABELS = {
+  code: 'A. Mã NV',
+  assigned_date: 'B. Ngày giao',
+  assigner: 'C. Người giao',
+  assignee: 'D. Người TH',
+  collaborators: 'E. Phối hợp',
+  task_group: 'F. Nhóm NV',
+  work_area: 'G. Lĩnh vực',
+  title: 'H. Tên nhiệm vụ',
+  description: 'I. Nội dung',
+  expected_output: 'J. Sản phẩm',
+  priority: 'K. UT',
+  start_date: 'L. Bắt đầu',
+  due_date: 'M. Hạn HT',
+  status: 'N. Trạng thái',
+  evaluation: 'O. Đánh giá',
 };
 
 export default function TaskTable({
@@ -37,7 +56,68 @@ export default function TaskTable({
   actions
 }) {
   const { openDrawer, handleStatusChange, setEvalModalTask, openEditModal, handleDelete } = actions;
-  const [widths, setWidths] = useState(DEFAULT_WIDTHS);
+  
+  const [widths, setWidths] = useState(() => {
+    const saved = localStorage.getItem('task_table_widths');
+    if (saved) {
+      try {
+        return { ...DEFAULT_WIDTHS, ...JSON.parse(saved) };
+      } catch (e) { return DEFAULT_WIDTHS; }
+    }
+    return DEFAULT_WIDTHS;
+  });
+
+  const [visibleColumns, setVisibleColumns] = useState(() => {
+    const saved = localStorage.getItem('task_table_visibility');
+    if (saved) {
+      try {
+        return { ...Object.keys(DEFAULT_WIDTHS).reduce((acc, k) => ({ ...acc, [k]: true }), {}), ...JSON.parse(saved) };
+      } catch (e) { return Object.keys(DEFAULT_WIDTHS).reduce((acc, k) => ({ ...acc, [k]: true }), {}); }
+    }
+    return Object.keys(DEFAULT_WIDTHS).reduce((acc, k) => ({ ...acc, [k]: true }), {});
+  });
+
+  const [columnOrder, setColumnOrder] = useState(() => {
+    const saved = localStorage.getItem('task_table_order');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Ensure all default columns are present in the order
+        const allKeys = Object.keys(DEFAULT_WIDTHS);
+        const filtered = parsed.filter(k => allKeys.includes(k));
+        const missing = allKeys.filter(k => !filtered.includes(k));
+        return [...filtered, ...missing];
+      } catch (e) { return Object.keys(DEFAULT_WIDTHS); }
+    }
+    return Object.keys(DEFAULT_WIDTHS);
+  });
+
+  const [showColumnSettings, setShowColumnSettings] = useState(false);
+  const settingsRef = useRef(null);
+
+  useEffect(() => {
+    localStorage.setItem('task_table_widths', JSON.stringify(widths));
+  }, [widths]);
+
+  useEffect(() => {
+    localStorage.setItem('task_table_visibility', JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
+
+  useEffect(() => {
+    localStorage.setItem('task_table_order', JSON.stringify(columnOrder));
+  }, [columnOrder]);
+
+  // Close settings when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (settingsRef.current && !settingsRef.current.contains(event.target)) {
+        setShowColumnSettings(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const resizingCol = useRef(null);
   const startX = useRef(0);
   const startWidth = useRef(0);
@@ -57,7 +137,7 @@ export default function TaskTable({
   const handleResizeMove = (e) => {
     if (!resizingCol.current) return;
     const diff = e.pageX - startX.current;
-    const newWidth = Math.max(50, startWidth.current + diff);
+    const newWidth = Math.max(40, startWidth.current + diff);
     setWidths(prev => ({ ...prev, [resizingCol.current]: newWidth }));
   };
 
@@ -93,9 +173,36 @@ export default function TaskTable({
   const Resizer = ({ col }) => (
     <div 
       onPointerDown={(e) => handleResizeStart(e, col)}
-      className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-400/50 group-hover:bg-slate-200/50 dark:group-hover:bg-slate-700/50 transition-colors z-20"
-    />
+      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500/50 active:bg-blue-600 transition-colors z-20 group/resizer"
+    >
+      <div className="absolute top-0 right-0 bottom-0 w-[1px] bg-slate-200 dark:bg-slate-800" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-0.5 h-4 bg-blue-500 rounded-full opacity-0 group-hover/resizer:opacity-100 transition-opacity" />
+    </div>
   );
+
+  const toggleColumn = (col) => {
+    setVisibleColumns(prev => ({ ...prev, [col]: !prev[col] }));
+  };
+
+  const moveColumn = (col, direction) => {
+    const index = columnOrder.indexOf(col);
+    if (direction === 'left' && index > 0) {
+      const newOrder = [...columnOrder];
+      [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]];
+      setColumnOrder(newOrder);
+    } else if (direction === 'right' && index < columnOrder.length - 1) {
+      const newOrder = [...columnOrder];
+      [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+      setColumnOrder(newOrder);
+    }
+  };
+
+  const resetTable = () => {
+    setWidths(DEFAULT_WIDTHS);
+    setVisibleColumns(Object.keys(DEFAULT_WIDTHS).reduce((acc, k) => ({ ...acc, [k]: true }), {}));
+    setColumnOrder(Object.keys(DEFAULT_WIDTHS));
+    toast.success('Đã khôi phục cài đặt bảng mặc định');
+  };
 
   return (
     <div className="hidden md:block relative">
@@ -117,91 +224,102 @@ export default function TaskTable({
                 </div>
               </th>
               {/* Sticky first column */}
-              <th className="sticky left-[45px] z-20 bg-slate-50 dark:bg-slate-900 p-0 border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.1)] group" style={{ width: widths.code }}>
-                <div className="flex items-center justify-between gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('code')}>
-                  <span className="truncate">A. Mã NV</span> <SortIcon columnKey="code" />
+              {(() => {
+                const firstVisibleCol = columnOrder.find(k => visibleColumns[k]);
+                return columnOrder.map((colKey) => {
+                  if (!visibleColumns[colKey]) return null;
+                  
+                  const isFirstVisible = colKey === firstVisibleCol;
+                  const label = COLUMN_LABELS[colKey];
+                  
+                  return (
+                    <th 
+                      key={colKey}
+                      className={`
+                        p-0 group relative border-r border-slate-100 dark:border-slate-800
+                        ${isFirstVisible ? 'sticky left-[45px] z-20 bg-slate-50 dark:bg-slate-900 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.1)]' : ''}
+                      `}
+                      style={{ width: widths[colKey] }}
+                    >
+                      <div 
+                        className="flex items-center justify-between gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" 
+                        onClick={() => requestSort(colKey === 'evaluation' ? 'evaluation_score' : (colKey === 'assigner' || colKey === 'assignee' ? `${colKey}.full_name` : colKey))}
+                      >
+                        <span className="truncate">{label}</span>
+                        {(colKey !== 'collaborators' && colKey !== 'description' && colKey !== 'expected_output') && (
+                          <SortIcon columnKey={colKey === 'evaluation' ? 'evaluation_score' : (colKey === 'assigner' || colKey === 'assignee' ? `${colKey}.full_name` : colKey)} />
+                        )}
+                      </div>
+                      <Resizer col={colKey} />
+                    </th>
+                  );
+                });
+              })()}
+              
+              <th className="p-3 w-[100px] text-center whitespace-nowrap sticky right-0 z-20 bg-slate-50 dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.1)]">
+                <div className="flex items-center justify-center gap-2">
+                  <span className="text-slate-400">P. Thao tác</span>
+                  <div className="relative" ref={settingsRef}>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setShowColumnSettings(!showColumnSettings); }}
+                      className={`p-1.5 rounded-lg transition-all ${showColumnSettings ? 'bg-blue-600 text-white shadow-lg' : 'hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400'}`}
+                      title="Tùy chỉnh cột"
+                    >
+                      <Settings2 size={14} />
+                    </button>
+                    
+                    {showColumnSettings && (
+                      <div className="absolute right-0 mt-3 w-72 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 z-[100] py-0 overflow-hidden animate-in fade-in zoom-in duration-200 origin-top-right">
+                        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30">
+                          <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">Cấu hình bảng</span>
+                          <button onClick={resetTable} className="text-[10px] font-black text-blue-600 hover:text-blue-700 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md transition-colors">Đặt lại</button>
+                        </div>
+                        <div className="max-h-[400px] overflow-y-auto py-2 scrollbar-thin">
+                          {columnOrder.map((key, idx) => (
+                            <div
+                              key={key}
+                              className="group/item flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                            >
+                              {/* Reorder controls */}
+                              <div className="flex flex-col gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                                <button 
+                                  onClick={() => moveColumn(key, 'left')} 
+                                  disabled={idx === 0}
+                                  className="p-0.5 text-slate-400 hover:text-blue-600 disabled:opacity-20"
+                                  title="Di chuyển lên"
+                                >
+                                  <ArrowUp size={10} />
+                                </button>
+                                <button 
+                                  onClick={() => moveColumn(key, 'right')} 
+                                  disabled={idx === columnOrder.length - 1}
+                                  className="p-0.5 text-slate-400 hover:text-blue-600 disabled:opacity-20"
+                                  title="Di chuyển xuống"
+                                >
+                                  <ArrowDown size={10} />
+                                </button>
+                              </div>
+
+                              <button
+                                onClick={() => toggleColumn(key)}
+                                className="flex-1 flex items-center justify-between text-[12px] font-bold text-slate-600 dark:text-slate-300 transition-colors"
+                              >
+                                <span className="truncate">{COLUMN_LABELS[key]}</span>
+                                <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${visibleColumns[key] ? 'bg-blue-600 border-blue-600 shadow-sm shadow-blue-200' : 'border-slate-300 dark:border-slate-600'}`}>
+                                  {visibleColumns[key] && <Check size={10} className="text-white" strokeWidth={3} />}
+                                </div>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20">
+                          <p className="text-[10px] text-slate-400 italic">Mẹo: Bạn có thể kéo dãn cột trực tiếp trên tiêu đề bảng.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <Resizer col="code" />
               </th>
-              <th className="p-0 group relative" style={{ width: widths.assigned_date }}>
-                <div className="flex items-center justify-between gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('assigned_date')}>
-                  <span className="truncate">B. Ngày giao</span> <SortIcon columnKey="assigned_date" />
-                </div>
-                <Resizer col="assigned_date" />
-              </th>
-              <th className="p-0 group relative" style={{ width: widths.assigner }}>
-                <div className="flex items-center justify-between gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('assigner.full_name')}>
-                  <span className="truncate">C. Người giao</span> <SortIcon columnKey="assigner.full_name" />
-                </div>
-                <Resizer col="assigner" />
-              </th>
-              <th className="p-0 group relative" style={{ width: widths.assignee }}>
-                <div className="flex items-center justify-between gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('assignee.full_name')}>
-                  <span className="truncate">D. Người TH</span> <SortIcon columnKey="assignee.full_name" />
-                </div>
-                <Resizer col="assignee" />
-              </th>
-              <th className="p-0 group relative" style={{ width: widths.collaborators }}>
-                <div className="p-3 truncate h-full">E. Phối hợp</div>
-                <Resizer col="collaborators" />
-              </th>
-              <th className="p-0 group relative" style={{ width: widths.task_group }}>
-                <div className="flex items-center justify-between gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('task_group')}>
-                  <span className="truncate">F. Nhóm NV</span> <SortIcon columnKey="task_group" />
-                </div>
-                <Resizer col="task_group" />
-              </th>
-              <th className="p-0 group relative" style={{ width: widths.work_area }}>
-                <div className="flex items-center justify-between gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('work_area')}>
-                  <span className="truncate">G. Lĩnh vực</span> <SortIcon columnKey="work_area" />
-                </div>
-                <Resizer col="work_area" />
-              </th>
-              <th className="p-0 group relative" style={{ width: widths.title }}>
-                <div className="flex items-center justify-between gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('title')}>
-                  <span className="truncate">H. Tên nhiệm vụ</span> <SortIcon columnKey="title" />
-                </div>
-                <Resizer col="title" />
-              </th>
-              <th className="p-0 group relative" style={{ width: widths.description }}>
-                <div className="p-3 truncate h-full">I. Nội dung</div>
-                <Resizer col="description" />
-              </th>
-              <th className="p-0 group relative" style={{ width: widths.expected_output }}>
-                <div className="p-3 truncate h-full">J. Sản phẩm</div>
-                <Resizer col="expected_output" />
-              </th>
-              <th className="p-0 group relative" style={{ width: widths.priority }}>
-                <div className="flex items-center justify-center gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('priority')}>
-                  <span className="truncate">K. UT</span> <SortIcon columnKey="priority" />
-                </div>
-                <Resizer col="priority" />
-              </th>
-              <th className="p-0 group relative" style={{ width: widths.start_date }}>
-                <div className="flex items-center justify-between gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('start_date')}>
-                  <span className="truncate">L. Bắt đầu</span> <SortIcon columnKey="start_date" />
-                </div>
-                <Resizer col="start_date" />
-              </th>
-              <th className="p-0 group relative" style={{ width: widths.due_date }}>
-                <div className="flex items-center justify-between gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('due_date')}>
-                  <span className="truncate">M. Hạn HT</span> <SortIcon columnKey="due_date" />
-                </div>
-                <Resizer col="due_date" />
-              </th>
-              <th className="p-0 group relative" style={{ width: widths.status }}>
-                <div className="flex items-center justify-center gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('status')}>
-                  <span className="truncate">N. Trạng thái</span> <SortIcon columnKey="status" />
-                </div>
-                <Resizer col="status" />
-              </th>
-              <th className="p-0 group relative" style={{ width: widths.evaluation }}>
-                <div className="flex items-center justify-center gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" onClick={() => requestSort('evaluation_score')}>
-                  <span className="truncate">O. Đánh giá</span> <SortIcon columnKey="evaluation_score" />
-                </div>
-                <Resizer col="evaluation" />
-              </th>
-              <th className="p-3 w-[90px] text-center whitespace-nowrap">P. Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
@@ -244,115 +362,135 @@ export default function TaskTable({
                       />
                     </div>
                   </td>
-                  <td className={`sticky left-[45px] z-[5] p-3 border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.1)] text-[12px] font-black font-mono whitespace-nowrap transition-colors ${
-                    isSelected ? 'bg-blue-50 dark:bg-[#111c33] text-slate-700 dark:text-white' :
-                    isOverdue ? 'bg-red-100 dark:bg-red-900/30 group-hover:bg-red-200 dark:group-hover:bg-red-900/50 text-red-900 dark:text-white' :
-                    actions.selectedIds?.includes(task.id) ? 'bg-blue-50 dark:bg-[#111c33] text-slate-700 dark:text-white' :
-                    'bg-white dark:bg-[#0f172a] group-hover:bg-slate-50 dark:group-hover:bg-slate-800 text-slate-700 dark:text-white'
-                  }`}>
-                    <div className="flex items-center gap-2">
-                      <span className="truncate">{task.code || 'NV-000'}</span>
-                      {(() => {
-                        const risk = getTaskRisk(task);
-                        if (risk.isRisk) {
-                          return (
-                            <div className="relative group/risk" title={risk.reason}>
-                              <FlagIcon size={12} className="text-red-500 fill-red-500 animate-pulse" />
-                              <div className="absolute bottom-full left-0 mb-2 hidden group-hover/risk:block bg-slate-900 text-white text-[10px] p-2 rounded-lg shadow-xl whitespace-nowrap z-[100]">
-                                {risk.reason}
+                  {(() => {
+                    const firstVisibleCol = columnOrder.find(k => visibleColumns[k]);
+                    const isSelected = selectedTask?.id === task.id && isDrawerOpen;
+
+                    return columnOrder.map((colKey) => {
+                      if (!visibleColumns[colKey]) return null;
+
+                      const isFirstVisible = colKey === firstVisibleCol;
+
+                      // Helper for cell rendering
+                      const renderCell = () => {
+                        switch (colKey) {
+                          case 'code':
+                            return (
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-black">{task.code || 'NV-000'}</span>
+                                {(() => {
+                                  const risk = getTaskRisk(task);
+                                  if (risk.isRisk) {
+                                    return (
+                                      <div className="relative group/risk" title={risk.reason}>
+                                        <FlagIcon size={12} className="text-red-500 fill-red-500 animate-pulse" />
+                                        <div className="absolute bottom-full left-0 mb-2 hidden group-hover/risk:block bg-slate-900 text-white text-[10px] p-2 rounded-lg shadow-xl whitespace-nowrap z-[100]">
+                                          {risk.reason}
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                })()}
                               </div>
-                            </div>
-                          );
+                            );
+                          case 'assigned_date':
+                            return fmtDate(task.assigned_date);
+                          case 'assigner':
+                            return (
+                              <span className="block truncate" title={task.assigner?.full_name}>
+                                {task.assigner?.full_name || '—'}
+                              </span>
+                            );
+                          case 'assignee':
+                            return (
+                              <span className="block truncate font-semibold text-slate-700 dark:text-slate-200" title={task.assignee?.full_name}>
+                                {task.assignee?.full_name || '—'}
+                              </span>
+                            );
+                          case 'collaborators':
+                            const names = (task.task_collaborators || []).map(c => c.profiles?.full_name).filter(Boolean);
+                            if (names.length === 0) return <span className="text-slate-300 dark:text-slate-700">—</span>;
+                            const display = names.slice(0, 2).join(', ');
+                            return (
+                              <span className="block truncate" title={names.join(', ')}>
+                                {display}{names.length > 2 ? ` +${names.length - 2}` : ''}
+                              </span>
+                            );
+                          case 'task_group':
+                            return <span className="block truncate" title={task.task_group}>{task.task_group || '—'}</span>;
+                          case 'work_area':
+                            return <span className="block truncate" title={task.work_area}>{task.work_area || '—'}</span>;
+                          case 'title':
+                            return (
+                              <span className="font-bold text-slate-800 dark:text-white leading-snug line-clamp-2" title={task.title}>
+                                {task.title}
+                              </span>
+                            );
+                          case 'description':
+                            return (
+                              <span className="line-clamp-2 leading-relaxed text-slate-500" title={task.description}>
+                                {task.description || <span className="text-slate-300 dark:text-slate-700 italic">—</span>}
+                              </span>
+                            );
+                          case 'expected_output':
+                            return (
+                              <span className="line-clamp-2 text-slate-500" title={task.expected_output}>
+                                {task.expected_output || <span className="text-slate-300 dark:text-slate-700 italic">—</span>}
+                              </span>
+                            );
+                          case 'priority':
+                            return <div className="flex justify-center"><PriorityBadge priority={task.priority} /></div>;
+                          case 'start_date':
+                            return fmtDate(task.start_date);
+                          case 'due_date':
+                            const lateDays = getLateDays(task);
+                            return (
+                              <div className="flex flex-col">
+                                <span className={`text-[12px] font-semibold ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                                  {fmtDate(task.due_date)}
+                                </span>
+                                {lateDays > 0 && (
+                                  <span className={`flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded mt-1 font-black uppercase tracking-tighter w-fit ${task.status === 'completed' ? 'bg-amber-50 text-amber-600' : 'bg-red-600 text-white shadow-sm'}`}>
+                                    Trễ {lateDays}n
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          case 'status':
+                            return <div className="flex justify-center"><StatusBadge status={task.status} dueDate={task.due_date} evaluationScore={task.evaluation_score} /></div>;
+                          case 'evaluation':
+                            return <div className="flex justify-center"><EvaluationStatusBadge task={task} /></div>;
+                          default:
+                            return null;
                         }
-                        return null;
-                      })()}
-                    </div>
-                  </td>
-                  <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                    {fmtDate(task.assigned_date)}
-                  </td>
-                  <td className="p-3 text-[12px] text-slate-600 dark:text-slate-400 overflow-hidden">
-                    <span className="block truncate" title={task.assigner?.full_name}>
-                      {task.assigner?.full_name || '—'}
-                    </span>
-                  </td>
-                  <td className="p-3 text-[12px] overflow-hidden">
-                    <span className="block truncate font-semibold text-slate-700 dark:text-slate-200" title={task.assignee?.full_name}>
-                      {task.assignee?.full_name || '—'}
-                    </span>
-                  </td>
-                  <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 overflow-hidden">
-                    {(() => {
-                      const names = (task.task_collaborators || []).map(c => c.profiles?.full_name).filter(Boolean);
-                      if (names.length === 0) return <span className="text-slate-300 dark:text-slate-700">—</span>;
-                      const display = names.slice(0, 2).join(', ');
+                      };
+
                       return (
-                        <span className="block truncate" title={names.join(', ')}>
-                          {display}{names.length > 2 ? ` +${names.length - 2}` : ''}
-                        </span>
+                        <td 
+                          key={colKey}
+                          className={`
+                            p-3 border-r border-slate-100 dark:border-slate-800 text-[12px] transition-colors
+                            ${isFirstVisible ? `sticky left-[45px] z-[5] shadow-[2px_0_6px_-2px_rgba(0,0,0,0.1)] ${
+                              isSelected ? 'bg-blue-50 dark:bg-[#111c33]' :
+                              isOverdue ? 'bg-red-100 dark:bg-red-900/30 group-hover:bg-red-200 dark:group-hover:bg-red-900/50' :
+                              actions.selectedIds?.includes(task.id) ? 'bg-blue-50 dark:bg-[#111c33]' :
+                              'bg-white dark:bg-[#0f172a] group-hover:bg-slate-50 dark:group-hover:bg-slate-800'
+                            }` : ''}
+                          `}
+                        >
+                          {renderCell()}
+                        </td>
                       );
-                    })()}
-                  </td>
-                  <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 overflow-hidden">
-                    <span className="block truncate" title={task.task_group}>{task.task_group || '—'}</span>
-                  </td>
-                  <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 overflow-hidden">
-                    <span className="block truncate" title={task.work_area}>{task.work_area || '—'}</span>
-                  </td>
-                  <td className="p-3 text-[12px] overflow-hidden">
-                    <span
-                      className="font-bold text-slate-800 dark:text-white leading-snug line-clamp-2"
-                      title={task.title}
-                    >
-                      {task.title}
-                    </span>
-                  </td>
-                  <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 overflow-hidden">
-                    <span className="line-clamp-2 leading-relaxed" title={task.description}>
-                      {task.description || <span className="text-slate-300 dark:text-slate-700 italic">—</span>}
-                    </span>
-                  </td>
-                  <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 overflow-hidden">
-                    <span className="line-clamp-2" title={task.expected_output}>
-                      {task.expected_output || <span className="text-slate-300 dark:text-slate-700 italic">—</span>}
-                    </span>
-                  </td>
-                  <td className="p-3 text-center">
-                    <PriorityBadge priority={task.priority} />
-                  </td>
-                  <td className="p-3 text-[12px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                    {fmtDate(task.start_date)}
-                  </td>
-                  <td className="p-3 whitespace-nowrap">
-                    <span className={`text-[12px] font-semibold ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-slate-600 dark:text-slate-400'}`}>
-                      {fmtDate(task.due_date)}
-                      {(() => {
-                        const lateDays = getLateDays(task);
-                        if (lateDays > 0) {
-                          const isFinishedLate = task.status === 'completed';
-                          return (
-                            <span className={`
-                              flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md mt-1 font-black uppercase tracking-tighter shadow-sm w-fit
-                              ${isFinishedLate 
-                                ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800' 
-                                : 'bg-red-600 text-white dark:bg-red-500 shadow-red-200 dark:shadow-none'}
-                            `}>
-                              {isFinishedLate ? <CheckCircle size={10} strokeWidth={3} /> : <AlertTriangle size={10} strokeWidth={3} />}
-                              Trễ {lateDays} ngày
-                            </span>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </span>
-                  </td>
-                  <td className="p-3 text-center">
-                    <StatusBadge status={task.status} dueDate={task.due_date} evaluationScore={task.evaluation_score} />
-                  </td>
-                  <td className="p-3 text-center">
-                    <EvaluationStatusBadge task={task} />
-                  </td>
-                  <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                    });
+                  })()}
+                  
+                  <td className={`sticky right-0 z-[5] p-3 border-l border-slate-100 dark:border-slate-800 shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.1)] transition-colors ${
+                    isSelected ? 'bg-blue-50 dark:bg-[#111c33]' :
+                    isOverdue ? 'bg-red-100 dark:bg-red-900/30 group-hover:bg-red-200 dark:group-hover:bg-red-900/50' :
+                    actions.selectedIds?.includes(task.id) ? 'bg-blue-50 dark:bg-[#111c33]' :
+                    'bg-white dark:bg-[#0f172a] group-hover:bg-slate-50 dark:group-hover:bg-slate-800'
+                  }`} onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-center gap-1">
                       <button
                         onClick={() => openDrawer(task)}

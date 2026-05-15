@@ -214,12 +214,16 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
     if (data) setUsers(data);
   };
 
+  const assignableUsers = useMemo(() => {
+    return users.filter(u => u.role !== ROLES.VIEWER);
+  }, [users]);
+
   const visibleCollaborators = useMemo(() => {
-    if (isAdmin) return users;
+    if (isAdmin) return assignableUsers;
     // Manager chỉ được nhìn thấy/giao cho Staff
-    if (isManager) return users.filter(u => u.role === ROLES.STAFF || collaborators.includes(u.id));
-    return users.filter(u => collaborators.includes(u.id));
-  }, [isManager, isAdmin, users, collaborators]);
+    if (isManager) return assignableUsers.filter(u => u.role === ROLES.STAFF || collaborators.includes(u.id));
+    return assignableUsers.filter(u => collaborators.includes(u.id));
+  }, [isManager, isAdmin, assignableUsers, collaborators]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -459,7 +463,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
                   <select value={assigneeId} onChange={e => setAssigneeId(e.target.value)} required
                     className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none text-[14px] font-medium text-slate-700 dark:text-slate-200">
                     <option value="">-- Chọn --</option>
-                    {users.map(u => (
+                    {assignableUsers.map(u => (
                       <option key={u.id} value={u.id}>{u.full_name}</option>
                     ))}
                   </select>

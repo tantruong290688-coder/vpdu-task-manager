@@ -411,10 +411,9 @@ export default function TaskTable({
                           case 'collaborators':
                             const names = (task.task_collaborators || []).map(c => c.profiles?.full_name).filter(Boolean);
                             if (names.length === 0) return <span className="text-slate-300 dark:text-slate-700">—</span>;
-                            const display = names.slice(0, 2).join(', ');
                             return (
-                              <span className="block truncate" title={names.join(', ')}>
-                                {display}{names.length > 2 ? ` +${names.length - 2}` : ''}
+                              <span className="block whitespace-normal break-words leading-relaxed" title={names.join(', ')}>
+                                {names.join(', ')}
                               </span>
                             );
                           case 'task_group':

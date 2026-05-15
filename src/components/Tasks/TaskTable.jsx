@@ -232,27 +232,30 @@ export default function TaskTable({
                   const isFirstVisible = colKey === firstVisibleCol;
                   const label = COLUMN_LABELS[colKey];
                   
-                  return (
-                    <th 
-                      key={colKey}
-                      className={`
-                        p-0 group relative border-r border-slate-100 dark:border-slate-800
-                        ${isFirstVisible ? 'sticky left-[45px] z-20 bg-slate-50 dark:bg-slate-900 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.1)]' : ''}
-                      `}
-                      style={{ width: widths[colKey] }}
-                    >
-                      <div 
-                        className="flex items-center justify-between gap-1 p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors h-full" 
-                        onClick={() => requestSort(colKey === 'evaluation' ? 'evaluation_score' : (colKey === 'assigner' || colKey === 'assignee' ? `${colKey}.full_name` : colKey))}
-                      >
-                        <span className="truncate">{label}</span>
-                        {(colKey !== 'collaborators' && colKey !== 'description' && colKey !== 'expected_output') && (
-                          <SortIcon columnKey={colKey === 'evaluation' ? 'evaluation_score' : (colKey === 'assigner' || colKey === 'assignee' ? `${colKey}.full_name` : colKey)} />
-                        )}
-                      </div>
-                      <Resizer col={colKey} />
-                    </th>
-                  );
+                      const isSortable = colKey !== 'collaborators' && colKey !== 'description' && colKey !== 'expected_output';
+                      const sortKey = colKey === 'evaluation' ? 'evaluation_score' : (colKey === 'assigner' || colKey === 'assignee' ? `${colKey}.full_name` : colKey);
+
+                      return (
+                        <th 
+                          key={colKey}
+                          className={`
+                            p-0 group relative border-r border-slate-100 dark:border-slate-800
+                            ${isFirstVisible ? 'sticky left-[45px] z-20 bg-slate-50 dark:bg-slate-900 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.1)]' : ''}
+                          `}
+                          style={{ width: widths[colKey] }}
+                        >
+                          <div 
+                            className={`flex items-center justify-between gap-1 p-3 transition-colors h-full ${isSortable ? 'cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80' : 'cursor-default'}`} 
+                            onClick={() => isSortable && requestSort(sortKey)}
+                          >
+                            <span className="truncate">{label}</span>
+                            {isSortable && (
+                              <SortIcon columnKey={sortKey} />
+                            )}
+                          </div>
+                          <Resizer col={colKey} />
+                        </th>
+                      );
                 });
               })()}
               

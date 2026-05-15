@@ -398,13 +398,13 @@ export default function TaskTable({
                             return fmtDate(task.assigned_date);
                           case 'assigner':
                             return (
-                              <span className="block truncate" title={task.assigner?.full_name}>
+                              <span className="block whitespace-normal break-words" title={task.assigner?.full_name}>
                                 {task.assigner?.full_name || '—'}
                               </span>
                             );
                           case 'assignee':
                             return (
-                              <span className="block truncate font-semibold text-slate-700 dark:text-slate-200" title={task.assignee?.full_name}>
+                              <span className="block whitespace-normal break-words font-semibold text-slate-700 dark:text-slate-200" title={task.assignee?.full_name}>
                                 {task.assignee?.full_name || '—'}
                               </span>
                             );
@@ -417,24 +417,24 @@ export default function TaskTable({
                               </span>
                             );
                           case 'task_group':
-                            return <span className="block truncate" title={task.task_group}>{task.task_group || '—'}</span>;
+                            return <span className="block whitespace-normal break-words" title={task.task_group}>{task.task_group || '—'}</span>;
                           case 'work_area':
-                            return <span className="block truncate" title={task.work_area}>{task.work_area || '—'}</span>;
+                            return <span className="block whitespace-normal break-words" title={task.work_area}>{task.work_area || '—'}</span>;
                           case 'title':
                             return (
-                              <span className="font-bold text-slate-800 dark:text-white leading-snug line-clamp-2" title={task.title}>
+                              <span className="block whitespace-normal break-words font-bold text-slate-800 dark:text-white leading-snug" title={task.title}>
                                 {task.title}
                               </span>
                             );
                           case 'description':
                             return (
-                              <span className="line-clamp-2 leading-relaxed text-slate-500" title={task.description}>
+                              <span className="block whitespace-normal break-words leading-relaxed text-slate-500" title={task.description}>
                                 {task.description || <span className="text-slate-300 dark:text-slate-700 italic">—</span>}
                               </span>
                             );
                           case 'expected_output':
                             return (
-                              <span className="line-clamp-2 text-slate-500" title={task.expected_output}>
+                              <span className="block whitespace-normal break-words text-slate-500" title={task.expected_output}>
                                 {task.expected_output || <span className="text-slate-300 dark:text-slate-700 italic">—</span>}
                               </span>
                             );

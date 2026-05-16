@@ -21,7 +21,7 @@ export const generateTaskChecklist = async (title, description) => {
         throw new Error("Gemini API key is not configured.");
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `
 Bạn là một trợ lý quản lý dự án chuyên nghiệp.

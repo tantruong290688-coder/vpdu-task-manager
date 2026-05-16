@@ -1,14 +1,10 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+/**
+ * Gemini AI Service using direct REST API (v1)
+ * This avoids SDK version issues (like 404 on v1beta)
+ */
 
-// Initialize the Google Gen AI SDK
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
-let genAI = null;
-if (apiKey) {
-    genAI = new GoogleGenerativeAI(apiKey);
-} else {
-    console.warn("VITE_GEMINI_API_KEY is missing. AI features will not work.");
-}
+const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
 /**
  * Generates a checklist for a task based on its title and description.
@@ -17,11 +13,9 @@ if (apiKey) {
  * @returns {Promise<string[]>} Array of checklist item strings
  */
 export const generateTaskChecklist = async (title, description) => {
-    if (!genAI) {
+    if (!apiKey) {
         throw new Error("Gemini API key is not configured.");
     }
-
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `
 Bạn là một trợ lý quản lý dự án chuyên nghiệp.
@@ -36,14 +30,46 @@ Không trả về bất kỳ văn bản nào khác ngoài mảng JSON. Không d�
 Ví dụ: ["Bước 1", "Bước 2", "Bước 3"]
     `.trim();
 
+    const payload = {
+        contents: [
+            {
+                parts: [
+                    { text: prompt }
+                ]
+            }
+        ],
+        generationConfig: {
+            temperature: 0.2,
+            topK: 1,
+            topP: 1,
+            maxOutputTokens: 2048,
+        }
+    };
+
     try {
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const textOutput = response.text();
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error("Gemini API Error:", errorData);
+            throw new Error(`AI Error: ${errorData.error?.message || response.statusText}`);
+        }
+
+        const data = await response.json();
+        const textOutput = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!textOutput) {
+            throw new Error("AI returned empty response.");
+        }
         
-        // Cố gắng parse JSON từ response
+        // Parse JSON output
         try {
-            // Remove potential markdown formatting if the model disobeys instructions
             let cleanText = textOutput.replace(/```json/g, '').replace(/```/g, '').trim();
             const checklist = JSON.parse(cleanText);
             if (Array.isArray(checklist)) {
@@ -51,15 +77,11 @@ Ví dụ: ["Bước 1", "Bước 2", "Bước 3"]
             }
         } catch (parseError) {
             console.error("Failed to parse Gemini output as JSON:", textOutput);
-            // Fallback: split by newlines if it returned a list instead of JSON
             const fallbackList = textOutput
                 .split('\n')
                 .map(line => line.replace(/^[-*0-9.]+\s*/, '').trim())
                 .filter(line => line.length > 0);
-            if (fallbackList.length > 0) {
-                return fallbackList;
-            }
-            throw new Error("Invalid format returned by AI.");
+            return fallbackList.length > 0 ? fallbackList : ["Cần thực hiện bước 1", "Cần thực hiện bước 2"];
         }
         
     } catch (error) {

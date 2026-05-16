@@ -1,10 +1,10 @@
 /**
- * Gemini AI Service using direct REST API (v1)
- * This avoids SDK version issues (like 404 on v1beta)
+ * Gemini AI Service using direct REST API with secure headers
  */
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+// Using v1beta as it has the widest model support
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
 
 /**
  * Generates a checklist for a task based on its title and description.
@@ -40,9 +40,7 @@ Ví dụ: ["Bước 1", "Bước 2", "Bước 3"]
         ],
         generationConfig: {
             temperature: 0.2,
-            topK: 1,
-            topP: 1,
-            maxOutputTokens: 2048,
+            maxOutputTokens: 1024,
         }
     };
 
@@ -51,13 +49,18 @@ Ví dụ: ["Bước 1", "Bước 2", "Bước 3"]
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'x-goog-api-key': apiKey // Sending key via header for better security and stability
             },
             body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
             const errorData = await response.json();
-            console.error("Gemini API Error:", errorData);
+            console.error("Gemini API Error details:", errorData);
+            // If it's still 404, try to suggest a fix
+            if (response.status === 404) {
+                throw new Error("Model not found. Please ensure the API Key is from Google AI Studio and has 'Generative Language API' enabled.");
+            }
             throw new Error(`AI Error: ${errorData.error?.message || response.statusText}`);
         }
 
@@ -68,7 +71,6 @@ Ví dụ: ["Bước 1", "Bước 2", "Bước 3"]
             throw new Error("AI returned empty response.");
         }
         
-        // Parse JSON output
         try {
             let cleanText = textOutput.replace(/```json/g, '').replace(/```/g, '').trim();
             const checklist = JSON.parse(cleanText);
@@ -76,7 +78,6 @@ Ví dụ: ["Bước 1", "Bước 2", "Bước 3"]
                 return checklist;
             }
         } catch (parseError) {
-            console.error("Failed to parse Gemini output as JSON:", textOutput);
             const fallbackList = textOutput
                 .split('\n')
                 .map(line => line.replace(/^[-*0-9.]+\s*/, '').trim())

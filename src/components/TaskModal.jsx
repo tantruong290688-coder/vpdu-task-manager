@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { X, AlertCircle } from 'lucide-react';
+import { X, AlertCircle, Sparkles, Trash2, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { writeLog } from '../lib/logger';
 import { canEditTask, canDelegateToStaff, ROLES } from '../lib/permissions';
 import { createNotification } from '../hooks/useNotifications';
+import { generateTaskChecklist } from '../services/geminiService';
 
 // Key for local storage draft
 const getDraftKey = (userId, scheduleItemId) => {
@@ -35,6 +36,10 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
   const [progress, setProgress] = useState(0);
   const [scheduleItemId, setScheduleItemId] = useState(null);
   
+  // AI Checklist Drafts
+  const [draftChecklists, setDraftChecklists] = useState([]);
+  const [isGeneratingChecklist, setIsGeneratingChecklist] = useState(false);
+  
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const isClosingRef = useRef(false);
@@ -63,6 +68,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
     setOriginalDueDate('');
     setProgress(0);
     setScheduleItemId(null);
+    setDraftChecklists([]);
   };
 
   useEffect(() => {
@@ -225,6 +231,28 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
     return assignableUsers.filter(u => collaborators.includes(u.id));
   }, [isManager, isAdmin, assignableUsers, collaborators]);
 
+  const handleGenerateChecklist = async () => {
+    if (!title) {
+      toast.error('Vui lòng nhập Tên nhiệm vụ trước khi dùng AI!');
+      return;
+    }
+    
+    setIsGeneratingChecklist(true);
+    try {
+      const suggestedItems = await generateTaskChecklist(title, description);
+      setDraftChecklists(suggestedItems);
+      toast.success('AI đã tạo checklist thành công!');
+    } catch (error) {
+      toast.error(error.message || 'Lỗi khi gọi AI. Vui lòng thử lại.');
+    } finally {
+      setIsGeneratingChecklist(false);
+    }
+  };
+
+  const removeDraftChecklist = (index) => {
+    setDraftChecklists(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -381,6 +409,17 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
             });
           }
         }
+      }
+
+      // Insert draft checklists
+      if (draftChecklists.length > 0 && taskId) {
+        const checklistData = draftChecklists.map((content, index) => ({
+          task_id: taskId,
+          content: content,
+          position: index,
+          created_by: profile?.id
+        }));
+        await supabase.from('task_checklists').insert(checklistData);
       }
 
       onTaskAdded();
@@ -543,6 +582,50 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
               <textarea value={description} onChange={e => setDescription(e.target.value)} rows="3"
                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none text-[14px] font-medium text-slate-700 resize-none"></textarea>
             </div>
+
+            {/* AI Assistant Section */}
+            {!isUpdating && (
+              <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={16} className="text-amber-500" />
+                    <span className="text-[13px] font-bold text-slate-700 dark:text-slate-300">Gợi ý Checklist bằng AI</span>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={handleGenerateChecklist}
+                    disabled={isGeneratingChecklist || !title}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[12px] font-bold rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-600 hover:border-amber-200 transition-colors disabled:opacity-50"
+                  >
+                    {isGeneratingChecklist ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                    {isGeneratingChecklist ? 'Đang tạo...' : 'Tạo Checklist'}
+                  </button>
+                </div>
+                
+                {draftChecklists.length > 0 && (
+                  <div className="space-y-2 mt-3">
+                    {draftChecklists.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2 bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-100 dark:border-slate-700 group">
+                        <span className="w-5 h-5 flex items-center justify-center bg-blue-100 text-blue-600 rounded-full text-[10px] font-black shrink-0">{idx + 1}</span>
+                        <input 
+                          type="text" 
+                          value={item} 
+                          onChange={(e) => {
+                            const newDrafts = [...draftChecklists];
+                            newDrafts[idx] = e.target.value;
+                            setDraftChecklists(newDrafts);
+                          }}
+                          className="flex-1 bg-transparent border-none outline-none text-[13px] font-medium text-slate-700 dark:text-slate-300 min-w-0"
+                        />
+                        <button type="button" onClick={() => removeDraftChecklist(idx)} className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-all">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div>
               <label className="block text-[13px] font-bold text-slate-800 mb-2">Sản phẩm đầu ra</label>

@@ -1,67 +1,59 @@
 /**
- * Gemini AI Service with Multi-Format Fallback
+ * Gemini AI Service calling Vercel Serverless Proxy
  */
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
-// Trying even more varied formats
-const MODEL_ENDPOINTS = [
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
-    "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent",
-    "https://generativelanguage.googleapis.com/v1beta/gemini-1.5-flash:generateContent", // Format without 'models/' prefix
-    "https://generativelanguage.googleapis.com/v1/gemini-1.5-flash:generateContent",
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
-];
-
 export const generateTaskChecklist = async (title, description) => {
-    if (!apiKey) {
-        throw new Error("Gemini API key is not configured.");
-    }
-
     const prompt = `
 Bạn là một trợ lý quản lý dự án chuyên nghiệp.
 Hãy phân rã công việc sau đây thành một danh sách các công việc con (checklist) cụ thể, rõ ràng và có thể hành động được.
+
 Tiêu đề công việc: ${title || "Không có tiêu đề"}
 Mô tả công việc: ${description || "Không có mô tả"}
-Trả về CHỈ một mảng JSON các chuỗi.
+
+Yêu cầu định dạng đầu ra:
+Trả về CHỈ một mảng JSON các chuỗi (strings), mỗi chuỗi là một mục trong checklist. Số lượng từ 3 đến 7 mục.
+Không trả về bất kỳ văn bản nào khác ngoài mảng JSON. Không dùng markdown block.
+Ví dụ: ["Bước 1", "Bước 2", "Bước 3"]
     `.trim();
 
-    const payload = {
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 1024 }
-    };
+    try {
+        // Gọi tới API Proxy trên Vercel thay vì gọi trực tiếp tới Google từ Browser
+        const response = await fetch('/api/ai-assistant', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ prompt })
+        });
 
-    let lastError = "";
-    let lastStatusCode = 0;
-
-    for (const url of MODEL_ENDPOINTS) {
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-goog-api-key': apiKey
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                const textOutput = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (textOutput) {
-                    let cleanText = textOutput.replace(/```json/g, '').replace(/```/g, '').trim();
-                    return JSON.parse(cleanText);
-                }
-            } else {
-                const err = await response.json();
-                lastError = err.error?.message || response.statusText;
-                lastStatusCode = response.status;
-                console.warn(`[AI Debug] Failed ${url}: ${lastStatusCode} - ${lastError}`);
-            }
-        } catch (e) {
-            lastError = e.message;
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Lỗi hệ thống AI');
         }
-    }
 
-    throw new Error(`Google từ chối (${lastStatusCode}): ${lastError}. Hãy kiểm tra xem bạn có thể chat được tại aistudio.google.com với Key này không.`);
+        const data = await response.json();
+        const textOutput = data.text;
+
+        if (!textOutput) {
+            throw new Error("AI không trả về nội dung.");
+        }
+        
+        try {
+            let cleanText = textOutput.replace(/```json/g, '').replace(/```/g, '').trim();
+            const checklist = JSON.parse(cleanText);
+            if (Array.isArray(checklist)) {
+                return checklist;
+            }
+        } catch (parseError) {
+            const fallbackList = textOutput
+                .split('\n')
+                .map(line => line.replace(/^[-*0-9.]+\s*/, '').trim())
+                .filter(line => line.length > 0);
+            return fallbackList.length > 0 ? fallbackList : ["Thực hiện nhiệm vụ", "Kiểm tra kết quả"];
+        }
+        
+    } catch (error) {
+        console.error("Error generating checklist via proxy:", error);
+        throw error;
+    }
 };

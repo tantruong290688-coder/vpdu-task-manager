@@ -1,13 +1,11 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Initialize the Google Gen AI SDK
-// The API key is automatically picked up from process.env.GEMINI_API_KEY in Node,
-// but in Vite browser environment, we must pass it explicitly.
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-let aiClient = null;
+let genAI = null;
 if (apiKey) {
-    aiClient = new GoogleGenAI({ apiKey });
+    genAI = new GoogleGenerativeAI(apiKey);
 } else {
     console.warn("VITE_GEMINI_API_KEY is missing. AI features will not work.");
 }
@@ -19,9 +17,11 @@ if (apiKey) {
  * @returns {Promise<string[]>} Array of checklist item strings
  */
 export const generateTaskChecklist = async (title, description) => {
-    if (!aiClient) {
+    if (!genAI) {
         throw new Error("Gemini API key is not configured.");
     }
+
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `
 Bạn là một trợ lý quản lý dự án chuyên nghiệp.
@@ -37,14 +37,8 @@ Ví dụ: ["Bước 1", "Bước 2", "Bước 3"]
     `.trim();
 
     try {
-        const response = await aiClient.models.generateContent({
-            model: 'gemini-1.5-flash',
-            contents: prompt,
-            config: {
-                temperature: 0.2, // Low temperature for more deterministic output
-            }
-        });
-
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
         const textOutput = response.text();
         
         // Cố gắng parse JSON từ response

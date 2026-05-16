@@ -17,8 +17,8 @@ export const generateTaskChecklist = async (title, description) => {
         throw new Error("Gemini API key is not configured.");
     }
 
-    // Debug log to verify key in production (safe: only show first/last characters)
-    console.log(`[AI Debug] Using Key: ${apiKey.substring(0, 3)}...${apiKey.substring(apiKey.length - 3)}`);
+    // Debug error log to verify key in production (Red color for visibility)
+    console.error(`AI_KEY_CHECK: ${apiKey ? (apiKey.substring(0, 5) + "..." + apiKey.substring(apiKey.length - 3)) : "MISSING"}`);
 
     const prompt = `
 Bạn là một trợ lý quản lý dự án chuyên nghiệp.

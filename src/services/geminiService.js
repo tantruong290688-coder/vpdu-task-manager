@@ -17,6 +17,9 @@ export const generateTaskChecklist = async (title, description) => {
         throw new Error("Gemini API key is not configured.");
     }
 
+    // Debug log to verify key in production (safe: only show first/last characters)
+    console.log(`[AI Debug] Using Key: ${apiKey.substring(0, 3)}...${apiKey.substring(apiKey.length - 3)}`);
+
     const prompt = `
 Bạn là một trợ lý quản lý dự án chuyên nghiệp.
 Hãy phân rã công việc sau đây thành một danh sách các công việc con (checklist) cụ thể, rõ ràng và có thể hành động được.

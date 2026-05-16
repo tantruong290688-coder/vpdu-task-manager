@@ -1,35 +1,29 @@
 /**
- * Gemini AI Service with Smart Retry and Detailed Logging
+ * Gemini AI Service with Multi-Format Fallback
  */
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-// List of model endpoints to try in order
+// Trying even more varied formats
 const MODEL_ENDPOINTS = [
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
     "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent",
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent",
-    "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent"
+    "https://generativelanguage.googleapis.com/v1beta/gemini-1.5-flash:generateContent", // Format without 'models/' prefix
+    "https://generativelanguage.googleapis.com/v1/gemini-1.5-flash:generateContent",
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
 ];
 
-/**
- * Generates a checklist for a task based on its title and description.
- */
 export const generateTaskChecklist = async (title, description) => {
     if (!apiKey) {
-        throw new Error("Gemini API key is not configured in environment variables.");
+        throw new Error("Gemini API key is not configured.");
     }
 
     const prompt = `
 Bạn là một trợ lý quản lý dự án chuyên nghiệp.
 Hãy phân rã công việc sau đây thành một danh sách các công việc con (checklist) cụ thể, rõ ràng và có thể hành động được.
-
 Tiêu đề công việc: ${title || "Không có tiêu đề"}
 Mô tả công việc: ${description || "Không có mô tả"}
-
-Yêu cầu định dạng đầu ra:
-Trả về CHỈ một mảng JSON các chuỗi (strings), mỗi chuỗi là một mục trong checklist. Số lượng từ 3 đến 7 mục.
-Không trả về bất kỳ văn bản nào khác ngoài mảng JSON.
+Trả về CHỈ một mảng JSON các chuỗi.
     `.trim();
 
     const payload = {
@@ -37,12 +31,11 @@ Không trả về bất kỳ văn bản nào khác ngoài mảng JSON.
         generationConfig: { temperature: 0.2, maxOutputTokens: 1024 }
     };
 
-    let lastError = null;
+    let lastError = "";
+    let lastStatusCode = 0;
 
-    // Try each endpoint until one works
     for (const url of MODEL_ENDPOINTS) {
         try {
-            console.log(`[AI Debug] Attempting endpoint: ${url}`);
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -56,25 +49,19 @@ Không trả về bất kỳ văn bản nào khác ngoài mảng JSON.
                 const data = await response.json();
                 const textOutput = data.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (textOutput) {
-                    try {
-                        let cleanText = textOutput.replace(/```json/g, '').replace(/```/g, '').trim();
-                        const checklist = JSON.parse(cleanText);
-                        if (Array.isArray(checklist)) return checklist;
-                    } catch (e) {
-                        const list = textOutput.split('\n').map(l => l.replace(/^[-*0-9.]+\s*/, '').trim()).filter(l => l.length > 0);
-                        if (list.length > 0) return list;
-                    }
+                    let cleanText = textOutput.replace(/```json/g, '').replace(/```/g, '').trim();
+                    return JSON.parse(cleanText);
                 }
             } else {
                 const err = await response.json();
                 lastError = err.error?.message || response.statusText;
-                console.warn(`[AI Debug] Endpoint failed: ${url} - ${lastError}`);
+                lastStatusCode = response.status;
+                console.warn(`[AI Debug] Failed ${url}: ${lastStatusCode} - ${lastError}`);
             }
         } catch (e) {
             lastError = e.message;
-            console.warn(`[AI Debug] Network error for ${url}: ${e.message}`);
         }
     }
 
-    throw new Error(`Google AI từ chối: ${lastError}. Vui lòng kiểm tra quyền hạn của API Key hoặc thử tài khoản Gmail khác.`);
+    throw new Error(`Google từ chối (${lastStatusCode}): ${lastError}. Hãy kiểm tra xem bạn có thể chat được tại aistudio.google.com với Key này không.`);
 };

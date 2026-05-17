@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { RotateCcw, Filter, Pin, Hourglass, Rocket, CheckSquare, AlertCircle, AlertTriangle, Smartphone, Flag, PieChart, Clock } from 'lucide-react';
+import { RotateCcw, Filter, Pin, Hourglass, Rocket, CheckSquare, AlertCircle, AlertTriangle, Smartphone, Flag, PieChart, Clock, BarChart3 } from 'lucide-react';
 import { PieChart as RechartsPie, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import { useTasks } from '../hooks/useTasks';
@@ -244,7 +244,7 @@ export default function Dashboard() {
         <div className="bg-white dark:bg-[#0f172a] p-5 md:p-8 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
           <div className="flex items-center gap-3 mb-6 md:mb-8">
             <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
-              <BarChart size={20} className="text-indigo-600" />
+              <BarChart3 size={20} className="text-indigo-600" />
             </div>
             <h3 className="text-[16px] md:text-[18px] font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Nhiệm vụ theo Phân loại</h3>
           </div>

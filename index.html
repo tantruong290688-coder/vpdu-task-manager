@@ -13,7 +13,56 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Màn hình chờ mặc định cực nhẹ -->
+      <div id="app-loading-fallback" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; background:#f8fafc; padding:20px; text-align:center;">
+        <div id="loading-spinner" style="width:40px; height:40px; border:4px solid #dc262620; border-top-color:#dc2626; border-radius:50%; animation:spin 1s linear infinite;"></div>
+        <p id="loading-text" style="margin-top:20px; color:#64748b; font-size:14px; font-weight:bold;">Đang khởi động hệ thống...</p>
+        
+        <!-- Khu vực hiện lỗi nếu có -->
+        <div id="debug-error-console" style="display:none; margin-top:20px; padding:15px; background:#fef2f2; border:1px solid #fee2e2; border-radius:12px; color:#b91c1c; font-family:monospace; font-size:12px; text-align:left; word-break:break-all; max-width:100%;">
+          <strong style="display:block; margin-bottom:5px;">LỖI HỆ THỐNG:</strong>
+          <div id="error-message"></div>
+        </div>
+
+        <button id="force-reload-btn" style="display:none; margin-top:20px; padding:12px 24px; background:#2563eb; color:white; border:none; border-radius:12px; font-weight:black; text-transform:uppercase; letter-spacing:1px; cursor:pointer; shadow:0 4px 10px rgba(37,99,235,0.3);">Tải lại trang</button>
+      </div>
+    </div>
+    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+    <script>
+      // 1. Bắt lỗi toàn cục để hiện lên màn hình (Cực kỳ quan trọng để debug mobile)
+      window.onerror = function(msg, url, line, col, error) {
+        document.getElementById('loading-spinner').style.display = 'none';
+        document.getElementById('loading-text').innerText = 'Phát hiện lỗi khởi động!';
+        const console = document.getElementById('debug-error-console');
+        const msgDiv = document.getElementById('error-message');
+        if (console && msgDiv) {
+          console.style.display = 'block';
+          msgDiv.innerText = msg + '\nAt: ' + url + ':' + line + ':' + col;
+        }
+        document.getElementById('force-reload-btn').style.display = 'block';
+        return false;
+      };
+
+      // 2. Sau 8 giây nếu chưa render xong thì hiện nút Reload
+      setTimeout(() => {
+        const fallback = document.getElementById('app-loading-fallback');
+        const btn = document.getElementById('force-reload-btn');
+        if (fallback && btn && btn.style.display !== 'block') {
+          btn.style.display = 'block';
+          btn.onclick = () => {
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(regs => {
+                for(let reg of regs) reg.unregister();
+                window.location.href = window.location.origin + '?t=' + Date.now();
+              });
+            } else {
+              window.location.href = window.location.origin + '?t=' + Date.now();
+            }
+          };
+        }
+      }, 8000);
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

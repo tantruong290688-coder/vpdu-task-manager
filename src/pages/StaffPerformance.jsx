@@ -8,13 +8,16 @@ import {
 import { 
   Trophy, TrendingUp, Users, Target, Award, ChevronRight, Search, 
   Filter, Calendar, Download, AlertTriangle, CheckCircle2, Info,
-  ChevronDown, FileText, Star, Activity, MoreHorizontal, User
+  ChevronDown, FileText, Star, Activity, MoreHorizontal, User,
+  Sparkles, Loader2
 } from 'lucide-react';
 import { calculateTaskScore, getPerformanceRank, generateAutoComment, getEvaluationLabel } from '../utils/performanceScoring';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { useAuth } from '../context/AuthContext';
 import { ROLES } from '../lib/permissions';
+import { analyzeStaffPerformance } from '../services/performanceAIService';
+import ReactMarkdown from 'react-markdown';
 
 export default function StaffPerformance() {
   const { profile } = useAuth();
@@ -472,6 +475,23 @@ function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
   const [leaderComment, setLeaderComment] = useState(staff.officialReview?.leader_comment || '');
   const [adjustedScore, setAdjustedScore] = useState(staff.officialReview?.adjusted_score || staff.displayScore);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // AI Analysis State
+  const [aiReport, setAiReport] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const handleAIAnalyze = async () => {
+    setIsAnalyzing(true);
+    try {
+      const report = await analyzeStaffPerformance(staff, periodKey);
+      setAiReport(report);
+      toast.success('AI đã hoàn tất phân tích hiệu suất!');
+    } catch (error) {
+      toast.error('Lỗi khi gọi AI phân tích: ' + error.message);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const handleSaveReview = async () => {
     setIsSaving(true);
@@ -571,11 +591,56 @@ function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
                 </div>
              </div>
 
+             {/* AI Analysis Section */}
+             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-[24px] shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                   <div className="flex items-center gap-2">
+                      <Sparkles size={20} className="text-amber-500" />
+                      <h3 className="text-[14px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">Trợ lý AI Phân tích Chất lượng</h3>
+                   </div>
+                   {!aiReport && (
+                     <button 
+                       onClick={handleAIAnalyze}
+                       disabled={isAnalyzing}
+                       className="flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-indigo-600 hover:bg-slate-800 dark:hover:bg-indigo-700 text-white rounded-xl text-[12px] font-black transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-50"
+                     >
+                        {isAnalyzing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                        {isAnalyzing ? 'Đang phân tích...' : 'Bắt đầu Phân tích'}
+                     </button>
+                   )}
+                </div>
+
+                {aiReport ? (
+                  <div className="prose prose-slate dark:prose-invert max-w-none">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 text-[14px] leading-relaxed text-slate-700 dark:text-slate-300">
+                       <ReactMarkdown>{aiReport}</ReactMarkdown>
+                    </div>
+                    <div className="mt-4 flex justify-end">
+                      <button 
+                        onClick={() => setAiReport(null)}
+                        className="text-[11px] font-bold text-slate-400 hover:text-indigo-600 transition-colors uppercase tracking-widest"
+                      >
+                        Làm mới phân tích
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl">
+                     <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-300 mb-4">
+                        <Activity size={24} />
+                     </div>
+                     <p className="text-[13px] font-bold text-slate-400 text-center max-w-xs">
+                        Nhấn nút phía trên để AI bắt đầu quét dữ liệu nhiệm vụ và đưa ra đánh giá chất lượng chuyên sâu cho {staff.full_name}.
+                     </p>
+                  </div>
+                )}
+             </div>
+
              {/* Auto Comment */}
              <div className="bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100/50 dark:border-indigo-800/50 p-6 rounded-[24px]">
                 <div className="flex items-center gap-2 mb-3">
                    <Activity size={16} className="text-indigo-600" />
-                   <h3 className="text-[13px] font-black text-indigo-900 dark:text-indigo-300 uppercase tracking-tight">Phân tích hệ thống</h3>
+                   <h3 className="text-[13px] font-black text-indigo-900 dark:text-indigo-300 uppercase tracking-tight">Phân tích hệ thống (Tĩnh)</h3>
                 </div>
                 <p className="text-[14px] text-indigo-800/80 dark:text-indigo-300/80 font-bold leading-relaxed italic">
                    "{generateAutoComment(staff.stats)}"

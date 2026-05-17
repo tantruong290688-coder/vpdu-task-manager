@@ -13,21 +13,37 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Gemini API Key is not configured on Vercel' });
   }
 
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    // Sử dụng v1beta qua SDK để có độ tương thích cao nhất trên Server
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const candidateModels = [
+    "gemini-3.1-flash-lite",
+    "gemini-3.1-flash",
+    "gemini-2.5-flash",
+    "gemini-flash-latest"
+  ];
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+  let lastError = null;
+  
+  for (const modelName of candidateModels) {
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: modelName });
 
-    return res.status(200).json({ text });
-  } catch (error) {
-    console.error('Vercel AI Proxy Error:', error);
-    return res.status(error.status || 500).json({ 
-      error: error.message || 'Internal Server Error',
-      details: error.response?.data || null
-    });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+
+      return res.status(200).json({ text, model: modelName });
+    } catch (error) {
+      console.error(`Attempt with ${modelName} failed:`, error.message);
+      lastError = error;
+      // Nếu không phải lỗi 404 (ví dụ lỗi xác thực 401), thì không thử model khác
+      if (error.status && error.status !== 404) {
+        break;
+      }
+    }
   }
+
+  return res.status(lastError?.status || 500).json({ 
+    error: lastError?.message || 'Internal Server Error',
+    details: lastError?.response?.data || null
+  });
 }

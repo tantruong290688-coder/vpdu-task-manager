@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, Plus, ChevronLeft, ChevronRight, Edit2, Trash2, Eye, LayoutList, CheckSquare } from 'lucide-react';
+import { Calendar, Plus, ChevronLeft, ChevronRight, Edit2, Trash2, Eye, LayoutList, CheckSquare, FileSpreadsheet } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { canManageSchedules } from '../lib/permissions';
 import ScheduleTracking from '../components/Schedules/ScheduleTracking';
+import { getStartDateOfWeek, getISOWeek } from '../utils/scheduleUtils';
+import { exportScheduleToExcel } from '../utils/exportSchedule';
 
 export default function Schedules() {
   const { profile } = useAuth();
@@ -14,6 +16,8 @@ export default function Schedules() {
   const [loading, setLoading] = useState(true);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [activeTab, setActiveTab] = useState('list'); // 'list' or 'tracking'
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -21,7 +25,22 @@ export default function Schedules() {
 
   useEffect(() => {
     fetchSchedules();
+    setCurrentPage(1); // Reset to first page when year changes
   }, [currentYear]);
+
+  useEffect(() => {
+    // Tự động chuyển năm nếu tìm kiếm theo ngày có đủ năm (dd/mm/yyyy)
+    if (typeof searchTerm === 'string' && searchTerm.length >= 8) {
+      const datePattern = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/;
+      const match = searchTerm.match(datePattern);
+      if (match) {
+        const year = parseInt(match[3]);
+        if (year !== currentYear && year > 2000) {
+          setCurrentYear(year);
+        }
+      }
+    }
+  }, [searchTerm, currentYear]);
 
   const fetchSchedules = async () => {
     setLoading(true);
@@ -42,14 +61,61 @@ export default function Schedules() {
     }
   };
 
-  const filteredSchedules = schedules.filter(s => {
-    if (!searchTerm) return true;
-    const weekStr = s.week.toString();
-    return weekStr.includes(searchTerm) || s.year.toString().includes(searchTerm);
+  const filteredSchedules = (schedules || []).filter(s => {
+    if (!searchTerm || typeof searchTerm !== 'string') return true;
+    
+    const searchLower = searchTerm.toLowerCase().trim();
+    
+    // Kiểm tra nếu là tìm theo ngày (định dạng dd/mm/yyyy hoặc dd/mm)
+    const datePattern = /^(\d{1,2})[\/\-](\d{1,2})([\/\-](\d{4}))?$/;
+    const match = searchLower.match(datePattern);
+    
+    if (match) {
+      const day = parseInt(match[1]);
+      const month = parseInt(match[2]);
+      const year = match[4] ? parseInt(match[4]) : currentYear;
+      
+      const searchDate = new Date(year, month - 1, day);
+      if (!isNaN(searchDate.getTime())) {
+        const targetWeek = getISOWeek(searchDate);
+        const targetYear = searchDate.getFullYear();
+        
+        return s.week === targetWeek.week && s.year === targetYear;
+      }
+    }
+
+    const weekStr = (s.week || '').toString();
+    const yearStr = (s.year || '').toString();
+    return weekStr.includes(searchLower) || yearStr.includes(searchLower);
   });
+
+  // Phân trang
+  const totalPages = Math.ceil(filteredSchedules.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedSchedules = filteredSchedules.slice(startIndex, startIndex + itemsPerPage);
 
   const handleCreateSchedule = () => {
     navigate('/schedules/new');
+  };
+
+  const handleExportExcel = async (e, schedule) => {
+    e.stopPropagation();
+    try {
+      toast.loading('Đang chuẩn bị dữ liệu Excel...', { id: 'export-list' });
+      const { data: items, error } = await supabase
+        .from('schedule_items')
+        .select('*')
+        .eq('schedule_id', schedule.id)
+        .order('date', { ascending: true });
+      
+      if (error) throw error;
+      
+      await exportScheduleToExcel(schedule, items);
+      toast.success('Xuất Excel thành công', { id: 'export-list' });
+    } catch (err) {
+      console.error('Export error:', err);
+      toast.error('Lỗi khi xuất Excel', { id: 'export-list' });
+    }
   };
 
   const handleDelete = async (id) => {
@@ -115,7 +181,7 @@ export default function Schedules() {
               <div className="relative flex-1 min-w-[200px] max-w-md">
                 <input 
                   type="text" 
-                  placeholder="Tìm theo tuần hoặc năm..." 
+                  placeholder="Tìm theo tuần, năm hoặc ngày (ví dụ: 19/05)..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-2xl px-5 py-3 text-[14px] font-bold focus:ring-2 focus:ring-blue-500/20 transition-all pl-12"
@@ -155,6 +221,59 @@ export default function Schedules() {
           </div>
         ) : (
           <>
+            {/* Pagination Controls - Optimized Premium UI */}
+            {totalPages > 1 && (
+              <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm p-3 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <div className="flex items-center gap-2 pl-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                  <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400">
+                    Hiển thị <span className="text-slate-900 dark:text-white">{startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredSchedules.length)}</span> / <span className="text-slate-900 dark:text-white">{filteredSchedules.length}</span> lịch
+                  </span>
+                </div>
+                
+                <div className="flex items-center bg-slate-100/50 dark:bg-slate-900/50 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+                  <button 
+                    onClick={() => setCurrentPage(1)} 
+                    disabled={currentPage === 1}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-700 disabled:opacity-20 transition-all"
+                    title="Trang đầu"
+                  >
+                    <ChevronLeft size={16} strokeWidth={3} className="-mr-1.5" />
+                    <ChevronLeft size={16} strokeWidth={3} />
+                  </button>
+                  <button 
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                    disabled={currentPage === 1}
+                    className="flex items-center gap-2 px-3 h-8 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-700 disabled:opacity-20 transition-all font-black text-[11px] uppercase tracking-widest"
+                  >
+                    <ChevronLeft size={14} strokeWidth={3} /> Trước
+                  </button>
+                  
+                  <div className="flex items-center gap-2 px-4 h-8 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200/50 dark:border-slate-700/50 mx-1">
+                    <span className="text-[12px] font-black text-blue-600">{currentPage}</span>
+                    <span className="text-slate-300 dark:text-slate-600 text-[10px] font-bold">TRÊN</span>
+                    <span className="text-[12px] font-black text-slate-500 dark:text-slate-400">{totalPages}</span>
+                  </div>
+
+                  <button 
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                    disabled={currentPage === totalPages}
+                    className="flex items-center gap-2 px-3 h-8 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-700 disabled:opacity-20 transition-all font-black text-[11px] uppercase tracking-widest"
+                  >
+                    Sau <ChevronRight size={14} strokeWidth={3} />
+                  </button>
+                  <button 
+                    onClick={() => setCurrentPage(totalPages)} 
+                    disabled={currentPage === totalPages}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-700 disabled:opacity-20 transition-all"
+                    title="Trang cuối"
+                  >
+                    <ChevronRight size={16} strokeWidth={3} />
+                    <ChevronRight size={16} strokeWidth={3} className="-ml-1.5" />
+                  </button>
+                </div>
+              </div>
+            )}
             {/* Desktop Table View */}
             <div className="hidden md:block bg-white dark:bg-[#0f172a] rounded-[2rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xl">
               <div className="overflow-x-auto">
@@ -168,7 +287,7 @@ export default function Schedules() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                    {filteredSchedules.map(schedule => (
+                    {paginatedSchedules.map(schedule => (
                       <tr 
                         key={schedule.id} 
                         onClick={() => navigate(`/schedules/${schedule.id}`)}
@@ -181,7 +300,17 @@ export default function Schedules() {
                             </div>
                             <div className="flex flex-col">
                               <span className="text-[14px] font-black text-slate-900 dark:text-white">Tuần {schedule.week}</span>
-                              <span className="text-[11px] font-bold text-slate-400">Năm {schedule.year}</span>
+                              <span className="text-[11px] font-bold text-slate-400">
+                                {(() => {
+                                  try {
+                                    const start = getStartDateOfWeek(schedule.week, schedule.year);
+                                    const end = new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
+                                    return `${start.getDate()}/${start.getMonth() + 1}-${end.getDate()}/${end.getMonth() + 1}/${schedule.year}`;
+                                  } catch (e) {
+                                    return `Năm ${schedule.year}`;
+                                  }
+                                })()}
+                              </span>
                             </div>
                           </div>
                         </td>
@@ -198,14 +327,35 @@ export default function Schedules() {
                           )}
                         </td>
                         <td className="py-4 px-6 text-right">
-                          <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all">
+                          <div className="flex justify-end gap-2">
+                            <button 
+                              onClick={() => navigate(`/schedules/${schedule.id}`)}
+                              className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all border border-slate-100 dark:border-slate-700"
+                              title="Xem chi tiết"
+                            >
                               <Eye size={18} />
                             </button>
                             {canEditSchedule && (
                               <button 
+                                onClick={(e) => { e.stopPropagation(); navigate(`/schedules/${schedule.id}`); }}
+                                className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all border border-slate-100 dark:border-slate-700"
+                                title="Chỉnh sửa"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                            )}
+                            <button 
+                              onClick={(e) => handleExportExcel(e, schedule)}
+                              className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all border border-slate-100 dark:border-slate-700"
+                              title="Xuất Excel"
+                            >
+                              <FileSpreadsheet size={18} />
+                            </button>
+                            {canEditSchedule && (
+                              <button 
                                 onClick={(e) => { e.stopPropagation(); handleDelete(schedule.id); }} 
-                                className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all"
+                                className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-all border border-slate-100 dark:border-slate-700"
+                                title="Xóa lịch"
                               >
                                 <Trash2 size={18} />
                               </button>
@@ -221,7 +371,7 @@ export default function Schedules() {
 
             {/* Mobile Card View */}
             <div className="md:hidden space-y-4">
-              {filteredSchedules.map(schedule => (
+              {paginatedSchedules.map(schedule => (
                 <div 
                   key={schedule.id}
                   onClick={() => navigate(`/schedules/${schedule.id}`)}
@@ -234,7 +384,17 @@ export default function Schedules() {
                       </div>
                       <div>
                         <h3 className="text-base font-black text-slate-800 dark:text-white">Tuần {schedule.week}</h3>
-                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Năm {schedule.year}</p>
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                          {(() => {
+                            try {
+                              const start = getStartDateOfWeek(schedule.week, schedule.year);
+                              const end = new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
+                              return `${start.getDate()}/${start.getMonth() + 1}-${end.getDate()}/${end.getMonth() + 1}/${schedule.year}`;
+                            } catch (e) {
+                              return `Năm ${schedule.year}`;
+                            }
+                          })()}
+                        </p>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
@@ -249,21 +409,37 @@ export default function Schedules() {
                     </div>
                   </div>
                   <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-700/50">
-                    <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                      <Eye size={14} /> Chi tiết lịch
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); navigate(`/schedules/${schedule.id}`); }}
+                        className="p-2 text-blue-600 font-bold text-[11px] flex items-center gap-1"
+                      >
+                        <Eye size={14} /> Chi tiết
+                      </button>
+                      <button 
+                        onClick={(e) => handleExportExcel(e, schedule)}
+                        className="p-2 text-emerald-600 font-bold text-[11px] flex items-center gap-1"
+                      >
+                        <FileSpreadsheet size={14} /> Xuất Excel
+                      </button>
+                    </div>
                     <div className="flex items-center gap-2">
                       {canEditSchedule && (
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleDelete(schedule.id); }}
-                          className="w-9 h-9 flex items-center justify-center rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); navigate(`/schedules/${schedule.id}`); }}
+                            className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-700/50 text-slate-500"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleDelete(schedule.id); }}
+                            className="w-9 h-9 flex items-center justify-center rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </>
                       )}
-                      <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-700/50 text-slate-400">
-                        <ChevronRight size={18} />
-                      </div>
                     </div>
                   </div>
                 </div>

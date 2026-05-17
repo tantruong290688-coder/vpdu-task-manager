@@ -32,3 +32,5 @@ dist-ssr
 .env.vercel
 .env.vercel.prod
 .env.vercel.pull.tmp
+
+.vercel

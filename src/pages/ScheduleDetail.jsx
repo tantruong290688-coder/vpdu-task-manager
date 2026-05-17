@@ -6,7 +6,12 @@ import { ArrowLeft, Plus, Save, Trash2, Calendar as CalendarIcon, CheckSquare, D
 import toast from 'react-hot-toast';
 import TaskModal from '../components/TaskModal';
 import { exportScheduleToExcel, sortSchedulesForExport } from '../utils/exportSchedule';
+import { ensureWeekendHolidays, normalizeDateVNToISO, getDaysOfWeek, determineSession, getISOWeek } from '../utils/scheduleUtils';
+import AIScheduleParserModal from '../components/Schedules/AIScheduleParserModal';
+import ScheduleItemModal from '../components/Schedules/ScheduleItemModal';
+import ScheduleEventCard from '../components/Schedules/ScheduleEventCard';
 import { canManageSchedules, canCreateTask } from '../lib/permissions';
+import { LayoutGrid, List } from 'lucide-react';
 
 export default function ScheduleDetail() {
   const { id } = useParams();
@@ -24,6 +29,14 @@ export default function ScheduleDetail() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [taskInitialData, setTaskInitialData] = useState(null);
   const [currentRowId, setCurrentRowId] = useState(null);
+  
+  // State for AI Parser
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+
+  // State for View Mode & Item Modal
+  const [viewMode, setViewMode] = useState('grid');
+  const [isItemModalOpen, setIsItemModalOpen] = useState(false);
+  const [itemModalData, setItemModalData] = useState(null);
 
   useEffect(() => {
     fetchSchedule();
@@ -76,10 +89,75 @@ export default function ScheduleDetail() {
     }
   };
 
+  const handleWeekYearChange = async (field, value) => {
+    const targetWeek = field === 'week' ? value : schedule.week;
+    const targetYear = field === 'year' ? value : schedule.year;
+
+    // 1. Tìm bản ghi cho tuần/năm mục tiêu trong database
+    try {
+      const { data: existingSchedules, error: fetchErr } = await supabase
+        .from('schedules')
+        .select('id, status, version')
+        .eq('week', targetWeek)
+        .eq('year', targetYear)
+        .order('status', { ascending: false }) // 'published' (p) đứng trước 'draft' (d) trong bảng chữ cái? Không, 'p' > 'd'. 
+        // Thực tế: .order('status', { ascending: false }) sẽ đưa 'published' lên đầu
+        .order('version', { ascending: false });
+      
+      if (existingSchedules && existingSchedules.length > 0) {
+        // Tìm thấy bản ghi -> Điều hướng sang ID đó
+        // Nếu có bản 'published', nó sẽ nằm ở đầu do order status desc
+        const targetId = existingSchedules[0].id;
+        if (targetId !== id) {
+          navigate(`/schedules/${targetId}`);
+          return;
+        }
+      } else {
+        // Không tìm thấy bản ghi nào cho tuần đó
+        if (id === 'new') {
+          // Nếu đang tạo mới, cho phép đổi thông tin để lưu bản ghi mới vào tuần đó
+          const newSchedule = { ...schedule, [field]: value };
+          setSchedule(newSchedule);
+          
+          // Tự động cập nhật ngày cho các dòng
+          const newDays = getDaysOfWeek(newSchedule.week, newSchedule.year);
+          setItems(prev => prev.map(item => {
+            if (!item.date) return item;
+            const oldDate = new Date(normalizeDateVNToISO(item.date));
+            const dayIdx = (oldDate.getDay() + 6) % 7;
+            if (dayIdx >= 0 && dayIdx < 7) {
+              return { ...item, date: newDays[dayIdx].dateIso };
+            }
+            return item;
+          }));
+        } else {
+          // Nếu đang xem một bản ghi cũ, hỏi người dùng có muốn tạo lịch mới cho tuần này không
+          if (window.confirm(`Tuần ${targetWeek}/${targetYear} chưa có dữ liệu lịch. Bạn có muốn tạo lịch mới cho tuần này không?`)) {
+            navigate('/schedules/new');
+            // Ghi chú: Sau khi điều hướng sang /new, fetchSchedule sẽ chạy lại và dùng tuần hiện tại. 
+            // Có thể cần truyền state để /new biết chọn tuần nào.
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Navigation error:', err);
+    }
+  };
+
   const handleAddItem = () => {
+    // Mặc định chọn ngày Thứ 2 của tuần hiện tại để không bị ẩn khi sang dạng Lưới
+    let defaultDate = '';
+    if (schedule && schedule.week && schedule.year) {
+      try {
+        defaultDate = getDaysOfWeek(schedule.week, schedule.year)[0].dateIso;
+      } catch (e) {
+        // ignore
+      }
+    }
+    
     setItems([
       ...items,
-      { id: `temp_${Date.now()}`, date: '', time: '', content: '', host: '', attendees: '', location: '', prepare_by: '', type: 'meeting' }
+      { id: `temp_${Date.now()}`, date: defaultDate, time: '', content: '', host: '', attendees: '', location: '', prepare_by: '', type: 'meeting' }
     ]);
     setIsDirty(true);
   };
@@ -139,8 +217,12 @@ export default function ScheduleDetail() {
         if (error) throw error;
       }
 
+      // Tự động chèn ngày nghỉ Thứ 7, Chủ Nhật nếu chưa có
+      let currentItems = ensureWeekendHolidays(items, schedule.week, schedule.year);
+      setItems(currentItems);
+
       // Tiền xử lý dữ liệu: Loại bỏ các dòng mà người dùng chưa nhập BẤT KỲ ký tự nào
-      const validItems = items.filter(item => item.date || item.time || item.content || item.host || item.location || item.attendees || item.prepare_by);
+      const validItems = currentItems.filter(item => item.date || item.time || item.content || item.host || item.location || item.attendees || item.prepare_by);
 
       if (validItems.length === 0 && items.length > 0) {
         setSaving(false);
@@ -249,6 +331,27 @@ export default function ScheduleDetail() {
     }
   };
 
+  const handleOpenItemModal = (itemData = null) => {
+    setItemModalData(itemData);
+    setIsItemModalOpen(true);
+  };
+
+  const handleSaveItemModal = (formData) => {
+    if (formData.id && items.some(i => i.id === formData.id)) {
+      // Edit
+      setItems(items.map(i => i.id === formData.id ? formData : i));
+    } else {
+      // Add new
+      setItems([...items, formData]);
+    }
+    setIsDirty(true);
+  };
+
+  const handleDeleteItemModal = (itemId) => {
+    handleRemoveItem(itemId);
+    setIsItemModalOpen(false);
+  };
+
   if (loading) return <div className="p-8 text-center">Đang tải...</div>;
   if (!schedule) return <div className="p-8 text-center text-red-500">Không tìm thấy dữ liệu</div>;
 
@@ -310,11 +413,23 @@ export default function ScheduleDetail() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-sm">
             <div className="flex flex-col gap-1.5">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Số tuần</span>
-              <input type="number" value={schedule.week} onChange={e => {setSchedule({...schedule, week: parseInt(e.target.value)}); setIsDirty(true);}} disabled={!canEdit} className="bg-slate-50 dark:bg-slate-900/50 border-none px-4 py-3 rounded-2xl w-full text-[15px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all" />
+              <input 
+                type="number" 
+                value={schedule.week} 
+                onChange={e => handleWeekYearChange('week', parseInt(e.target.value))} 
+                disabled={!canEdit} 
+                className="bg-slate-50 dark:bg-slate-900/50 border-none px-4 py-3 rounded-2xl w-full text-[15px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all" 
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Năm</span>
-              <input type="number" value={schedule.year} onChange={e => {setSchedule({...schedule, year: parseInt(e.target.value)}); setIsDirty(true);}} disabled={!canEdit} className="bg-slate-50 dark:bg-slate-900/50 border-none px-4 py-3 rounded-2xl w-full text-[15px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all" />
+              <input 
+                type="number" 
+                value={schedule.year} 
+                onChange={e => handleWeekYearChange('year', parseInt(e.target.value))} 
+                disabled={!canEdit} 
+                className="bg-slate-50 dark:bg-slate-900/50 border-none px-4 py-3 rounded-2xl w-full text-[15px] font-black focus:ring-2 focus:ring-blue-500/20 transition-all" 
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phiên bản</span>
@@ -329,9 +444,109 @@ export default function ScheduleDetail() {
             </div>
           </div>
 
-          {/* Table Container */}
-          <div className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-slate-700 overflow-hidden shadow-xl flex flex-col">
-            <div className="overflow-x-auto custom-scrollbar">
+          {/* View Toggle & Actions Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center bg-slate-200/50 dark:bg-slate-800 p-1 rounded-xl shadow-inner">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+              >
+                <LayoutGrid size={16} /> Lưới
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'table' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+              >
+                <List size={16} /> Bảng
+              </button>
+            </div>
+            
+            {canEdit && (
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setIsAIModalOpen(true)} 
+                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm rounded-xl shadow-md hover:opacity-90 transition-all active:scale-95"
+                >
+                  ✨ AI phân tích văn bản
+                </button>
+                <button 
+                  onClick={() => {
+                    let processedItems = ensureWeekendHolidays(items, schedule.week, schedule.year);
+                    const sorted = sortSchedulesForExport(processedItems);
+                    setItems(sorted);
+                    setIsDirty(true);
+                    toast.success('Đã tự động sắp xếp theo thứ tự lãnh đạo và thời gian');
+                  }} 
+                  className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-bold text-sm rounded-xl border border-indigo-100 dark:border-indigo-800/30 shadow-sm hover:bg-indigo-50 transition-all active:scale-95"
+                >
+                  <RefreshCw size={16} className="mr-1" /> Sắp xếp
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Content Area */}
+          {viewMode === 'grid' ? (
+            <div className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-slate-700 overflow-hidden shadow-xl">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[1000px] border-collapse table-fixed">
+                  <thead>
+                    <tr>
+                      <th className="w-20 p-4 border-b border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50"></th>
+                      {getDaysOfWeek(schedule.week, schedule.year).map((day) => (
+                        <th key={day.label} className="p-4 border-b border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-center">
+                          <div className="font-black text-slate-800 dark:text-white text-base">{day.label}</div>
+                          <div className="text-xs text-slate-500 font-medium mt-0.5">{day.dateShort}</div>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {['Sáng', 'Chiều', 'Cả ngày'].map((session) => (
+                      <tr key={session}>
+                        <td className="p-4 border-b border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-center font-bold text-slate-600 dark:text-slate-300 text-sm align-middle w-20">
+                          {session}
+                        </td>
+                        {getDaysOfWeek(schedule.week, schedule.year).map((day) => {
+                          const cellItems = items.filter(item => {
+                            if (!item.date) return false;
+                            const itemDateIso = normalizeDateVNToISO(item.date);
+                            const itemSession = determineSession(item);
+                            return itemDateIso === day.dateIso && itemSession === session;
+                          });
+
+                          return (
+                            <td key={`${day.label}-${session}`} className="p-2 border-b border-r border-slate-200 dark:border-slate-700 align-top h-32 relative group/cell">
+                              <div className="flex flex-col gap-2 h-full">
+                                {cellItems.map(item => (
+                                  <ScheduleEventCard 
+                                    key={item.id} 
+                                    item={item} 
+                                    onClick={() => canEdit && handleOpenItemModal(item)}
+                                    onAddTask={canAddTasks ? () => handleOpenTaskModal(item) : undefined}
+                                  />
+                                ))}
+                                {canEdit && (
+                                  <button 
+                                    onClick={() => handleOpenItemModal({ date: day.dateIso, session: session })}
+                                    className={`w-full py-2 border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-400 rounded-xl hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all flex items-center justify-center ${cellItems.length > 0 ? 'opacity-0 group-hover/cell:opacity-100 absolute bottom-2 left-2 right-2 w-auto' : 'h-full'}`}
+                                  >
+                                    <Plus size={20} />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-slate-700 overflow-hidden shadow-xl flex flex-col">
+              <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full text-sm text-left min-w-[1300px] border-collapse">
                 <thead className="sticky top-0 z-20 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
                   <tr>
@@ -426,16 +641,25 @@ export default function ScheduleDetail() {
             </div>
 
             {canEdit && (
-              <div className="p-6 bg-slate-50/50 dark:bg-slate-900/30 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between gap-4">
-                <button 
-                  onClick={handleAddItem} 
-                  className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-black text-[13px] uppercase tracking-widest rounded-2xl border border-blue-100 dark:border-blue-800/30 shadow-sm hover:bg-blue-50 transition-all active:scale-95"
-                >
-                  <Plus size={18} strokeWidth={3} /> Thêm dòng mới
-                </button>
+              <div className="p-6 bg-slate-50/50 dark:bg-slate-900/30 border-t border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <button 
+                    onClick={handleAddItem} 
+                    className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-black text-[13px] uppercase tracking-widest rounded-2xl border border-blue-100 dark:border-blue-800/30 shadow-sm hover:bg-blue-50 transition-all active:scale-95"
+                  >
+                    <Plus size={18} strokeWidth={3} /> Thêm dòng mới
+                  </button>
+                  <button 
+                    onClick={() => setIsAIModalOpen(true)} 
+                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black text-[13px] uppercase tracking-widest rounded-2xl shadow-lg shadow-blue-500/30 hover:opacity-90 transition-all active:scale-95"
+                  >
+                    ✨ AI phân tích văn bản
+                  </button>
+                </div>
                 <button 
                   onClick={() => {
-                    const sorted = sortSchedulesForExport(items);
+                    let processedItems = ensureWeekendHolidays(items, schedule.week, schedule.year);
+                    const sorted = sortSchedulesForExport(processedItems);
                     setItems(sorted);
                     setIsDirty(true);
                     toast.success('Đã tự động sắp xếp theo thứ tự lãnh đạo và thời gian');
@@ -448,6 +672,7 @@ export default function ScheduleDetail() {
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
 
@@ -457,6 +682,130 @@ export default function ScheduleDetail() {
           onClose={() => setIsTaskModalOpen(false)} 
           initialData={taskInitialData}
           onTaskAdded={handleTaskAdded}
+        />
+      )}
+
+      {isAIModalOpen && (
+        <AIScheduleParserModal
+          isOpen={isAIModalOpen}
+          onClose={() => setIsAIModalOpen(false)}
+          currentWeek={schedule.week}
+          currentYear={schedule.year}
+          existingSchedules={items}
+          onApply={async (newItems) => {
+            const currentWeekItems = [];
+            const crossWeekItems = [];
+
+            newItems.forEach(i => {
+              // Tự động tính toán số tuần từ ngày công tác của hệ thống
+              const isoInfo = getISOWeek(i.work_date);
+              const targetWeek = isoInfo ? isoInfo.week : i.week_number;
+              const targetYear = isoInfo ? isoInfo.year : i.year;
+
+              const mappedItem = {
+                id: `temp_ai_${Date.now()}_${Math.random()}`,
+                date: normalizeDateVNToISO(i.work_date),
+                time: i.work_time || '',
+                content: i.content || '',
+                host: i.chair || '',
+                attendees: i.participants || '',
+                location: i.location || '',
+                prepare_by: i.preparation || '',
+                type: i.type === 'Hội nghị' ? 'meeting' : (i.type === 'Nghỉ' ? 'holiday' : 'office_work'),
+                auto_generated: false
+              };
+              
+              if (targetWeek === schedule.week && targetYear === schedule.year) {
+                currentWeekItems.push(mappedItem);
+              } else {
+                crossWeekItems.push({ ...mappedItem, _targetWeek: targetWeek, _targetYear: targetYear });
+              }
+            });
+            
+            // Xử lý các dòng thuộc tuần hiện tại
+            if (currentWeekItems.length > 0) {
+              const combinedItems = [...items, ...currentWeekItems];
+              const processedItems = ensureWeekendHolidays(combinedItems, schedule.week, schedule.year);
+              setItems(sortSchedulesForExport(processedItems));
+              setIsDirty(true);
+            }
+
+            // Xử lý các dòng thuộc tuần khác (Lưu trực tiếp vào database)
+            if (crossWeekItems.length > 0) {
+              setSaving(true);
+              toast.loading('Đang lưu các lịch thuộc tuần khác vào hệ thống...', { id: 'cross-week-save' });
+              try {
+                // Nhóm theo tuần/năm
+                const grouped = crossWeekItems.reduce((acc, item) => {
+                  const key = `${item._targetWeek}-${item._targetYear}`;
+                  if (!acc[key]) acc[key] = [];
+                  acc[key].push(item);
+                  return acc;
+                }, {});
+
+                for (const [key, gItems] of Object.entries(grouped)) {
+                  const [w, y] = key.split('-').map(Number);
+                  
+                  // Tìm hoặc tạo schedule cho tuần đó (Lấy bản mới nhất nếu có nhiều bản)
+                  let targetScheduleId = null;
+                  const { data: existingSchedules, error: fetchErr } = await supabase
+                    .from('schedules')
+                    .select('id')
+                    .eq('week', w)
+                    .eq('year', y)
+                    .order('version', { ascending: false })
+                    .limit(1);
+                  
+                  if (existingSchedules && existingSchedules.length > 0) {
+                    targetScheduleId = existingSchedules[0].id;
+                  } else {
+                    const { data: newSchedule, error: createErr } = await supabase
+                      .from('schedules')
+                      .insert([{ week: w, year: y, version: 1, status: 'draft' }])
+                      .select()
+                      .single();
+                    if (createErr) throw createErr;
+                    targetScheduleId = newSchedule.id;
+                  }
+
+                  // Chèn items (Chỉ lấy các trường chuẩn trong DB)
+                  const itemsToInsert = gItems.map(item => ({
+                    schedule_id: targetScheduleId,
+                    date: item.date,
+                    time: item.time || '',
+                    content: item.content || '',
+                    host: item.host || '',
+                    attendees: item.attendees || '',
+                    location: item.location || '',
+                    prepare_by: item.prepare_by || '',
+                    type: item.type || 'office_work'
+                  }));
+                  const { error: insertErr } = await supabase.from('schedule_items').insert(itemsToInsert);
+                  if (insertErr) throw insertErr;
+                }
+                toast.success(`Đã lưu thành công ${crossWeekItems.length} sự kiện vào các tuần khác.`, { id: 'cross-week-save' });
+              } catch (error) {
+                console.error('Cross-week save error:', error);
+                toast.error('Có lỗi khi lưu các lịch khác tuần.', { id: 'cross-week-save' });
+              } finally {
+                setSaving(false);
+              }
+            }
+
+            if (currentWeekItems.length > 0 && crossWeekItems.length === 0) {
+              toast.success('Đã áp dụng các dòng lịch từ AI vào tuần này.');
+            }
+          }}
+        />
+      )}
+
+      {isItemModalOpen && (
+        <ScheduleItemModal
+          isOpen={isItemModalOpen}
+          onClose={() => setIsItemModalOpen(false)}
+          initialData={itemModalData}
+          onSave={handleSaveItemModal}
+          onDelete={handleDeleteItemModal}
         />
       )}
     </div>

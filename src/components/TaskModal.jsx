@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { X, AlertCircle, Sparkles, Trash2, Loader2 } from 'lucide-react';
+import { X, AlertCircle, Sparkles, Trash2, Loader2, ListTodo } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { writeLog } from '../lib/logger';
 import { canEditTask, canDelegateToStaff, ROLES } from '../lib/permissions';
 import { createNotification } from '../hooks/useNotifications';
-import { generateTaskChecklist } from '../services/geminiService';
+import { generateTaskChecklist, analyzeTaskContext } from '../services/geminiService';
 
 // Key for local storage draft
 const getDraftKey = (userId, scheduleItemId) => {
@@ -38,7 +38,9 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
   
   // AI Checklist Drafts
   const [draftChecklists, setDraftChecklists] = useState([]);
+  const [aiContext, setAiContext] = useState('');
   const [isGeneratingChecklist, setIsGeneratingChecklist] = useState(false);
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
   
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -69,6 +71,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
     setProgress(0);
     setScheduleItemId(null);
     setDraftChecklists([]);
+    setAiContext('');
   };
 
   useEffect(() => {
@@ -239,13 +242,38 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
     
     setIsGeneratingChecklist(true);
     try {
-      const suggestedItems = await generateTaskChecklist(title, description);
-      setDraftChecklists(suggestedItems);
+      const suggestedItems = await generateTaskChecklist(title, description, aiContext);
+      setDraftChecklists(suggestedItems.map(item => ({ content: item, checked: true })));
       toast.success('AI đã tạo checklist thành công!');
     } catch (error) {
       toast.error(error.message || 'Lỗi khi gọi AI. Vui lòng thử lại.');
     } finally {
       setIsGeneratingChecklist(false);
+    }
+  };
+
+  const handleAutoFill = async () => {
+    if (!title && !description && !aiContext) {
+      toast.error('Vui lòng nhập Tiêu đề, Nội dung hoặc Văn bản nguồn để AI phân tích!');
+      return;
+    }
+    
+    setIsAutoFilling(true);
+    try {
+      const data = await analyzeTaskContext(title, description, aiContext);
+      
+      // Update states if AI returned valid data
+      if (data.taskGroup && taskGroups.includes(data.taskGroup)) setTaskGroup(data.taskGroup);
+      if (data.workArea && workAreas.includes(data.workArea)) setWorkArea(data.workArea);
+      if (data.priority) setPriority(data.priority);
+      if (data.dueDate && data.dueDate !== 'null') setDueDate(data.dueDate);
+      if (data.taskType) setTaskType(data.taskType);
+      
+      toast.success('AI đã tự động điền thông tin!');
+    } catch (error) {
+      toast.error('Lỗi phân tích AI: ' + (error.message || 'Vui lòng thử lại'));
+    } finally {
+      setIsAutoFilling(false);
     }
   };
 
@@ -411,11 +439,12 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
         }
       }
 
-      // Insert draft checklists
-      if (draftChecklists.length > 0 && taskId) {
-        const checklistData = draftChecklists.map((content, index) => ({
+      // Insert draft checklists (only checked ones)
+      const checkedDrafts = draftChecklists.filter(d => d.checked);
+      if (checkedDrafts.length > 0 && taskId) {
+        const checklistData = checkedDrafts.map((item, index) => ({
           task_id: taskId,
-          content: content,
+          content: item.content,
           position: index,
           created_by: profile?.id
         }));
@@ -586,36 +615,79 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
             {/* AI Assistant Section */}
             {!isUpdating && (
               <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                   <div className="flex items-center gap-2">
                     <Sparkles size={16} className="text-amber-500" />
-                    <span className="text-[13px] font-bold text-slate-700 dark:text-slate-300">Gợi ý Checklist bằng AI</span>
+                    <span className="text-[13px] font-bold text-slate-700 dark:text-slate-300">Trợ lý AI Điền Form & Checklist</span>
                   </div>
-                  <button 
-                    type="button" 
-                    onClick={handleGenerateChecklist}
-                    disabled={isGeneratingChecklist || !title}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[12px] font-bold rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-600 hover:border-amber-200 transition-colors disabled:opacity-50"
-                  >
-                    {isGeneratingChecklist ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                    {isGeneratingChecklist ? 'Đang tạo...' : 'Tạo Checklist'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      type="button" 
+                      onClick={handleAutoFill}
+                      disabled={isAutoFilling || (!title && !description && !aiContext)}
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 text-[12px] font-bold rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800 transition-colors disabled:opacity-50"
+                    >
+                      {isAutoFilling ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                      {isAutoFilling ? 'Đang phân tích...' : 'AI Phân tích & Điền'}
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={handleGenerateChecklist}
+                      disabled={isGeneratingChecklist || !title}
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[12px] font-bold rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-600 hover:border-amber-200 transition-colors disabled:opacity-50"
+                    >
+                      {isGeneratingChecklist ? <Loader2 size={14} className="animate-spin" /> : <ListTodo size={14} />}
+                      {isGeneratingChecklist ? 'Đang tạo...' : 'Tạo Checklist'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-[12px] font-bold text-slate-600 dark:text-slate-400 mb-1">Tài liệu nguồn / Dữ liệu cho AI phân tích (Tùy chọn)</label>
+                  <div className="relative">
+                    <textarea 
+                      value={aiContext} 
+                      onChange={e => setAiContext(e.target.value)} 
+                      placeholder="Dán nội dung tờ trình, văn bản chỉ đạo, kết luận cuộc họp... để AI bóc tách thành checklist chính xác hơn."
+                      rows="3"
+                      className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-[3px] focus:ring-amber-500/20 focus:border-amber-500 outline-none text-[13px] font-medium text-slate-700 dark:text-slate-300 resize-none pr-10"
+                    ></textarea>
+                    {aiContext && (
+                      <button 
+                        type="button" 
+                        onClick={() => setAiContext('')}
+                        className="absolute right-2 top-2 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-700 rounded-md transition-colors"
+                        title="Xóa dữ liệu nguồn"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 
                 {draftChecklists.length > 0 && (
                   <div className="space-y-2 mt-3">
                     {draftChecklists.map((item, idx) => (
-                      <div key={idx} className="flex items-center gap-2 bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-100 dark:border-slate-700 group">
-                        <span className="w-5 h-5 flex items-center justify-center bg-blue-100 text-blue-600 rounded-full text-[10px] font-black shrink-0">{idx + 1}</span>
+                      <div key={idx} className={`flex items-center gap-2 p-2 rounded-lg border transition-all group ${item.checked ? 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700' : 'bg-slate-100/50 dark:bg-slate-900/50 border-transparent opacity-60'}`}>
                         <input 
-                          type="text" 
-                          value={item} 
+                          type="checkbox" 
+                          checked={item.checked} 
                           onChange={(e) => {
                             const newDrafts = [...draftChecklists];
-                            newDrafts[idx] = e.target.value;
+                            newDrafts[idx].checked = e.target.checked;
                             setDraftChecklists(newDrafts);
                           }}
-                          className="flex-1 bg-transparent border-none outline-none text-[13px] font-medium text-slate-700 dark:text-slate-300 min-w-0"
+                          className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer shrink-0"
+                        />
+                        <input 
+                          type="text" 
+                          value={item.content} 
+                          onChange={(e) => {
+                            const newDrafts = [...draftChecklists];
+                            newDrafts[idx].content = e.target.value;
+                            setDraftChecklists(newDrafts);
+                          }}
+                          className={`flex-1 bg-transparent border-none outline-none text-[13px] font-medium min-w-0 ${item.checked ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400 dark:text-slate-500'}`}
                         />
                         <button type="button" onClick={() => removeDraftChecklist(idx)} className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-all">
                           <Trash2 size={14} />

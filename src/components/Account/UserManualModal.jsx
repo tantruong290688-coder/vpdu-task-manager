@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, BookOpen, Star, Flag, CheckCircle, MousePointer2, Keyboard, Zap, Info, Calendar, TrendingUp, Send, LayoutList, Layers, Bell, Smartphone, Users, Trash2, Shield, History, Eye } from 'lucide-react';
+import { X, BookOpen, Star, Flag, CheckCircle, MousePointer2, Keyboard, Zap, Info, Calendar, TrendingUp, Send, LayoutList, Layers, Bell, Smartphone, Users, Trash2, Shield, History, Eye, Clock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function UserManualModal({ onClose }) {
@@ -88,33 +88,53 @@ export default function UserManualModal({ onClose }) {
                       <>
                         <GuideRow 
                           icon={Users} iconColor="text-purple-500" label="Quản lý nhân sự" 
-                          action="Vào mục 'Quản trị hệ thống' -> Tạo tài khoản, đổi mật khẩu hoặc khóa tài khoản."
-                          note="Đặc quyền Admin: Kiểm soát toàn bộ danh sách cán bộ và quyền truy cập."
-                        />
-                        <GuideRow 
-                          icon={Eye} iconColor="text-blue-500" label="Giám sát tiếp nhận" 
-                          action="Vào 'Nhật ký thao tác' -> Tìm hành động 'Xem nhiệm vụ' của cán bộ."
-                          note="Admin có thể biết chính xác AI đã xem nhiệm vụ vào LÚC NÀO để đôn đốc."
-                        />
-                        <GuideRow 
-                          icon={Trash2} iconColor="text-rose-500" label="Dọn dẹp hệ thống" 
-                          action="Nhấn [Xóa sạch tin nhắn] trong trang Admin để giải phóng dữ liệu cũ."
-                          note="Lưu ý: Thao tác này không thể hoàn tác. Chỉ dùng khi bảo trì hệ thống."
+                          action="Vào mục 'Quản trị hệ thống' -> Tạo tài khoản mới, đặt lại mật khẩu hoặc khóa/mở khóa tài khoản."
+                          note="Đặc quyền Admin: Điều động nhân sự, kiểm soát toàn diện danh sách và quyền truy cập."
                         />
                         <GuideRow 
                           icon={Shield} iconColor="text-blue-500" label="Phân quyền (RBAC)" 
-                          action="Sửa thông tin tài khoản -> Thay đổi Role (Admin/Manager/Staff/Viewer)."
-                          note="Admin có thể cấp quyền Quản lý cho các lãnh đạo khác trong đơn vị."
+                          action="Sửa thông tin tài khoản -> Thay đổi Vai trò (Quản trị/Quản lý/Chuyên viên/Nhân viên/Người theo dõi)."
+                          note="Admin có thể cấp quyền hạn phù hợp cho từng cán bộ và các lãnh đạo khác."
                         />
                         <GuideRow 
-                          icon={Star} iconColor="text-amber-500" label="Chốt điểm thi đua" 
-                          action="Có quyền phê duyệt và chốt điểm cuối cùng cho TOÀN BỘ nhiệm vụ."
-                          note="Dùng để xử lý khiếu nại điểm hoặc thay đổi kết quả khi cần thiết."
+                          icon={Clock} iconColor="text-emerald-500" label="Heartbeat trực tuyến" 
+                          action="Xem đèn tín hiệu trực tuyến (Online/Offline) và mốc thời gian hoạt động cuối cùng của từng cán bộ."
+                          note="Dữ liệu được cập nhật tự động liên tục qua Realtime kết hợp Polling 15 giây."
+                        />
+                        <GuideRow 
+                          icon={Eye} iconColor="text-indigo-500" label="Giám sát tiếp nhận" 
+                          action="Vào mục 'Nhật ký thao tác' -> Tìm hành động 'Xem nhiệm vụ' của cán bộ."
+                          note="Biết chính xác cán bộ đã mở xem nhiệm vụ vào lúc nào để kịp thời đôn đốc."
                         />
                         <GuideRow 
                           icon={History} iconColor="text-slate-500" label="Nhật ký thao tác" 
-                          action="Vào mục 'Nhật ký' để truy vết mọi hành động sửa/xóa trên hệ thống."
-                          note="Giúp minh bạch hóa quá trình làm việc và xác định trách nhiệm."
+                          action="Theo dõi toàn bộ lịch sử thao tác của các thành viên. Có bộ lọc tìm kiếm và nhấp mã nhiệm vụ để xem nhanh."
+                          note="Giúp minh bạch hóa quá trình làm việc, xác định trách nhiệm khi xảy ra sai sót."
+                        />
+                        <GuideRow 
+                          icon={Trash2} iconColor="text-red-500" label="Bảo trì logs hệ thống" 
+                          action="Nhấn [Xóa sạch log] tại trang Nhật ký thao tác để dọn dẹp các bản ghi lịch sử cũ."
+                          note="Lưu ý: Chỉ dành cho Admin và không thể hoàn tác. Giúp nâng cao hiệu suất DB."
+                        />
+                        <GuideRow 
+                          icon={Trash2} iconColor="text-rose-500" label="Dọn dẹp tin nhắn" 
+                          action="Nhấn [Xóa sạch tin nhắn] trong trang Admin để giải phóng toàn bộ các cuộc hội thoại cũ."
+                          note="Lưu ý: Đặc quyền Admin, không thể khôi phục. Chỉ dùng khi bảo trì hệ thống."
+                        />
+                        <GuideRow 
+                          icon={Star} iconColor="text-amber-500" label="Chốt điểm thi đua" 
+                          action="Vào tab 'Phê duyệt cuối' trong chi tiết đánh giá để phê duyệt và chốt điểm chính thức."
+                          note="Admin có quyền tối cao điều chỉnh điểm và chốt kết quả thi đua cuối cùng."
+                        />
+                        <GuideRow 
+                          icon={Calendar} iconColor="text-indigo-500" label="Lịch công tác tuần" 
+                          action="Quản lý lịch tuần của đơn vị, tạo lịch làm việc mới và xuất bản in Excel chất lượng cao."
+                          note="Admin và Manager có toàn quyền điều hành lịch biểu chung của đơn vị."
+                        />
+                        <GuideRow 
+                          icon={TrendingUp} iconColor="text-purple-500" label="Phân tích Hiệu suất" 
+                          action="Theo dõi biểu đồ radar năng lực đa chiều, bảng xếp hạng và nhập nhận xét thi đua đơn vị."
+                          note="Cung cấp cái nhìn toàn diện để chốt đánh giá phân loại cán bộ hàng tháng/quý/năm."
                         />
                       </>
                     ) : isManager ? (
@@ -185,28 +205,28 @@ export default function UserManualModal({ onClose }) {
                 <div>
                   <h4 className="text-2xl font-black uppercase tracking-tight">Chương III: Quy trình Đánh giá</h4>
                   <p className="text-indigo-100 font-medium opacity-80 mt-1">
-                    {isManager ? 'Dành cho vai trò Lãnh đạo/Quản lý' : 'Dành cho vai trò Cán bộ/Thực hiện'}
+                    {(isAdmin || isManager) ? 'Dành cho vai trò Lãnh đạo / Quản trị' : 'Dành cho vai trò Cán bộ / Thực hiện'}
                   </p>
                 </div>
                 <div className="px-4 py-2 bg-white/20 rounded-2xl text-[12px] font-black uppercase tracking-widest backdrop-blur-md">
-                  {isManager ? 'MANAGER CORE FLOW' : 'STAFF CORE FLOW'}
+                  {(isAdmin || isManager) ? 'LEADERSHIP & ADMIN FLOW' : 'STAFF CORE FLOW'}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {isManager ? (
+                {(isAdmin || isManager) ? (
                   <>
                     <EvalStep 
-                      step="01" title="Tự đề xuất" 
-                      desc="Nếu đồng chí trực tiếp tham gia nhiệm vụ, hãy tự chấm điểm cho phần việc của mình."
+                      step="01" title="Giám sát Đề xuất" 
+                      desc="Đôn đốc cán bộ báo cáo tiến độ và theo dõi điểm tự đề xuất của cán bộ chính & phối hợp."
                     />
                     <EvalStep 
-                      step="02" title="Đánh giá cộng sự" 
-                      desc="Nếu là Người thực hiện chính, hãy chấm điểm cho các nhân viên phối hợp cùng."
+                      step="02" title="Chấm điểm chi tiết" 
+                      desc="Đánh giá chi tiết theo công thức: Chất lượng (60%) + Tiến độ (30%) + Khối lượng (10%) kèm Điểm cộng/trừ."
                     />
                     <EvalStep 
-                      step="03" title="Phê duyệt cuối" 
-                      desc="Xem xét điểm của mọi người và nhấn [Chốt điểm] để lưu chính thức vào hồ sơ."
+                      step="03" title="Chốt điểm & Lưu vết" 
+                      desc="Nhập lý do điều chỉnh nếu thay đổi điểm so với đề xuất, nhấn [Chốt điểm]. Có quyền sửa đổi lại bất kỳ lúc nào."
                     />
                   </>
                 ) : (
@@ -234,8 +254,8 @@ export default function UserManualModal({ onClose }) {
                 <div className="space-y-1">
                   <p className="text-[13px] font-black uppercase tracking-widest">Ghi chú quan trọng</p>
                   <p className="text-[14px] font-medium leading-relaxed text-indigo-50">
-                    {isManager ? (
-                      <>Hệ thống tính điểm theo tỷ lệ: **Chất lượng (60%) + Tiến độ (30%) + Khối lượng (10%)**. Bạn có quyền điều chỉnh điểm nếu thấy mức tự đề xuất chưa hợp lý.</>
+                    {(isAdmin || isManager) ? (
+                      <>Công thức tính điểm thi đua tự động: **Điểm chốt = (Chất lượng * 0.6) + (Tiến độ * 0.3) + (Khối lượng * 0.1) + Điểm cộng - Điểm trừ**. Lãnh đạo có quyền chốt điểm và thay đổi điểm bất cứ lúc nào khi có khiếu nại của cán bộ.</>
                     ) : (
                       <>Khi tự đề xuất điểm, hãy đính kèm minh chứng hoặc mô tả kỹ sản phẩm đã làm. Điều này giúp lãnh đạo có cơ sở phê duyệt điểm cao cho đồng chí.</>
                     )}
@@ -274,7 +294,9 @@ export default function UserManualModal({ onClose }) {
             <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[24px] border border-slate-100 dark:border-slate-800 flex items-start gap-4">
               <Info className="text-blue-500 shrink-0 mt-0.5" size={20} />
               <p className="text-[13px] text-slate-500 dark:text-slate-400 font-medium italic leading-relaxed">
-                {isManager ? (
+                {isAdmin ? (
+                  <>**Lời khuyên cho Admin**: Hãy rà soát **Nhật ký thao tác** cuối ngày để nắm bắt toàn diện biến động hệ thống. Định kỳ dọn dẹp các logs/tin nhắn cũ và giám sát Heartbeat trực tuyến để đôn đốc công việc cán bộ.</>
+                ) : isManager ? (
                   <>**Lời khuyên**: Hãy kiểm tra **Thông báo** đầu giờ sáng để cập nhật thay đổi. Cuối tuần, hãy dành 5 phút vào mục **Hiệu suất** để nắm bắt năng suất của cán bộ.</>
                 ) : (
                   <>**Lời khuyên**: Sự chủ động là chìa khóa. Việc cập nhật tiến độ thường xuyên giúp bạn luôn có điểm thi đua tốt và được lãnh đạo đánh giá cao.</>

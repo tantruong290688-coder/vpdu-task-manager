@@ -3,8 +3,8 @@
 // Version: 2026.05.02.08 (Force Update - VAPID Sync)
 // ═══════════════════════════════════════════════════════════
 
-const SW_VERSION = '2026.05.10.01';
-const CACHE_NAME = 'vpdu-v6';
+const SW_VERSION = '2026.05.16.02';
+const CACHE_NAME = 'vpdu-v7'; // Đổi tên cache để ép trình duyệt xóa bản cũ
 const OFFLINE_URL = '/offline.html';
 
 // ── Install: pre-cache shell ─────────────────────────────
@@ -52,14 +52,26 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Cache response mới
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
+        // Chỉ cache nếu response ok
+        if (response && response.status === 200 && response.type === 'basic') {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+        }
         return response;
       })
-      .catch(() => caches.match(event.request).then((r) => r || fetch(event.request)))
+      .catch(async () => {
+        const cachedResponse = await caches.match(event.request);
+        if (cachedResponse) return cachedResponse;
+        
+        // Nếu là trang điều hướng (navigation), trả về index.html để React Router xử lý
+        if (event.request.mode === 'navigate') {
+          return caches.match('/');
+        }
+        
+        return fetch(event.request);
+      })
   );
 });
 

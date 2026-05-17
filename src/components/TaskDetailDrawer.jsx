@@ -3,7 +3,7 @@ import {
   X, Edit2, Trash2, CheckCircle, Star, Clock, User, Users,
   Calendar, Flag, FileText, Tag, Layers, AlertCircle,
   ChevronRight, Award, MessageSquare, Check, History, ListTodo,
-  Maximize2, Minimize2
+  Maximize2, Minimize2, Sparkles, Loader2, Zap
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 import { canEditTask, canUpdateProgress as checkCanUpdateProgress, canEvaluate as checkCanEvaluate, canOpenEvaluationModal, ROLES } from '../lib/permissions';
 import TaskChecklist from './Tasks/TaskChecklist';
 import confetti from 'canvas-confetti';
+import { predictTaskRisk } from '../services/geminiService';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -148,6 +149,10 @@ export default function TaskDetailDrawer({
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
+  
+  // AI Risk Prediction states
+  const [riskAnalysis, setRiskAnalysis] = useState(null);
+  const [isAnalyzingRisk, setIsAnalyzingRisk] = useState(false);
 
   // Permissions
   const isAdmin       = profile?.role === ROLES.ADMIN;
@@ -229,6 +234,43 @@ export default function TaskDetailDrawer({
       console.error('Lỗi fetch history:', err);
     } finally {
       setLoadingHistory(false);
+    }
+  };
+
+  const handleAnalyzeRisk = async () => {
+    if (!task) return;
+    setIsAnalyzingRisk(true);
+    setRiskAnalysis(null);
+    try {
+      const { count: totalChecklists } = await supabase.from('task_checklists').select('*', { count: 'exact', head: true }).eq('task_id', task.id);
+      const { count: completedChecklists } = await supabase.from('task_checklists').select('*', { count: 'exact', head: true }).eq('task_id', task.id).eq('is_completed', true);
+      
+      let elapsedTimePercent = 0;
+      if (task.start_date && task.due_date) {
+        const start = new Date(task.start_date).getTime();
+        const end = new Date(task.due_date).getTime();
+        const now = new Date().getTime();
+        if (now > start && end > start) {
+          elapsedTimePercent = Math.min(100, Math.round(((now - start) / (end - start)) * 100));
+        }
+      }
+
+      const taskDetails = {
+        title: task.title,
+        startDate: task.start_date ? new Date(task.start_date).toLocaleDateString('vi-VN') : 'Không có',
+        dueDate: task.due_date ? new Date(task.due_date).toLocaleDateString('vi-VN') : 'Không có',
+        progress: task.progress || 0,
+        totalChecklists: totalChecklists || 0,
+        completedChecklists: completedChecklists || 0,
+        elapsedTimePercent
+      };
+
+      const result = await predictTaskRisk(taskDetails);
+      setRiskAnalysis(result);
+    } catch (error) {
+      toast.error('Lỗi phân tích rủi ro AI: ' + error.message);
+    } finally {
+      setIsAnalyzingRisk(false);
     }
   };
 
@@ -594,6 +636,66 @@ export default function TaskDetailDrawer({
                 canUpdateProgress={canUpdateProgress && task.status !== 'completed'}
               />
             </div>
+            
+            {/* Cảnh báo rủi ro AI */}
+            {task.status !== 'completed' && task.status !== 'overdue' && (
+              <div className="mt-6 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 bg-white dark:bg-[#111827] shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
+                      <Zap size={14} className="text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <div>
+                      <h4 className="text-[13px] font-bold text-slate-800 dark:text-slate-200 leading-tight">Dự báo Rủi ro Trễ hạn</h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">Trợ lý AI phân tích tiến độ</p>
+                    </div>
+                  </div>
+                  {!riskAnalysis && (
+                    <button
+                      onClick={handleAnalyzeRisk}
+                      disabled={isAnalyzingRisk}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-bold rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {isAnalyzingRisk ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                      {isAnalyzingRisk ? 'Đang phân tích...' : 'Phân tích'}
+                    </button>
+                  )}
+                </div>
+                
+                {riskAnalysis && (
+                  <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className={`p-3 rounded-xl border mb-3 flex items-start gap-3 ${
+                      riskAnalysis.riskLevel === 'Cao' ? 'bg-red-50 border-red-100 dark:bg-red-900/10 dark:border-red-900/30' :
+                      riskAnalysis.riskLevel === 'Trung bình' ? 'bg-amber-50 border-amber-100 dark:bg-amber-900/10 dark:border-amber-900/30' :
+                      'bg-green-50 border-green-100 dark:bg-green-900/10 dark:border-green-900/30'
+                    }`}>
+                      <div className={`mt-0.5 p-1.5 rounded-lg shrink-0 ${
+                        riskAnalysis.riskLevel === 'Cao' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
+                        riskAnalysis.riskLevel === 'Trung bình' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' :
+                        'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                      }`}>
+                        <AlertCircle size={14} />
+                      </div>
+                      <div>
+                        <div className="text-[11px] font-black uppercase tracking-widest opacity-60 mb-0.5">Mức Rủi Ro: {riskAnalysis.riskLevel}</div>
+                        <p className="text-[13px] font-medium leading-relaxed text-slate-700 dark:text-slate-300">
+                          {riskAnalysis.reason}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3">
+                      <div className="text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1 flex items-center gap-1.5">
+                        <Sparkles size={12} className="text-amber-500" />
+                        AI Gợi ý
+                      </div>
+                      <p className="text-[13px] text-slate-600 dark:text-slate-400 italic leading-relaxed">
+                        {riskAnalysis.advice}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </section>
 
           {/* SECTION 4: Kết quả đánh giá (nếu completed) */}

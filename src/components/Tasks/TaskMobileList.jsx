@@ -2,6 +2,8 @@ import { SlidersHorizontal, Clock, Calendar, Star, Eye, CheckCircle, Edit2, Tras
 import { StatusBadge, PriorityBadge, EvaluationStatusBadge } from './TaskBadges';
 import { canEditTask, canUpdateProgress, canEvaluate, canOpenEvaluationModal } from '../../lib/permissions';
 import { getDashboardEmptyState } from '../../lib/taskFilters';
+import { getTaskRisk } from '../../utils/taskAnalytics';
+import { Flag } from 'lucide-react';
 
 export default function TaskMobileList({
   tasks,
@@ -48,6 +50,18 @@ export default function TaskMobileList({
                 </span>
                 <PriorityBadge priority={task.priority} />
                 <StatusBadge status={task.status} dueDate={task.due_date} evaluationScore={task.evaluation_score} />
+                {(() => {
+                  const risk = getTaskRisk(task);
+                  if (risk.isRisk) {
+                    return (
+                      <span className="flex items-center gap-1 text-[9px] font-black text-red-600 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded border border-red-100 dark:border-red-800 animate-pulse">
+                        <Flag size={9} className="fill-red-600" />
+                        RỦI RO
+                      </span>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
               {task.evaluation_score !== null && (
                 <div className="flex flex-col items-end leading-none">

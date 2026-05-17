@@ -1,10 +1,31 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { memo, useState, useRef, useEffect } from 'react';
 import { SlidersHorizontal, ArrowUp, ArrowDown, ArrowUpDown, Eye, CheckCircle, Star, Edit2, Trash2, AlertTriangle, Flag as FlagIcon, Settings2, Check, X } from 'lucide-react';
 import { getTaskRisk } from '../../utils/taskAnalytics';
 import { StatusBadge, PriorityBadge, ScoreBadge, EvaluationStatusBadge } from './TaskBadges';
 import toast from 'react-hot-toast';
 import { canEditTask, canUpdateProgress, canEvaluate, canOpenEvaluationModal } from '../../lib/permissions';
 import { getDashboardEmptyState } from '../../lib/taskFilters';
+
+// ── Module-level memoized sub-components (không bị re-create mỗi render) ─────
+
+const SortIcon = memo(function SortIcon({ columnKey, sortConfig }) {
+  if (sortConfig.key !== columnKey) return <ArrowUpDown size={12} className="opacity-20 hover:opacity-50 shrink-0" />;
+  return sortConfig.direction === 'ascending'
+    ? <ArrowUp size={12} className="text-blue-600 dark:text-blue-400 shrink-0" />
+    : <ArrowDown size={12} className="text-blue-600 dark:text-blue-400 shrink-0" />;
+});
+
+const Resizer = memo(function Resizer({ col, onResizeStart }) {
+  return (
+    <div
+      onPointerDown={(e) => onResizeStart(e, col)}
+      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500/50 active:bg-blue-600 transition-colors z-20 group/resizer"
+    >
+      <div className="absolute top-0 right-0 bottom-0 w-[1px] bg-slate-200 dark:bg-slate-800" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-0.5 h-4 bg-blue-500 rounded-full opacity-0 group-hover/resizer:opacity-100 transition-opacity" />
+    </div>
+  );
+});
 
 const DEFAULT_WIDTHS = {
   code: 100,
@@ -163,23 +184,6 @@ export default function TaskTable({
     return diff > 0 ? diff : 0;
   };
 
-  const SortIcon = ({ columnKey }) => {
-    if (sortConfig.key !== columnKey) return <ArrowUpDown size={12} className="opacity-20 hover:opacity-50 shrink-0" />;
-    return sortConfig.direction === 'ascending' 
-      ? <ArrowUp size={12} className="text-blue-600 dark:text-blue-400 shrink-0" /> 
-      : <ArrowDown size={12} className="text-blue-600 dark:text-blue-400 shrink-0" />;
-  };
-
-  const Resizer = ({ col }) => (
-    <div 
-      onPointerDown={(e) => handleResizeStart(e, col)}
-      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500/50 active:bg-blue-600 transition-colors z-20 group/resizer"
-    >
-      <div className="absolute top-0 right-0 bottom-0 w-[1px] bg-slate-200 dark:bg-slate-800" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-0.5 h-4 bg-blue-500 rounded-full opacity-0 group-hover/resizer:opacity-100 transition-opacity" />
-    </div>
-  );
-
   const toggleColumn = (col) => {
     setVisibleColumns(prev => ({ ...prev, [col]: !prev[col] }));
   };
@@ -250,10 +254,10 @@ export default function TaskTable({
                           >
                             <span className="truncate">{label}</span>
                             {isSortable && (
-                              <SortIcon columnKey={sortKey} />
+                              <SortIcon columnKey={sortKey} sortConfig={sortConfig} />
                             )}
                           </div>
-                          <Resizer col={colKey} />
+                          <Resizer col={colKey} onResizeStart={handleResizeStart} />
                         </th>
                       );
                 });

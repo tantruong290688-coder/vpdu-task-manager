@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import {
   Plus, Edit2, Trash2, CheckCircle, SlidersHorizontal, X,
@@ -122,18 +122,17 @@ export default function Tasks() {
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
-  const handleResetFilters  = () => setActiveFilters(EMPTY_FILTERS);
+  const handleResetFilters = useCallback(() => setActiveFilters(EMPTY_FILTERS), []);
 
-  const requestSort = (key) => {
-    let direction = 'ascending';
-    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
-      direction = 'descending';
-    }
-    setSortConfig({ key, direction });
+  const requestSort = useCallback((key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'ascending' ? 'descending' : 'ascending',
+    }));
     setCurrentPage(1);
-  };
+  }, []);
 
-  const handleDelete = async (id) => {
+  const handleDelete = useCallback(async (id) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa nhiệm vụ này?')) return;
     const { error } = await supabase.from('tasks').delete().eq('id', id);
     if (error) {
@@ -148,9 +147,9 @@ export default function Tasks() {
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setSelectedTaskIds(prev => prev.filter(tid => tid !== id));
     }
-  };
+  }, [profile, queryClient]);
 
-  const handleStatusChange = async (taskId, newStatus) => {
+  const handleStatusChange = useCallback(async (taskId, newStatus) => {
     try {
       const { error } = await supabase
         .from('tasks')
@@ -186,7 +185,7 @@ export default function Tasks() {
     } catch (err) {
       toast.error('Lỗi khi cập nhật trạng thái: ' + err.message);
     }
-  };
+  }, [profile, queryClient]);
 
   // ── Selection & Bulk Actions ──────────────────────────────────────────────────
   
@@ -283,22 +282,26 @@ export default function Tasks() {
 
   // ── Actions Object ──────────────────────────────────────────────────────────
 
-  const actions = { 
-    setSelectedTask, 
-    setIsDrawerOpen, 
-    handleStatusChange, 
-    setEvalModalTask, 
-    openEditModal: (task) => { setEditingTask(task); setIsModalOpen(true); }, 
+  const openEditModal = useCallback((task) => { setEditingTask(task); setIsModalOpen(true); }, []);
+  const openDrawer    = useCallback((task, e) => {
+    if (e?.target?.type === 'checkbox' || e?.target?.closest('button')) return;
+    setSelectedTask(task);
+    setIsDrawerOpen(true);
+  }, []);
+
+  // useMemo để actions object không thay đổi reference khi parent re-render
+  const actions = useMemo(() => ({
+    setSelectedTask,
+    setIsDrawerOpen,
+    handleStatusChange,
+    setEvalModalTask,
+    openEditModal,
     handleDelete,
-    openDrawer: (task, e) => {
-      if (e?.target?.type === 'checkbox' || e?.target?.closest('button')) return;
-      setSelectedTask(task); 
-      setIsDrawerOpen(true);
-    },
+    openDrawer,
     selectedIds: selectedTaskIds,
     onSelectToggle: toggleTaskSelection,
-    onSelectAll: toggleSelectAll
-  };
+    onSelectAll: toggleSelectAll,
+  }), [handleStatusChange, handleDelete, openEditModal, openDrawer, selectedTaskIds, toggleTaskSelection, toggleSelectAll]);
 
   // ── Render Helpers ──────────────────────────────────────────────────────────
 

@@ -1,9 +1,11 @@
+import React, { memo, useCallback } from 'react';
 import { AlertCircle, ChevronRight, Flag, Clock } from 'lucide-react';
 import { getTaskRisk } from '../../utils/taskAnalytics';
 import { useNavigate } from 'react-router-dom';
 
-export default function RiskTasksWidget({ tasks, profile }) {
+const RiskTasksWidget = memo(function RiskTasksWidget({ tasks, profile }) {
   const navigate = useNavigate();
+const handleNavigate = useCallback((taskId) => navigate(`/all-tasks?open=${taskId}`), [navigate]);
   
   // Lọc các task có rủi ro cao
   const riskTasks = tasks
@@ -34,7 +36,7 @@ export default function RiskTasksWidget({ tasks, profile }) {
         {riskTasks.slice(0, 3).map(task => (
           <button
             key={task.id}
-            onClick={() => navigate(`/all-tasks?open=${task.id}`)}
+            onClick={() => handleNavigate(task.id)}
             className="w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl hover:bg-red-50/50 dark:hover:bg-red-900/10 transition-all border border-transparent hover:border-red-100 dark:hover:border-red-900/30 group"
           >
             <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-slate-50 dark:bg-slate-800 flex flex-col items-center justify-center shrink-0 border border-slate-100 dark:border-slate-700">
@@ -70,4 +72,5 @@ export default function RiskTasksWidget({ tasks, profile }) {
       </div>
     </div>
   );
-}
+});
+export default RiskTasksWidget;

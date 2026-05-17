@@ -6,7 +6,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { prompt } = req.body;
+  const { prompt, fileData, mimeType } = req.body;
   const apiKey = process.env.VITE_GEMINI_API_KEY;
 
   if (!apiKey) {
@@ -20,6 +20,24 @@ export default async function handler(req, res) {
     "gemini-flash-latest"
   ];
 
+  let filePart = null;
+  if (fileData) {
+    try {
+      const base64Data = fileData.includes(';base64,')
+        ? fileData.split(';base64,')[1]
+        : fileData;
+      
+      filePart = {
+        inlineData: {
+          data: base64Data,
+          mimeType: mimeType || 'application/pdf'
+        }
+      };
+    } catch (e) {
+      console.error('Lỗi giải mã fileData:', e);
+    }
+  }
+
   let lastError = null;
   
   for (const modelName of candidateModels) {
@@ -27,7 +45,13 @@ export default async function handler(req, res) {
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: modelName });
 
-      const result = await model.generateContent(prompt);
+      let result;
+      if (filePart) {
+        result = await model.generateContent([prompt, filePart]);
+      } else {
+        result = await model.generateContent(prompt);
+      }
+
       const response = await result.response;
       const text = response.text();
 

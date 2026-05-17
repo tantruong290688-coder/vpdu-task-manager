@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { X, AlertCircle, Sparkles, Trash2, Loader2, ListTodo } from 'lucide-react';
+import { X, AlertCircle, Sparkles, Trash2, Loader2, ListTodo, Paperclip, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { writeLog } from '../lib/logger';
@@ -42,6 +42,12 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
   const [isGeneratingChecklist, setIsGeneratingChecklist] = useState(false);
   const [isAutoFilling, setIsAutoFilling] = useState(false);
   
+  // AI Multimodal File upload
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileBase64, setFileBase64] = useState('');
+  const [fileMimeType, setFileMimeType] = useState('');
+  const [isReadingFile, setIsReadingFile] = useState(false);
+  
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const isClosingRef = useRef(false);
@@ -72,6 +78,10 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
     setScheduleItemId(null);
     setDraftChecklists([]);
     setAiContext('');
+    setSelectedFile(null);
+    setFileBase64('');
+    setFileMimeType('');
+    setIsReadingFile(false);
   };
 
   useEffect(() => {
@@ -234,15 +244,47 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
     return assignableUsers.filter(u => collaborators.includes(u.id));
   }, [isManager, isAdmin, assignableUsers, collaborators]);
 
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'application/pdf'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Chỉ hỗ trợ file ảnh (PNG, JPG, WebP) hoặc file tài liệu PDF.');
+      return;
+    }
+    
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error('Dung lượng file tối đa là 8MB.');
+      return;
+    }
+
+    setSelectedFile(file);
+    setFileMimeType(file.type);
+    setIsReadingFile(true);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setFileBase64(event.target.result);
+      setIsReadingFile(false);
+      toast.success(`Đã đính kèm file: ${file.name}`);
+    };
+    reader.onerror = () => {
+      setIsReadingFile(false);
+      toast.error('Lỗi đọc file.');
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleGenerateChecklist = async () => {
-    if (!title) {
-      toast.error('Vui lòng nhập Tên nhiệm vụ trước khi dùng AI!');
+    if (!title && !fileBase64) {
+      toast.error('Vui lòng nhập Tên nhiệm vụ hoặc đính kèm tệp trước khi dùng AI!');
       return;
     }
     
     setIsGeneratingChecklist(true);
     try {
-      const suggestedItems = await generateTaskChecklist(title, description, aiContext);
+      const suggestedItems = await generateTaskChecklist(title, description, aiContext, fileBase64, fileMimeType);
       setDraftChecklists(suggestedItems.map(item => ({ content: item, checked: true })));
       toast.success('AI đã tạo checklist thành công!');
     } catch (error) {
@@ -253,14 +295,14 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
   };
 
   const handleAutoFill = async () => {
-    if (!title && !description && !aiContext) {
-      toast.error('Vui lòng nhập Tiêu đề, Nội dung hoặc Văn bản nguồn để AI phân tích!');
+    if (!title && !description && !aiContext && !fileBase64) {
+      toast.error('Vui lòng nhập Tiêu đề, Nội dung, Văn bản nguồn hoặc đính kèm tệp để AI phân tích!');
       return;
     }
     
     setIsAutoFilling(true);
     try {
-      const data = await analyzeTaskContext(title, description, aiContext);
+      const data = await analyzeTaskContext(title, description, aiContext, fileBase64, fileMimeType);
       
       // Update states if AI returned valid data
       if (data.taskGroup && taskGroups.includes(data.taskGroup)) setTaskGroup(data.taskGroup);
@@ -624,7 +666,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
                     <button 
                       type="button" 
                       onClick={handleAutoFill}
-                      disabled={isAutoFilling || (!title && !description && !aiContext)}
+                      disabled={isAutoFilling || isReadingFile || (!title && !description && !aiContext && !fileBase64)}
                       className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 text-[12px] font-bold rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800 transition-colors disabled:opacity-50"
                     >
                       {isAutoFilling ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
@@ -633,7 +675,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
                     <button 
                       type="button" 
                       onClick={handleGenerateChecklist}
-                      disabled={isGeneratingChecklist || !title}
+                      disabled={isGeneratingChecklist || isReadingFile || (!title && !fileBase64)}
                       className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[12px] font-bold rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-600 hover:border-amber-200 transition-colors disabled:opacity-50"
                     >
                       {isGeneratingChecklist ? <Loader2 size={14} className="animate-spin" /> : <ListTodo size={14} />}
@@ -643,12 +685,56 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-[12px] font-bold text-slate-600 dark:text-slate-400 mb-1">Tài liệu nguồn / Dữ liệu cho AI phân tích (Tùy chọn)</label>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <label className="block text-[12px] font-bold text-slate-600 dark:text-slate-400">
+                      Tài liệu nguồn / Dữ liệu cho AI phân tích (Tùy chọn)
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type="file" 
+                        id="task-file-upload" 
+                        onChange={handleFileChange}
+                        accept=".png,.jpg,.jpeg,.webp,.pdf"
+                        className="hidden" 
+                      />
+                      <label 
+                        htmlFor="task-file-upload"
+                        className="flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-[11px] font-bold rounded-lg cursor-pointer transition-colors border border-slate-200 dark:border-slate-700"
+                      >
+                        <Paperclip size={12} className="text-slate-500" />
+                        Đính kèm Ảnh/PDF
+                      </label>
+                    </div>
+                  </div>
+
+                  {selectedFile && (
+                    <div className="flex items-center justify-between gap-3 p-2 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-800/40 rounded-xl mb-3 animate-in slide-in-from-top-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                        <span className="text-[12px] font-bold text-emerald-800 dark:text-emerald-300 truncate max-w-[250px] sm:max-w-[400px]">
+                          {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                        </span>
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          setSelectedFile(null);
+                          setFileBase64('');
+                          setFileMimeType('');
+                        }}
+                        className="p-1 text-emerald-600 hover:text-red-500 dark:text-emerald-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
+                        title="Xóa tệp"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  )}
+
                   <div className="relative">
                     <textarea 
                       value={aiContext} 
                       onChange={e => setAiContext(e.target.value)} 
-                      placeholder="Dán nội dung tờ trình, văn bản chỉ đạo, kết luận cuộc họp... để AI bóc tách thành checklist chính xác hơn."
+                      placeholder="Dán nội dung tờ trình, văn bản chỉ đạo, kết luận cuộc họp... hoặc đính kèm tệp PDF/Ảnh để AI phân tích chính xác hơn."
                       rows="3"
                       className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-[3px] focus:ring-amber-500/20 focus:border-amber-500 outline-none text-[13px] font-medium text-slate-700 dark:text-slate-300 resize-none pr-10"
                     ></textarea>

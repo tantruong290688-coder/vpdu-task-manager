@@ -5,15 +5,15 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { rawText, currentWeek, currentYear, userRole } = req.body;
+  const { rawText, fileData, mimeType, currentWeek, currentYear, userRole } = req.body;
   const apiKey = process.env.VITE_GEMINI_API_KEY;
 
   if (!apiKey) {
     return res.status(500).json({ error: 'Gemini API Key is not configured.' });
   }
 
-  if (!rawText) {
-    return res.status(400).json({ error: 'No text provided' });
+  if (!rawText && !fileData) {
+    return res.status(400).json({ error: 'Vui lòng cung cấp nội dung chữ hoặc tệp đính kèm (PDF/Ảnh) để AI phân tích.' });
   }
 
   // Danh sách models để dự phòng
@@ -23,6 +23,24 @@ export default async function handler(req, res) {
     "gemini-3.1-flash-lite",
     "gemini-flash-latest"
   ];
+
+  let filePart = null;
+  if (fileData) {
+    try {
+      const base64Data = fileData.includes(';base64,') 
+        ? fileData.split(';base64,')[1] 
+        : fileData;
+      
+      filePart = {
+        inlineData: {
+          data: base64Data,
+          mimeType: mimeType || 'application/pdf'
+        }
+      };
+    } catch (e) {
+      console.error('Lỗi giải mã fileData cho lịch:', e);
+    }
+  }
 
   const systemPrompt = `Bạn là trợ lý AI chuyên phân tích lịch công tác cho Văn phòng Đảng ủy cấp xã.
 Nhiệm vụ của bạn là bóc tách sự kiện từ văn bản thô (giấy mời, thông báo, kế hoạch) và chuyển thành dữ liệu JSON.
@@ -84,9 +102,19 @@ CHỈ TRẢ VỀ JSON, KHÔNG CÓ BẤT KỲ VĂN BẢN NÀO KHÁC.`;
         }
       });
 
+      const parts = [];
+      parts.push({ text: systemPrompt });
+      if (rawText) {
+        parts.push({ text: "\n\n=== VĂN BẢN CẦN PHÂN TÍCH ===\n" + rawText });
+      }
+      if (filePart) {
+        parts.push(filePart);
+        parts.push({ text: "\n\nHãy đọc kỹ tệp đính kèm và trích xuất lịch họp sang danh sách đối tượng JSON theo hướng dẫn hệ thống." });
+      }
+
       const result = await model.generateContent({
         contents: [
-          { role: 'user', parts: [{ text: systemPrompt + "\n\n=== VĂN BẢN CẦN PHÂN TÍCH ===\n" + rawText }] }
+          { role: 'user', parts: parts }
         ]
       });
 

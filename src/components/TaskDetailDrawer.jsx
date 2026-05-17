@@ -256,6 +256,7 @@ export default function TaskDetailDrawer({
       }
 
       const taskDetails = {
+        id: task.id,
         title: task.title,
         startDate: task.start_date ? new Date(task.start_date).toLocaleDateString('vi-VN') : 'Không có',
         dueDate: task.due_date ? new Date(task.due_date).toLocaleDateString('vi-VN') : 'Không có',

@@ -2,7 +2,7 @@
  * Gemini AI Service calling Vercel Serverless Proxy
  */
 
-export const generateTaskChecklist = async (title, description, aiContext = '') => {
+export const generateTaskChecklist = async (title, description, aiContext = '', fileData = '', mimeType = '') => {
     const contextInstruction = aiContext ? `\nDưới đây là tài liệu nguồn/bối cảnh đi kèm (quan trọng để trích xuất checklist):\n"""\n${aiContext}\n"""\nHãy phân tích kỹ tài liệu trên để đưa ra các bước công việc phù hợp.` : '';
 
     const prompt = `
@@ -25,7 +25,7 @@ Ví dụ: ["Bước 1", "Bước 2", "Bước 3"]
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ prompt })
+            body: JSON.stringify({ prompt, fileData, mimeType })
         });
 
         if (!response.ok) {
@@ -63,7 +63,7 @@ Ví dụ: ["Bước 1", "Bước 2", "Bước 3"]
 /**
  * AI Service: Phân tích văn bản nguồn để điền tự động form (Autofill)
  */
-export const analyzeTaskContext = async (title, description, context) => {
+export const analyzeTaskContext = async (title, description, context, fileData = '', mimeType = '') => {
     const prompt = `
 Bạn là một trợ lý ảo quản lý dự án xuất sắc. 
 Hãy phân tích nội dung công việc dưới đây để tự động phân loại và rút trích các thông tin quan trọng.
@@ -87,7 +87,7 @@ Trả về CHỈ một đối tượng JSON với các khóa (keys) chính xác 
         const response = await fetch('/api/ai-assistant', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, temperature: 0.2 }) // Temp thấp để output JSON chính xác
+            body: JSON.stringify({ prompt, temperature: 0.2, fileData, mimeType }) // Temp thấp để output JSON chính xác
         });
 
         if (!response.ok) throw new Error('Lỗi kết nối AI Autofill');
@@ -105,6 +105,41 @@ Trả về CHỈ một đối tượng JSON với các khóa (keys) chính xác 
  * AI Service: Dự báo rủi ro trễ hạn (Risk Prediction)
  */
 export const predictTaskRisk = async (taskDetails) => {
+    // ── BỘ NHỚ ĐỆM CACHING TRÌNH DUYỆT ──
+    const taskId = taskDetails.id;
+    const cacheKey = `task_risk_cache_${taskId}`;
+    const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+    if (taskId) {
+        try {
+            const cachedValue = localStorage.getItem(cacheKey);
+            if (cachedValue) {
+                const parsed = JSON.parse(cachedValue);
+                // Kiểm tra 3 điều kiện: 
+                // 1. Cùng ngày hôm nay
+                // 2. Trùng khớp tiến độ (%)
+                // 3. Trùng khớp số lượng checklists
+                const isSameDay = parsed.lastUpdated === todayStr;
+                const isSameProgress = parsed.progress === taskDetails.progress;
+                const isSameChecklists = 
+                    parsed.totalChecklists === taskDetails.totalChecklists && 
+                    parsed.completedChecklists === taskDetails.completedChecklists;
+
+                if (isSameDay && isSameProgress && isSameChecklists) {
+                    console.log(`[AI-Risk-Cache] Truy xuất thành công từ bộ nhớ đệm cho nhiệm vụ ${taskId}`);
+                    return {
+                        riskLevel: parsed.riskLevel,
+                        reason: parsed.reason,
+                        advice: parsed.advice,
+                        isFromCache: true
+                    };
+                }
+            }
+        } catch (cacheErr) {
+            console.warn('[AI-Risk-Cache] Lỗi đọc bộ nhớ đệm:', cacheErr);
+        }
+    }
+
     const prompt = `
 Bạn là chuyên gia phân tích rủi ro dự án.
 Dưới đây là thông tin hiện tại của một nhiệm vụ đang thực hiện:
@@ -138,7 +173,28 @@ Trả về CHỈ một đối tượng JSON với các khóa sau, không có vă
 
         const data = await response.json();
         let cleanText = data.text.replace(/```json/g, '').replace(/```/g, '').trim();
-        return JSON.parse(cleanText);
+        const result = JSON.parse(cleanText);
+
+        // Lưu kết quả mới vào bộ nhớ đệm
+        if (taskId) {
+            try {
+                const cachePayload = {
+                    riskLevel: result.riskLevel,
+                    reason: result.reason,
+                    advice: result.advice,
+                    progress: taskDetails.progress,
+                    totalChecklists: taskDetails.totalChecklists,
+                    completedChecklists: taskDetails.completedChecklists,
+                    lastUpdated: todayStr
+                };
+                localStorage.setItem(cacheKey, JSON.stringify(cachePayload));
+                console.log(`[AI-Risk-Cache] Đã lưu mới kết quả phân tích vào bộ nhớ đệm cho nhiệm vụ ${taskId}`);
+            } catch (cacheErr) {
+                console.warn('[AI-Risk-Cache] Lỗi ghi bộ nhớ đệm:', cacheErr);
+            }
+        }
+
+        return result;
     } catch (error) {
         console.error("Error predicting task risk:", error);
         throw error;

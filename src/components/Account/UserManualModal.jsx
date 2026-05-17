@@ -60,9 +60,11 @@ export default function UserManualModal({ onClose }) {
                 {isAdmin ? (
                   <>Chào mừng đồng chí đến với hệ thống **Quản trị Nhiệm vụ VPĐU xã Trà Bồng**. Với vai trò **Quản trị viên (Admin)**, đồng chí nắm giữ quyền hạn tối cao để điều hành nhân sự, kiểm soát dữ liệu và đảm bảo hệ thống vận hành ổn định, an toàn.</>
                 ) : isManager ? (
-                  <>Chào mừng đồng chí đến với hệ thống **Quản trị Nhiệm vụ VPĐU xã Trà Bồng**. Với vai trò **Quản lý**, đồng chí đóng vai trò then chốt trong việc điều hành, giao việc và đánh giá kết quả để đảm bảo đơn vị hoàn thành tốt các chỉ tiêu nhiệm vụ được giao.</>
+                  <>Chào mừng đồng chí đến với hệ thống **Quản trị Nhiệm vụ VPĐU xã Trà Bồng**. Với vai trò **Quản lý (Manager)**, đồng chí đóng vai trò then chốt trong việc điều hành, giao việc và đánh giá kết quả để đảm bảo đơn vị hoàn thành tốt các chỉ tiêu nhiệm vụ được giao.</>
+                ) : isViewer ? (
+                  <>Chào mừng đồng chí đến với hệ thống **Quản trị Nhiệm vụ VPĐU xã Trà Bồng**. Với vai trò **Người theo dõi (Viewer)**, hệ thống này cung cấp cho đồng chí góc nhìn tổng quan, phân tích số liệu thi đua và giám sát lịch trình công tác của toàn đơn vị nhằm mục đích tổng hợp báo cáo và hỗ trợ giám sát hành chính.</>
                 ) : (
-                  <>Chào mừng đồng chí đến với hệ thống **Quản trị Nhiệm vụ VPĐU xã Trà Bồng**. Với vai trò **Cán bộ/Nhân viên**, hệ thống này là công cụ giúp đồng chí quản lý công việc cá nhân, báo cáo tiến độ và tự đề xuất kết quả thi đua một cách minh bạch, công bằng và hiệu quả.</>
+                  <>Chào mừng đồng chí đến với hệ thống **Quản trị Nhiệm vụ VPĐU xã Trà Bồng**. Với vai trò **Cán bộ (Staff/Specialist)**, hệ thống này là công cụ giúp đồng chí quản lý công việc cá nhân, báo cáo tiến độ và tự đề xuất kết quả thi đua một cách minh bạch, công bằng và hiệu quả.</>
                 )}
               </p>
             </section>
@@ -175,32 +177,60 @@ export default function UserManualModal({ onClose }) {
                           note="Giúp tổ chức, phân loại khoa học các đầu việc theo khối lượng chuyên môn."
                         />
                       </>
+                    ) : isViewer ? (
+                      <>
+                        <GuideRow 
+                          icon={Zap} iconColor="text-blue-500" label="Dashboard tổng quan" 
+                          action="Theo dõi số lượng và biểu đồ trạng thái nhiệm vụ của toàn đơn vị (Đang làm, Hoàn thành, Trễ hạn...)."
+                          note="Viewer có giao diện thu gọn, tập trung hoàn toàn vào giám sát chỉ số hành chính mà không có quyền sửa đổi."
+                        />
+                        <GuideRow 
+                          icon={TrendingUp} iconColor="text-purple-500" label="Phân tích hiệu suất" 
+                          action="Xem bảng xếp hạng thi đua, điểm số tích lũy và biểu đồ radar năng lực đa chiều của cán bộ."
+                          note="Phục vụ mục đích tổng hợp dữ liệu báo cáo, hỗ trợ nhận diện và đánh giá nhân sự."
+                        />
+                        <GuideRow 
+                          icon={Calendar} iconColor="text-sky-500" label="Lịch công tác tuần" 
+                          action="Xem lịch trình công tác tuần chung của toàn đơn vị và xuất bản in Excel chất lượng cao."
+                          note="Viewer được phép theo dõi lịch tuần để phục vụ công tác điều phối nhưng không có quyền sửa đổi."
+                        />
+                        <GuideRow 
+                          icon={LayoutList} iconColor="text-indigo-500" label="Tra cứu nhiệm vụ" 
+                          action="Xem danh sách chi tiết các nhiệm vụ của đơn vị để nắm bắt nội dung chuyên môn và tiến độ."
+                          note="Viewer có quyền xem chi tiết tất cả các nhiệm vụ nhưng không được thực hiện cập nhật tiến độ."
+                        />
+                      </>
                     ) : (
                       <>
                         <GuideRow 
                           icon={LayoutList} iconColor="text-blue-500" label="Nhiệm vụ của tôi" 
-                          action="Vào mục 'Nhiệm vụ của tôi' để xem các việc bạn được giao thực hiện chính hoặc phối hợp."
-                          note="Đây là nơi làm việc chính của bạn. Luôn kiểm tra danh sách này mỗi ngày."
+                          action="Xem chi tiết các nhiệm vụ được phân công thực hiện chính (Main Assignee) hoặc phối hợp (Collaborator)."
+                          note="Đây là bàn làm việc chính của cán bộ. Cần rà soát và kiểm tra danh sách này hàng ngày."
                         />
                         <GuideRow 
                           icon={TrendingUp} iconColor="text-indigo-500" label="Cập nhật tiến độ" 
-                          action="Nhấn vào biểu tượng [Check] hoặc kéo thẻ Kanban để cập nhật mức độ hoàn thành (%)."
-                          note="Báo cáo tiến độ thường xuyên giúp lãnh đạo nắm bắt được khối lượng công việc."
+                          action="Kéo thả Kanban hoặc nhấp biểu tượng [Check] trong chi tiết nhiệm vụ để cập nhật mức độ hoàn thành (%) thực tế."
+                          note="Giúp Lãnh đạo nắm được khối lượng công việc cán bộ đang xử lý mà không cần báo cáo trực tiếp."
                         />
                         <GuideRow 
                           icon={Star} iconColor="text-amber-500" label="Tự đề xuất điểm" 
-                          action="Khi việc đạt 100%, nhấn biểu tượng [Star] -> Tab Tự đề xuất -> Nhập điểm và nội dung."
-                          note="Đây là quyền lợi của bạn. Phải tự chấm điểm thì lãnh đạo mới có cơ sở chốt kết quả."
+                          action="Khi nhiệm vụ đạt 100% hoàn thành, nhấp biểu tượng [Star] -> Tab Tự đề xuất -> Nhập điểm đề xuất và minh chứng."
+                          note="Quyền lợi thi đua của cán bộ. Cần nhập đầy đủ mô tả sản phẩm để Lãnh đạo phê duyệt điểm cao."
                         />
                         <GuideRow 
                           icon={Layers} iconColor="text-emerald-500" label="To-do cá nhân" 
-                          action="Nhấn [+] tại mục To-do để ghi chú các việc vặt, việc cá nhân hàng ngày."
-                          note="Giúp bạn quản lý thời gian mà không làm rối danh sách nhiệm vụ chung."
+                          action="Nhấp [+] tại mục To-do để ghi chú các công việc vụn vặt, kế hoạch cá nhân hàng ngày."
+                          note="Bảng ghi chú độc lập giúp nâng cao năng suất cá nhân mà không làm rối danh sách nhiệm vụ chung."
                         />
                         <GuideRow 
-                          icon={Bell} iconColor="text-rose-500" label="Nhận chỉ đạo" 
-                          action="Kiểm tra Chuông thông báo và mục Tin nhắn trong từng nhiệm vụ."
-                          note="Phản hồi nhanh các ý kiến chỉ đạo của lãnh đạo để xử lý việc kịp thời."
+                          icon={Calendar} iconColor="text-sky-500" label="Tra cứu lịch tuần" 
+                          action="Xem lịch trình công tác tuần của toàn đơn vị để sắp xếp thời gian làm việc cá nhân phù hợp."
+                          note="Staff có quyền xem và tra cứu lịch tuần chung của Đảng ủy bất kỳ lúc nào."
+                        />
+                        <GuideRow 
+                          icon={Bell} iconColor="text-rose-500" label="Nhận ý kiến chỉ đạo" 
+                          action="Kiểm tra Chuông thông báo và đọc ý kiến chỉ đạo trực tiếp của Lãnh đạo/Admin trong hộp thoại bình luận nhiệm vụ."
+                          note="Phản hồi nhanh chỉ đạo và cập nhật thông tin tương tác thời gian thực."
                         />
                       </>
                     )}
@@ -215,11 +245,11 @@ export default function UserManualModal({ onClose }) {
                 <div>
                   <h4 className="text-2xl font-black uppercase tracking-tight">Chương III: Quy trình Đánh giá</h4>
                   <p className="text-indigo-100 font-medium opacity-80 mt-1">
-                    {(isAdmin || isManager) ? 'Dành cho vai trò Lãnh đạo / Quản trị' : 'Dành cho vai trò Cán bộ / Thực hiện'}
+                    {(isAdmin || isManager) ? 'Dành cho vai trò Lãnh đạo / Quản trị' : isViewer ? 'Dành cho vai trò Người theo dõi' : 'Dành cho vai trò Cán bộ / Thực hiện'}
                   </p>
                 </div>
                 <div className="px-4 py-2 bg-white/20 rounded-2xl text-[12px] font-black uppercase tracking-widest backdrop-blur-md">
-                  {(isAdmin || isManager) ? 'LEADERSHIP & ADMIN FLOW' : 'STAFF CORE FLOW'}
+                  {(isAdmin || isManager) ? 'LEADERSHIP & ADMIN FLOW' : isViewer ? 'VIEWER OVERSIGHT FLOW' : 'STAFF CORE FLOW'}
                 </div>
               </div>
 
@@ -237,6 +267,21 @@ export default function UserManualModal({ onClose }) {
                     <EvalStep 
                       step="03" title="Chốt điểm & Lưu vết" 
                       desc="Nhập lý do điều chỉnh nếu thay đổi điểm so với đề xuất, nhấn [Chốt điểm]. Có quyền sửa đổi lại bất kỳ lúc nào."
+                    />
+                  </>
+                ) : isViewer ? (
+                  <>
+                    <EvalStep 
+                      step="01" title="Giám sát Chỉ số" 
+                      desc="Theo dõi điểm thi đua và bảng xếp hạng năng suất làm việc của cán bộ toàn Đảng ủy."
+                    />
+                    <EvalStep 
+                      step="02" title="Phân tích Radar" 
+                      desc="Đọc hiểu biểu đồ radar năng lực đa chiều để nhận diện điểm mạnh/yếu của nhân sự."
+                    />
+                    <EvalStep 
+                      step="03" title="Tổng hợp báo cáo" 
+                      desc="Trích xuất và tổng hợp các số liệu thi đua thực tế phục vụ các buổi họp giao ban Đảng ủy."
                     />
                   </>
                 ) : (
@@ -266,6 +311,8 @@ export default function UserManualModal({ onClose }) {
                   <p className="text-[14px] font-medium leading-relaxed text-indigo-50">
                     {(isAdmin || isManager) ? (
                       <>Công thức tính điểm thi đua tự động: **Điểm chốt = (Chất lượng * 0.6) + (Tiến độ * 0.3) + (Khối lượng * 0.1) + Điểm cộng - Điểm trừ**. Lãnh đạo có quyền chốt điểm và thay đổi điểm bất cứ lúc nào khi có khiếu nại của cán bộ.</>
+                    ) : isViewer ? (
+                      <>Với quyền hạn **Viewer**, đồng chí có góc nhìn quan sát trung lập, không tham gia chấm hay chỉnh sửa điểm số nhưng có thể giám sát tính công bằng của quy trình chốt điểm dựa trên công thức 60-30-10 của đơn vị.</>
                     ) : (
                       <>Khi tự đề xuất điểm, hãy đính kèm minh chứng hoặc mô tả kỹ sản phẩm đã làm. Điều này giúp lãnh đạo có cơ sở phê duyệt điểm cao cho đồng chí.</>
                     )}
@@ -308,8 +355,10 @@ export default function UserManualModal({ onClose }) {
                   <>**Lời khuyên cho Admin**: Hãy rà soát **Nhật ký thao tác** cuối ngày để nắm bắt toàn diện biến động hệ thống. Định kỳ dọn dẹp các logs/tin nhắn cũ và giám sát Heartbeat trực tuyến để đôn đốc công việc cán bộ.</>
                 ) : isManager ? (
                   <>**Lời khuyên cho Manager**: Hãy chú ý nhãn **Đã xem** để đôn đốc cán bộ tiếp nhận việc. Cuối tháng, hãy dành 5 phút vào mục **Hiệu suất** để chốt nhận xét định kỳ cho cán bộ của mình.</>
+                ) : isViewer ? (
+                  <>**Lời khuyên cho Viewer**: Hãy tận dụng biểu đồ radar năng lực trong mục **Hiệu suất** và theo dõi lịch công tác tuần để hỗ trợ tổng hợp báo cáo hành chính chính xác cho lãnh đạo Đảng ủy.</>
                 ) : (
-                  <>**Lời khuyên**: Sự chủ động là chìa khóa. Việc cập nhật tiến độ thường xuyên giúp bạn luôn có điểm thi đua tốt và được lãnh đạo đánh giá cao.</>
+                  <>**Lời khuyên cho Staff**: Sự chủ động là chìa khóa. Việc cập nhật tiến độ thường xuyên và tự đề xuất điểm kèm minh chứng đầy đủ giúp bạn luôn có điểm thi đua tốt và được lãnh đạo đánh giá cao.</>
                 )}
               </p>
             </div>

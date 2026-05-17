@@ -140,29 +140,39 @@ export default function UserManualModal({ onClose }) {
                     ) : isManager ? (
                       <>
                         <GuideRow 
-                          icon={Zap} iconColor="text-blue-500" label="Dashboard" 
-                          action="Xem nhanh tổng quan số lượng nhiệm vụ: Đang làm, Quá hạn, Chờ đánh giá..."
-                          note="Theo dõi tiến độ tổng thể. Click vào từng con số để xem danh sách chi tiết."
+                          icon={Zap} iconColor="text-blue-500" label="Tổng quan điều hành" 
+                          action="Xem nhanh tổng quan số lượng nhiệm vụ: Đang làm, Quá hạn, Chờ đánh giá... nhấp vào số liệu để xem danh sách chi tiết."
+                          note="Theo dõi sát sao tiến độ tổng thể của toàn đơn vị trên biểu đồ trực quan."
                         />
                         <GuideRow 
-                          icon={Send} iconColor="text-indigo-500" label="Giao nhiệm vụ" 
-                          action="Nhấn [+ Thêm nhiệm vụ] -> Nhập nội dung -> Chọn Người thực hiện chính & Người phối hợp."
-                          note="Quản lý có quyền điều động nhân sự và ấn định thời hạn hoàn thành."
+                          icon={Send} iconColor="text-indigo-500" label="Giao việc & Phối hợp" 
+                          action="Nhấn [+ Thêm nhiệm vụ] -> Điền thông tin -> Chọn Người thực hiện chính (Staff/Specialist) và các thành viên phối hợp."
+                          note="Manager có quyền điều động nhân sự, ấn định thời hạn và sửa đổi thông tin khi cần."
                         />
                         <GuideRow 
-                          icon={Calendar} iconColor="text-orange-500" label="Lịch công tác" 
-                          action="Chọn ngày -> Nhập nội dung làm việc -> Nhấn Lưu."
-                          note="Quản lý lịch tuần của đơn vị. Có thể xuất file Excel để in ấn."
+                          icon={Eye} iconColor="text-teal-500" label="Giám sát tiếp nhận" 
+                          action="Kiểm tra trạng thái nhãn 'Đã xem' hiển thị bên cạnh tên cán bộ trong danh sách nhân sự của nhiệm vụ."
+                          note="Giúp Manager biết chính xác cán bộ đã nhận được và đọc nội dung chỉ đạo hay chưa để đôn đốc."
                         />
                         <GuideRow 
-                          icon={Star} iconColor="text-amber-500" label="Đánh giá nhiệm vụ" 
-                          action="Vào tab Đánh giá trong chi tiết nhiệm vụ -> Thực hiện 3 bước chấm điểm."
-                          note="Đây là quyền hạn quan trọng để chốt kết quả thi đua cho cán bộ."
+                          icon={Calendar} iconColor="text-sky-500" label="Lịch công tác đơn vị" 
+                          action="Quản lý lịch tuần chung của đơn vị, tạo lịch làm việc mới, sửa đổi chi tiết và xuất bản in Excel chất lượng cao."
+                          note="Giúp duy trì lịch trình làm việc và giao ban của Đảng ủy luôn thông suốt và chuyên nghiệp."
                         />
                         <GuideRow 
-                          icon={TrendingUp} iconColor="text-emerald-500" label="Hiệu suất cán bộ" 
-                          action="Chọn kỳ (Tháng/Quý/Năm) -> Xem bảng xếp hạng và biểu đồ radar."
-                          note="Dùng để đánh giá thi đua. Bạn có quyền nhập nhận xét & điều chỉnh điểm."
+                          icon={Star} iconColor="text-amber-500" label="Chốt điểm thi đua" 
+                          action="Vào tab 'Phê duyệt cuối' trong chi tiết đánh giá để chấm điểm chi tiết (60% Chất lượng, 30% Tiến độ, 10% Khối lượng) kèm Điểm cộng/trừ."
+                          note="Manager có quyền phê duyệt, điều chỉnh điểm tự đề xuất của cán bộ và chốt kết quả chính thức."
+                        />
+                        <GuideRow 
+                          icon={TrendingUp} iconColor="text-violet-500" label="Nhận xét của Lãnh đạo" 
+                          action="Vào mục Hiệu suất -> Chọn cán bộ -> Nhấn 'Đánh giá năng lực' để nhập nhận xét chất lượng định kỳ cho cán bộ."
+                          note="Nội dung nhận xét sẽ lưu vào hồ sơ năng lực cá nhân của cán bộ làm cơ sở đánh giá xếp loại cuối năm."
+                        />
+                        <GuideRow 
+                          icon={Layers} iconColor="text-purple-500" label="Cấu trúc công việc" 
+                          action="Vào mục 'Quản lý danh mục' -> Tạo thêm Lĩnh vực công tác hoặc Nhóm nhiệm vụ để phân cấp quản lý."
+                          note="Giúp tổ chức, phân loại khoa học các đầu việc theo khối lượng chuyên môn."
                         />
                       </>
                     ) : (
@@ -297,7 +307,7 @@ export default function UserManualModal({ onClose }) {
                 {isAdmin ? (
                   <>**Lời khuyên cho Admin**: Hãy rà soát **Nhật ký thao tác** cuối ngày để nắm bắt toàn diện biến động hệ thống. Định kỳ dọn dẹp các logs/tin nhắn cũ và giám sát Heartbeat trực tuyến để đôn đốc công việc cán bộ.</>
                 ) : isManager ? (
-                  <>**Lời khuyên**: Hãy kiểm tra **Thông báo** đầu giờ sáng để cập nhật thay đổi. Cuối tuần, hãy dành 5 phút vào mục **Hiệu suất** để nắm bắt năng suất của cán bộ.</>
+                  <>**Lời khuyên cho Manager**: Hãy chú ý nhãn **Đã xem** để đôn đốc cán bộ tiếp nhận việc. Cuối tháng, hãy dành 5 phút vào mục **Hiệu suất** để chốt nhận xét định kỳ cho cán bộ của mình.</>
                 ) : (
                   <>**Lời khuyên**: Sự chủ động là chìa khóa. Việc cập nhật tiến độ thường xuyên giúp bạn luôn có điểm thi đua tốt và được lãnh đạo đánh giá cao.</>
                 )}

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useBlocker } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Plus, Save, Trash2, Calendar as CalendarIcon, CheckSquare, Download, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Trash2, Calendar as CalendarIcon, CheckSquare, Download, RefreshCw, AlertTriangle, FileText, Send, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import TaskModal from '../components/TaskModal';
 import { exportScheduleToExcel, sortSchedulesForExport } from '../utils/exportSchedule';
@@ -37,6 +37,25 @@ export default function ScheduleDetail() {
   const [viewMode, setViewMode] = useState('grid');
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
   const [itemModalData, setItemModalData] = useState(null);
+
+  // Intercept navigation if there are unsaved changes
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      isDirty && currentLocation.pathname !== nextLocation.pathname
+  );
+
+  // Intercept browser tab close / reload
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = 'Bạn có thay đổi chưa lưu. Bạn có chắc chắn muốn rời khỏi trang?';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
 
   useEffect(() => {
     fetchSchedule();
@@ -182,10 +201,11 @@ export default function ScheduleDetail() {
     setIsDirty(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (overrideStatus = null) => {
     setSaving(true);
     try {
       let currentScheduleId = id;
+      const targetStatus = (typeof overrideStatus === 'string') ? overrideStatus : schedule.status;
       
       // Save Schedule
       if (id === 'new') {
@@ -195,7 +215,7 @@ export default function ScheduleDetail() {
             week: schedule.week, 
             year: schedule.year, 
             version: schedule.version, 
-            status: schedule.status,
+            status: targetStatus,
             created_by: profile.id
           }])
           .select()
@@ -210,7 +230,7 @@ export default function ScheduleDetail() {
             week: schedule.week, 
             year: schedule.year, 
             version: schedule.version, 
-            status: schedule.status
+            status: targetStatus
           })
           .eq('id', id);
           
@@ -227,7 +247,7 @@ export default function ScheduleDetail() {
       if (validItems.length === 0 && items.length > 0) {
         setSaving(false);
         toast.error('Vui lòng nhập nội dung cho dòng lịch bạn vừa thêm.');
-        return;
+        return false;
       }
 
       // Validate bắt buộc
@@ -235,14 +255,14 @@ export default function ScheduleDetail() {
       if (missingDate) {
         setSaving(false);
         toast.error('Vui lòng chọn Ngày cho tất cả các nội dung công việc.');
-        return;
+        return false;
       }
       
       const missingContent = validItems.find(item => !item.content);
       if (missingContent) {
         setSaving(false);
         toast.error('Vui lòng nhập Nội dung cho tất cả các lịch công tác.');
-        return;
+        return false;
       }
 
       // Save Items
@@ -297,14 +317,18 @@ export default function ScheduleDetail() {
 
       toast.success('Đã lưu lịch công tác');
       setIsDirty(false);
+      setSchedule(prev => ({ ...prev, status: targetStatus }));
+      
       if (id === 'new') {
         navigate(`/schedules/${currentScheduleId}`, { replace: true });
       } else {
         fetchSchedule(); // Refresh data
       }
+      return true;
     } catch (error) {
       console.error('Error saving schedule:', error);
       toast.error('Lỗi khi lưu lịch: ' + error.message);
+      return false;
     } finally {
       setSaving(false);
     }
@@ -607,7 +631,7 @@ export default function ScheduleDetail() {
                       </td>
                       <td className="p-1.5 text-center">
                         <div className="flex flex-col items-center gap-1">
-                          {item.type === 'meeting' && (
+                          {(item.type !== 'holiday' && !(item.content || '').toLowerCase().includes('nghỉ')) && (
                             item.is_task_created ? (
                               <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-[9px] font-black uppercase tracking-tighter bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded">
                                 <CheckSquare size={14} strokeWidth={3} />
@@ -807,6 +831,92 @@ export default function ScheduleDetail() {
           onSave={handleSaveItemModal}
           onDelete={handleDeleteItemModal}
         />
+      )}
+
+      {/* Premium Unsaved Changes Confirmation Modal */}
+      {blocker.state === 'blocked' && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-200" onClick={() => blocker.reset()} />
+          
+          {/* Modal Container */}
+          <div className="relative w-full max-w-lg bg-white dark:bg-[#1e293b] rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Top close button */}
+            <button 
+              onClick={() => blocker.reset()}
+              className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-full transition-all active:scale-95 z-10 cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+
+            {/* Header / Icon section */}
+            <div className="p-8 pb-4 flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-[1.5rem] bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/30 flex items-center justify-center text-rose-500 mb-5 shadow-inner">
+                <AlertTriangle size={32} strokeWidth={2.5} className="animate-pulse" />
+              </div>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+                Bạn có thay đổi chưa lưu!
+              </h3>
+              <p className="text-[13.5px] text-slate-500 dark:text-slate-400 mt-2 font-medium leading-relaxed">
+                Lịch công tác tuần này đã bị thay đổi. Bạn có muốn lưu lại dữ liệu trước khi thoát khỏi trang không?
+              </p>
+            </div>
+
+            {/* Actions Grid */}
+            <div className="p-8 pt-2 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={async () => {
+                    const success = await handleSave('draft');
+                    if (success) {
+                      setIsDirty(false);
+                      setTimeout(() => blocker.proceed(), 100);
+                    }
+                  }}
+                  className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-blue-950/20 border border-slate-200 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-900/30 rounded-2xl transition-all group active:scale-95 shadow-sm cursor-pointer"
+                >
+                  <FileText size={22} className="text-slate-500 group-hover:text-blue-500 transition-colors" />
+                  <span className="text-[13px] font-black text-slate-700 dark:text-slate-200 mt-2">Lưu bản nháp</span>
+                  <span className="text-[10px] text-slate-400 font-semibold mt-0.5">Lưu hành nội bộ</span>
+                </button>
+
+                <button
+                  onClick={async () => {
+                    const success = await handleSave('published');
+                    if (success) {
+                      setIsDirty(false);
+                      setTimeout(() => blocker.proceed(), 100);
+                    }
+                  }}
+                  className="flex flex-col items-center justify-center p-4 bg-blue-600 hover:bg-blue-700 border border-blue-500 rounded-2xl text-white transition-all active:scale-95 shadow-lg shadow-blue-500/20 group cursor-pointer"
+                >
+                  <Send size={22} className="text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                  <span className="text-[13px] font-black mt-2">Ban hành</span>
+                  <span className="text-[10px] text-blue-100/80 font-semibold mt-0.5">Công khai dữ liệu</span>
+                </button>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    setIsDirty(false);
+                    setTimeout(() => blocker.proceed(), 100);
+                  }}
+                  className="flex-1 py-3 px-4 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-900/30 border border-rose-100 dark:border-rose-900/20 hover:border-rose-200 rounded-2xl text-[13px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 transition-all active:scale-95 text-center cursor-pointer"
+                >
+                  Không lưu
+                </button>
+
+                <button
+                  onClick={() => blocker.reset()}
+                  className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-2xl text-[13px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 transition-all active:scale-95 text-center cursor-pointer"
+                >
+                  Hủy bỏ
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

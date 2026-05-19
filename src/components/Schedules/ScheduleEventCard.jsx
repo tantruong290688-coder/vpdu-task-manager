@@ -54,7 +54,7 @@ export default function ScheduleEventCard({ item, onClick, onAddTask }) {
       </div>
 
       {/* Task Badge or Add Task Button */}
-      {item.type === 'meeting' && (
+      {!isHoliday && (
         <div className="absolute top-2 right-2 flex items-center justify-center">
           {item.is_task_created ? (
             <span className="text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 p-1 rounded-md" title="Đã có nhiệm vụ phục vụ">

@@ -1,6 +1,6 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
-import { Toaster } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 import { lazy, Suspense, useState, useEffect, Component } from 'react';
 import GlobalSearchModal from './components/GlobalSearch/GlobalSearchModal';
 
@@ -77,10 +77,10 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-function App() {
+// ── Root Layout Component ──────────────────────────────────────────────────
+function RootLayout() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-  // Đăng ký Service Worker + xử lý update + Offline Sync
   useEffect(() => {
     // Shortcuts listener
     const handleShortcuts = (e) => {
@@ -119,8 +119,6 @@ function App() {
     // 2. Online/Offline handling
     const handleOnline = () => {
       toast.success('Đã kết nối mạng. Đang đồng bộ dữ liệu mới...', { icon: '🌐', duration: 4000 });
-      // Tự động reload các tab đang mở hoặc trigger refetch qua event nếu cần
-      // Ở đây ta có thể phát một custom event để các component tự refetch
       window.dispatchEvent(new CustomEvent('app-sync-data'));
     };
 
@@ -139,66 +137,94 @@ function App() {
   }, []);
 
   return (
-    <Router>
+    <>
       <Toaster position="top-right" />
       <Suspense fallback={<PageLoader />}>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          
-          {/* Alias cho /dashboard để tránh lỗi link cũ/bookmark */}
-          <Route path="/dashboard" element={<Navigate to="/" replace />} />
-
-          <Route path="/" element={
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-          }>
-            <Route index element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
-            <Route path="tasks" element={
-              <ErrorBoundary>
-                <Tasks />
-              </ErrorBoundary>
-            } />
-            <Route path="schedules" element={
-              <ErrorBoundary>
-                <Schedules />
-              </ErrorBoundary>
-            } />
-            <Route path="schedules/:id" element={
-              <ErrorBoundary>
-                <ScheduleDetail />
-              </ErrorBoundary>
-            } />
-            <Route path="all-tasks" element={
-              <ErrorBoundary>
-                <Tasks />
-              </ErrorBoundary>
-            } />
-            <Route path="my-tasks" element={
-              <ErrorBoundary>
-                <Tasks />
-              </ErrorBoundary>
-            } />
-            <Route path="logs"          element={<ErrorBoundary><Logs /></ErrorBoundary>} />
-            <Route path="admin"         element={<ErrorBoundary><Admin /></ErrorBoundary>} />
-            <Route path="todo"          element={<ErrorBoundary><TodoPage /></ErrorBoundary>} />
-            <Route path="notifications" element={
-              <ErrorBoundary>
-                <NotificationsPage />
-              </ErrorBoundary>
-            } />
-            <Route path="performance" element={
-              <ErrorBoundary>
-                <StaffPerformance />
-              </ErrorBoundary>
-            } />
-          </Route>
-        </Routes>
+        <Outlet />
       </Suspense>
       <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-    </Router>
+    </>
   );
+}
+
+// ── Router Configuration ─────────────────────────────────────────────────────
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <RootLayout />,
+    children: [
+      {
+        path: 'login',
+        element: <Login />,
+      },
+      {
+        path: 'reset-password',
+        element: <ResetPasswordPage />,
+      },
+      {
+        path: 'dashboard',
+        element: <Navigate to="/" replace />,
+      },
+      {
+        path: '/',
+        element: (
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        ),
+        children: [
+          {
+            index: true,
+            element: <ErrorBoundary><Dashboard /></ErrorBoundary>,
+          },
+          {
+            path: 'tasks',
+            element: <ErrorBoundary><Tasks /></ErrorBoundary>,
+          },
+          {
+            path: 'schedules',
+            element: <ErrorBoundary><Schedules /></ErrorBoundary>,
+          },
+          {
+            path: 'schedules/:id',
+            element: <ErrorBoundary><ScheduleDetail /></ErrorBoundary>,
+          },
+          {
+            path: 'all-tasks',
+            element: <ErrorBoundary><Tasks /></ErrorBoundary>,
+          },
+          {
+            path: 'my-tasks',
+            element: <ErrorBoundary><Tasks /></ErrorBoundary>,
+          },
+          {
+            path: 'logs',
+            element: <ErrorBoundary><Logs /></ErrorBoundary>,
+          },
+          {
+            path: 'admin',
+            element: <ErrorBoundary><Admin /></ErrorBoundary>,
+          },
+          {
+            path: 'todo',
+            element: <ErrorBoundary><TodoPage /></ErrorBoundary>,
+          },
+          {
+            path: 'notifications',
+            element: <ErrorBoundary><NotificationsPage /></ErrorBoundary>,
+          },
+          {
+            path: 'performance',
+            element: <ErrorBoundary><StaffPerformance /></ErrorBoundary>,
+          },
+        ],
+      },
+    ],
+  },
+]);
+
+function App() {
+  return <RouterProvider router={router} />;
 }
 
 export default App;

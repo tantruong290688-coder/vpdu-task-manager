@@ -300,7 +300,7 @@ export default function Schedules() {
                             </div>
                             <div className="flex flex-col">
                               <span className="text-[14px] font-black text-slate-900 dark:text-white">Tuần {schedule.week}</span>
-                              <span className="text-[11px] font-bold text-slate-400">
+                              <span className="text-[14px] font-light text-red-600 dark:text-red-400">
                                 {(() => {
                                   try {
                                     const start = getStartDateOfWeek(schedule.week, schedule.year);
@@ -384,7 +384,7 @@ export default function Schedules() {
                       </div>
                       <div>
                         <h3 className="text-base font-black text-slate-800 dark:text-white">Tuần {schedule.week}</h3>
-                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                        <p className="text-[14px] font-light text-red-600 dark:text-red-400 mt-0.5">
                           {(() => {
                             try {
                               const start = getStartDateOfWeek(schedule.week, schedule.year);

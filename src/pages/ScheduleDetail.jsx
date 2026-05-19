@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useBlocker } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, useBlocker } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Plus, Save, Trash2, Calendar as CalendarIcon, CheckSquare, Download, RefreshCw, AlertTriangle, FileText, Send, X } from 'lucide-react';
@@ -16,6 +16,7 @@ import { LayoutGrid, List } from 'lucide-react';
 export default function ScheduleDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { profile } = useAuth();
   
   const [schedule, setSchedule] = useState(null);
@@ -63,18 +64,32 @@ export default function ScheduleDetail() {
 
   const fetchSchedule = async () => {
     if (id === 'new') {
+      const stateWeek = location.state?.week;
+      const stateYear = location.state?.year;
+
       const now = new Date();
       const oneJan = new Date(now.getFullYear(), 0, 1);
       const numberOfDays = Math.floor((now - oneJan) / (24 * 60 * 60 * 1000));
       const currentWeek = Math.ceil((now.getDay() + 1 + numberOfDays) / 7);
       
+      const targetWeek = stateWeek ? parseInt(stateWeek) : currentWeek;
+      const targetYear = stateYear ? parseInt(stateYear) : now.getFullYear();
+
       setSchedule({
-        week: currentWeek,
-        year: now.getFullYear(),
+        week: targetWeek,
+        year: targetYear,
         version: 1,
         status: 'draft'
       });
-      setItems([{ id: 'temp_1', date: '', time: '', content: '', host: '', attendees: '', location: '', prepare_by: '', type: 'meeting' }]);
+      
+      let defaultDate = '';
+      try {
+        defaultDate = getDaysOfWeek(targetWeek, targetYear)[0].dateIso;
+      } catch (e) {
+        // ignore
+      }
+
+      setItems([{ id: 'temp_1', date: defaultDate, time: '', content: '', host: '', attendees: '', location: '', prepare_by: '', type: 'meeting' }]);
       setLoading(false);
       return;
     }
@@ -152,9 +167,7 @@ export default function ScheduleDetail() {
         } else {
           // Nếu đang xem một bản ghi cũ, hỏi người dùng có muốn tạo lịch mới cho tuần này không
           if (window.confirm(`Tuần ${targetWeek}/${targetYear} chưa có dữ liệu lịch. Bạn có muốn tạo lịch mới cho tuần này không?`)) {
-            navigate('/schedules/new');
-            // Ghi chú: Sau khi điều hướng sang /new, fetchSchedule sẽ chạy lại và dùng tuần hiện tại. 
-            // Có thể cần truyền state để /new biết chọn tuần nào.
+            navigate('/schedules/new', { state: { week: parseInt(targetWeek), year: parseInt(targetYear) } });
           }
         }
       }

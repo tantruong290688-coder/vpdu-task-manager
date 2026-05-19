@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock, MapPin, Users, User, Type, AlignLeft } from 'lucide-react';
+import { determineSession } from '../../utils/scheduleUtils';
 
 export default function ScheduleItemModal({ isOpen, onClose, onSave, onDelete, initialData }) {
   const [formData, setFormData] = useState({
@@ -18,9 +19,15 @@ export default function ScheduleItemModal({ isOpen, onClose, onSave, onDelete, i
 
   useEffect(() => {
     if (isOpen && initialData) {
+      const initTime = initialData.time || '';
+      const isRedundant = ['sáng', 'chiều', 'tối', 'cả ngày'].includes(initTime.toLowerCase().trim());
+      const determined = determineSession(initialData);
+
       setFormData({
         ...formData, // default structure
-        ...initialData
+        ...initialData,
+        session: initialData.session || determined || 'Sáng',
+        time: isRedundant ? '' : initTime
       });
     }
   }, [isOpen, initialData]);
@@ -39,6 +46,11 @@ export default function ScheduleItemModal({ isOpen, onClose, onSave, onDelete, i
       return;
     }
     const dataToSave = { ...formData };
+
+    // Nếu không có giờ cụ thể, đồng bộ lại time để Supabase lưu trữ được thông tin buổi
+    if (!dataToSave.time && dataToSave.session) {
+      dataToSave.time = dataToSave.session;
+    }
 
     onSave(dataToSave);
     onClose();

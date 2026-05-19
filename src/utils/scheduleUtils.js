@@ -70,7 +70,11 @@ export function normalizeDateVNToISO(vnDateStr) {
 
 // Phân loại buổi: "Sáng", "Chiều", "Tối", "Cả ngày"
 export function determineSession(item) {
-  if (item.time?.toLowerCase() === 'cả ngày') return 'Cả ngày';
+  const t = String(item.time || '').toLowerCase().trim();
+  if (t === 'sáng') return 'Sáng';
+  if (t === 'chiều') return 'Chiều';
+  if (t === 'tối') return 'Tối';
+  if (t === 'cả ngày') return 'Cả ngày';
   
   // 1. Ưu tiên phân tích từ chuỗi Giờ (item.time) do người dùng nhập từ Dạng Bảng
   let timeStr = String(item.time || '').toLowerCase().replace('h', ':').replace(/\s+/g, '');

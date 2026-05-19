@@ -389,7 +389,7 @@ export default function TaskDetailDrawer({
                 </span>
               )}
             </div>
-            <h2 className="text-[15px] sm:text-[16px] font-extrabold text-slate-800 dark:text-white leading-snug line-clamp-2">
+            <h2 className="text-[16px] sm:text-[18px] font-admin font-bold text-slate-800 dark:text-white leading-snug line-clamp-2">
               {task.title}
             </h2>
           </div>
@@ -569,19 +569,19 @@ export default function TaskDetailDrawer({
               <FieldRow label="Loại nhiệm vụ" value={task.task_type} />
               <FieldRow label="Kỳ đánh giá" value={task.evaluation_period} />
               <FieldRow label="Tên nhiệm vụ / Công việc" value={
-                <span className="font-semibold text-slate-800 dark:text-white">{task.title}</span>
+                <span className="font-admin font-bold text-[15px] sm:text-[17px] text-slate-800 dark:text-white leading-snug">{task.title}</span>
               } fullWidth />
               <FieldRow
                 label="Nội dung yêu cầu"
                 value={task.description}
                 fullWidth
-                className={`${focusMode ? 'text-[15px] sm:text-[16px] p-5 shadow-inner' : 'text-[13px] p-3'} bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800 transition-all`}
+                className="admin-directive-box admin-doc-content"
               />
               <FieldRow
                 label="Sản phẩm đầu ra"
                 value={task.expected_output}
                 fullWidth
-                className={`${focusMode ? 'text-[15px] sm:text-[16px] p-5 shadow-inner' : 'text-[13px] p-3'} bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800 transition-all`}
+                className="admin-output-box admin-doc-content"
               />
             </dl>
           </section>
@@ -729,9 +729,9 @@ export default function TaskDetailDrawer({
                   {task.evaluation_comment && (
                     <div>
                       <dt className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
-                        <MessageSquare size={11} /> Nhận xét
+                        <MessageSquare size={11} /> Nhận xét kết quả
                       </dt>
-                      <p className="text-[13px] text-slate-700 dark:text-slate-200 leading-relaxed bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700 italic">
+                      <p className="font-admin text-[14.5px] sm:text-[15.5px] text-slate-700 dark:text-slate-200 leading-relaxed bg-white dark:bg-slate-800/80 rounded-xl p-4 border border-slate-200 dark:border-slate-700 italic shadow-sm">
                         "{task.evaluation_comment}"
                       </p>
                     </div>

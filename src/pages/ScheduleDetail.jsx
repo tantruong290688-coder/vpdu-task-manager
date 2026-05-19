@@ -572,7 +572,7 @@ export default function ScheduleDetail() {
                         <input type="text" placeholder="7h30..." value={item.time || ''} onChange={e => handleItemChange(item.id, 'time', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/40 border-none rounded-lg px-2 py-1.5 text-[12px] font-bold focus:ring-1 focus:ring-blue-500/30 transition-all dark:text-white" />
                       </td>
                       <td className="p-1.5">
-                        <textarea rows="1" placeholder="Nội dung..." value={item.content || ''} onChange={e => handleItemChange(item.id, 'content', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/40 border-none rounded-lg px-2 py-1.5 text-[12px] font-bold focus:ring-1 focus:ring-blue-500/30 transition-all dark:text-white resize-none leading-tight min-h-[40px]"></textarea>
+                        <textarea rows="1" placeholder="Nội dung..." value={item.content || ''} onChange={e => handleItemChange(item.id, 'content', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/40 border-none rounded-lg px-2 py-1.5 font-admin text-[13.5px] sm:text-[14px] font-semibold focus:ring-1 focus:ring-blue-500/30 transition-all dark:text-white resize-none leading-normal min-h-[40px]"></textarea>
                       </td>
                       <td className="p-1.5">
                         <select 
@@ -589,7 +589,7 @@ export default function ScheduleDetail() {
                         </select>
                       </td>
                       <td className="p-1.5">
-                        <textarea rows="1" placeholder="Thành phần..." value={item.attendees || ''} onChange={e => handleItemChange(item.id, 'attendees', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/40 border-none rounded-lg px-2 py-1.5 text-[11px] font-bold focus:ring-1 focus:ring-blue-500/30 transition-all dark:text-white resize-none leading-tight min-h-[40px]"></textarea>
+                        <textarea rows="1" placeholder="Thành phần..." value={item.attendees || ''} onChange={e => handleItemChange(item.id, 'attendees', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/40 border-none rounded-lg px-2 py-1.5 font-admin text-[12px] sm:text-[12.5px] font-medium focus:ring-1 focus:ring-blue-500/30 transition-all dark:text-white resize-none leading-tight min-h-[40px]"></textarea>
                       </td>
                       <td className="p-1.5">
                         <input type="text" placeholder="Địa điểm" value={item.location || ''} onChange={e => handleItemChange(item.id, 'location', e.target.value)} disabled={!canEdit} className="w-full bg-slate-50 dark:bg-slate-900/40 border-none rounded-lg px-2 py-1.5 text-[12px] font-bold focus:ring-1 focus:ring-blue-500/30 transition-all dark:text-white" />

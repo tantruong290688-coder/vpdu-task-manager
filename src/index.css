@@ -119,3 +119,64 @@ body {
   to { transform: translateY(0); opacity: 1; }
 }
 
+/* ===== ADMINISTRATIVE TYPOGRAPHY SYSTEM (NĐ 30/2020/NĐ-CP & TCVN 6909:2001) ===== */
+.font-admin {
+  font-family: "Times New Roman", Times, Georgia, serif;
+}
+
+.admin-doc-content {
+  font-family: "Times New Roman", Times, Georgia, serif;
+  color: var(--text-primary);
+  text-align: left;
+  letter-spacing: -0.005em;
+  font-size: 15.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Mobile responsive adjustments for reading comfort */
+@media (max-width: 640px) {
+  .admin-doc-content {
+    font-size: 14.5px;
+    line-height: 1.45;
+  }
+}
+
+/* Formal Directive Box (Ý kiến chỉ đạo - Thường trực Đảng ủy) */
+.admin-directive-box {
+  position: relative;
+  font-family: "Times New Roman", Times, Georgia, serif;
+  padding: 12px 16px;
+  background-color: rgba(220, 38, 38, 0.02); /* Sắc cờ Đảng nhạt */
+  border-left: 4px solid #dc2626; /* Đỏ cờ chính thức */
+  border-radius: 0 12px 12px 0;
+  color: var(--text-primary);
+  box-shadow: inset 0 0 12px rgba(220, 38, 38, 0.01);
+}
+.dark .admin-directive-box {
+  background-color: rgba(239, 68, 68, 0.03);
+  border-left-color: #ef4444;
+}
+
+/* Formal Output Box (Sản phẩm đầu ra yêu cầu) */
+.admin-output-box {
+  position: relative;
+  font-family: "Times New Roman", Times, Georgia, serif;
+  padding: 12px 16px;
+  background-color: rgba(37, 99, 235, 0.02); /* Xanh hành chính */
+  border-left: 4px solid #2563eb;
+  border-radius: 0 12px 12px 0;
+  color: var(--text-primary);
+  box-shadow: inset 0 0 12px rgba(37, 99, 235, 0.01);
+}
+.dark .admin-output-box {
+  background-color: rgba(59, 130, 246, 0.03);
+  border-left-color: #3b82f6;
+}
+
+@media (max-width: 640px) {
+  .admin-directive-box, .admin-output-box {
+    padding: 10px 12px;
+  }
+}

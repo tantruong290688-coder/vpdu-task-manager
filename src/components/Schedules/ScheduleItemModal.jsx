@@ -147,7 +147,7 @@ export default function ScheduleItemModal({ isOpen, onClose, onSave, onDelete, i
               placeholder="Nhập nội dung sự kiện..."
               value={formData.content || ''} 
               onChange={handleChange}
-              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white transition-all resize-none"
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white transition-all resize-none font-admin text-[14.5px] sm:text-[15.5px] leading-relaxed"
             />
           </div>
 

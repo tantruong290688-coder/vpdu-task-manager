@@ -32,7 +32,7 @@ export default function ScheduleEventCard({ item, onClick, onAddTask }) {
             {item.time}
           </span>
         )}
-        <span className="text-slate-800 dark:text-slate-200 font-semibold text-[13px] leading-snug line-clamp-3">
+        <span className="font-admin text-slate-800 dark:text-slate-200 font-semibold text-[13.5px] sm:text-[14px] leading-snug line-clamp-3">
           {item.content || '(Chưa nhập nội dung)'}
         </span>
       </div>

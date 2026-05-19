@@ -643,15 +643,15 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
 
             {/* Row 3 - Full width */}
             <div>
-              <label className="block text-[13px] font-bold text-slate-800 mb-2">Tên nhiệm vụ / công việc</label>
+              <label className="block text-[13px] font-bold text-slate-800 dark:text-slate-200 mb-2">Tên nhiệm vụ / công việc</label>
               <input type="text" value={title} onChange={e => setTitle(e.target.value)} required
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none text-[14px] font-medium text-slate-700" />
+                className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none text-[14px] font-medium text-slate-700 dark:text-white" />
             </div>
 
             <div>
-              <label className="block text-[13px] font-bold text-slate-800 mb-2">Nội dung yêu cầu</label>
+              <label className="block text-[13px] font-bold text-slate-800 dark:text-slate-200 mb-2">Nội dung yêu cầu</label>
               <textarea value={description} onChange={e => setDescription(e.target.value)} rows="3"
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none text-[14px] font-medium text-slate-700 resize-none"></textarea>
+                className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none font-admin text-[14.5px] sm:text-[15.5px] font-semibold text-slate-700 dark:text-white resize-none leading-relaxed min-h-[100px]"></textarea>
             </div>
 
             {/* AI Assistant Section */}
@@ -786,9 +786,9 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
             )}
 
             <div>
-              <label className="block text-[13px] font-bold text-slate-800 mb-2">Sản phẩm đầu ra</label>
+              <label className="block text-[13px] font-bold text-slate-800 dark:text-slate-200 mb-2">Sản phẩm đầu ra</label>
               <textarea value={expectedOutput} onChange={e => setExpectedOutput(e.target.value)} rows="2"
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none text-[14px] font-medium text-slate-700 resize-none"></textarea>
+                className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none font-admin text-[14.5px] sm:text-[15.5px] font-semibold text-slate-700 dark:text-white resize-none leading-relaxed min-h-[80px]"></textarea>
             </div>
 
             {/* Row 4 */}

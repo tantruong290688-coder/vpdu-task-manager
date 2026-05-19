@@ -27,7 +27,7 @@ export default function ScheduleEventCard({ item, onClick, onAddTask }) {
       
       {/* Time & Content */}
       <div className="flex flex-col gap-0.5 pl-1.5">
-        {item.time && (
+        {item.time && !['sáng', 'chiều', 'cả ngày'].includes(item.time.toLowerCase().trim()) && (
           <span className="text-rose-600 dark:text-rose-400 font-bold text-[12px] tracking-tight">
             {item.time}
           </span>

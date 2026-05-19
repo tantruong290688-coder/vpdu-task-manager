@@ -38,12 +38,7 @@ export default function ScheduleItemModal({ isOpen, onClose, onSave, onDelete, i
       alert("Vui lòng nhập Ngày và Nội dung");
       return;
     }
-    
-    // Đồng bộ time <-> session để Table view hiển thị trực quan
     const dataToSave = { ...formData };
-    if (!dataToSave.time && dataToSave.session && dataToSave.session !== 'Cả ngày') {
-      dataToSave.time = dataToSave.session; 
-    }
 
     onSave(dataToSave);
     onClose();

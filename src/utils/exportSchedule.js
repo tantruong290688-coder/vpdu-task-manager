@@ -271,9 +271,9 @@ export const exportScheduleToExcel = async (schedule, items) => {
     }
 
     // Check mandatory fields
-    const missingFields = validItems.some(i => !i.date || !i.time || !i.content);
+    const missingFields = validItems.some(i => !i.date || !i.content);
     if (missingFields) {
-      throw new Error('Vui lòng điền đầy đủ Ngày, Thời gian và Nội dung cho tất cả các sự kiện.');
+      throw new Error('Vui lòng điền đầy đủ Ngày và Nội dung cho tất cả các sự kiện.');
     }
 
     // 1. Fetch template

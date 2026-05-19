@@ -68,7 +68,7 @@ export function normalizeDateVNToISO(vnDateStr) {
   return vnDateStr;
 }
 
-// Phân loại buổi: "Sáng", "Chiều", "Cả ngày"
+// Phân loại buổi: "Sáng", "Chiều", "Tối", "Cả ngày"
 export function determineSession(item) {
   if (item.time?.toLowerCase() === 'cả ngày') return 'Cả ngày';
   
@@ -79,13 +79,14 @@ export function determineSession(item) {
     if (!isNaN(hour)) {
       if (hour < 12) return 'Sáng';
       if (hour >= 12 && hour < 18) return 'Chiều';
+      if (hour >= 18) return 'Tối';
       return 'Cả ngày';
     }
   }
 
   // 2. Fallback về session nếu được tạo từ Dạng Lưới mà chưa nhập giờ
   if (item.session === 'Cả ngày') return 'Cả ngày';
-  if (item.session === 'Sáng' || item.session === 'Chiều') return item.session;
+  if (item.session === 'Sáng' || item.session === 'Chiều' || item.session === 'Tối') return item.session;
   
   return 'Cả ngày'; // Mặc định
 }

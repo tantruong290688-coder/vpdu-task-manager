@@ -539,44 +539,48 @@ export default function ScheduleDetail() {
                     </tr>
                   </thead>
                   <tbody>
-                    {['Sáng', 'Chiều', 'Cả ngày'].map((session) => (
-                      <tr key={session}>
-                        <td className="p-4 border-b border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-center font-bold text-slate-600 dark:text-slate-300 text-sm align-middle w-20">
-                          {session}
-                        </td>
-                        {getDaysOfWeek(schedule.week, schedule.year).map((day) => {
-                          const cellItems = items.filter(item => {
-                            if (!item.date) return false;
-                            const itemDateIso = normalizeDateVNToISO(item.date);
-                            const itemSession = determineSession(item);
-                            return itemDateIso === day.dateIso && itemSession === session;
-                          });
+                    {(() => {
+                      const hasEvening = items.some(item => determineSession(item) === 'Tối');
+                      const displaySessions = hasEvening ? ['Sáng', 'Chiều', 'Tối', 'Cả ngày'] : ['Sáng', 'Chiều', 'Cả ngày'];
+                      return displaySessions.map((session) => (
+                        <tr key={session}>
+                          <td className="p-4 border-b border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-center font-bold text-slate-600 dark:text-slate-300 text-sm align-middle w-20">
+                            {session}
+                          </td>
+                          {getDaysOfWeek(schedule.week, schedule.year).map((day) => {
+                            const cellItems = items.filter(item => {
+                              if (!item.date) return false;
+                              const itemDateIso = normalizeDateVNToISO(item.date);
+                              const itemSession = determineSession(item);
+                              return itemDateIso === day.dateIso && itemSession === session;
+                            });
 
-                          return (
-                            <td key={`${day.label}-${session}`} className="p-2 border-b border-r border-slate-200 dark:border-slate-700 align-top h-32 relative group/cell">
-                              <div className="flex flex-col gap-2 h-full">
-                                {cellItems.map(item => (
-                                  <ScheduleEventCard 
-                                    key={item.id} 
-                                    item={item} 
-                                    onClick={() => canEdit && handleOpenItemModal(item)}
-                                    onAddTask={canAddTasks ? () => handleOpenTaskModal(item) : undefined}
-                                  />
-                                ))}
-                                {canEdit && (
-                                  <button 
-                                    onClick={() => handleOpenItemModal({ date: day.dateIso, session: session })}
-                                    className={`w-full py-2 border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-400 rounded-xl hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all flex items-center justify-center ${cellItems.length > 0 ? 'opacity-0 group-hover/cell:opacity-100 absolute bottom-2 left-2 right-2 w-auto' : 'h-full'}`}
-                                  >
-                                    <Plus size={20} />
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
+                            return (
+                              <td key={`${day.label}-${session}`} className="p-2 border-b border-r border-slate-200 dark:border-slate-700 align-top h-32 relative group/cell">
+                                <div className="flex flex-col gap-2 h-full">
+                                  {cellItems.map(item => (
+                                    <ScheduleEventCard 
+                                      key={item.id} 
+                                      item={item} 
+                                      onClick={() => canEdit && handleOpenItemModal(item)}
+                                      onAddTask={canAddTasks ? () => handleOpenTaskModal(item) : undefined}
+                                    />
+                                  ))}
+                                  {canEdit && (
+                                    <button 
+                                      onClick={() => handleOpenItemModal({ date: day.dateIso, session: session })}
+                                      className={`w-full py-2 border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-400 rounded-xl hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all flex items-center justify-center ${cellItems.length > 0 ? 'opacity-0 group-hover/cell:opacity-100 absolute bottom-2 left-2 right-2 w-auto' : 'h-full'}`}
+                                    >
+                                      <Plus size={20} />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ));
+                    })()}
                   </tbody>
                 </table>
               </div>

@@ -90,6 +90,7 @@ export default function ScheduleItemModal({ isOpen, onClose, onSave, onDelete, i
               >
                 <option value="Sáng">Sáng</option>
                 <option value="Chiều">Chiều</option>
+                <option value="Tối">Tối</option>
                 <option value="Cả ngày">Cả ngày</option>
               </select>
             </div>

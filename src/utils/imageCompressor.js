@@ -1,4 +1,5 @@
-export const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+export const COMPRESS_THRESHOLD = 2 * 1024 * 1024; // 2MB
+export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 /**
  * Nén ảnh bằng HTML5 Canvas nếu dung lượng vượt quá 2MB.
@@ -9,7 +10,7 @@ export const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 export const compressImage = (file) => {
   return new Promise((resolve, reject) => {
     // Nếu không phải là ảnh hoặc dung lượng dưới 2MB thì trả về file gốc
-    if (!file.type.startsWith('image/') || file.size <= MAX_FILE_SIZE) {
+    if (!file.type.startsWith('image/') || file.size <= COMPRESS_THRESHOLD) {
       resolve(file);
       return;
     }
@@ -58,7 +59,7 @@ export const compressImage = (file) => {
             }
 
             // Nếu blob vẫn lớn hơn 2MB và chất lượng còn có thể giảm, thử nén tiếp
-            if (blob.size > MAX_FILE_SIZE && q > 0.3) {
+            if (blob.size > COMPRESS_THRESHOLD && q > 0.3) {
               attemptCompress(q - 0.2);
             } else {
               // Trả về file đã nén
@@ -102,7 +103,7 @@ export const validateAndCompressFile = async (file) => {
         return { 
           isValid: false, 
           file: processedFile, 
-          error: 'Ảnh quá lớn và không thể nén xuống dưới 2MB. Vui lòng chọn ảnh khác.' 
+          error: 'Ảnh quá lớn và không thể nén xuống dưới 10MB. Vui lòng chọn ảnh khác.' 
         };
       }
       return { isValid: true, file: processedFile };
@@ -113,7 +114,7 @@ export const validateAndCompressFile = async (file) => {
       return { 
         isValid: false, 
         file, 
-        error: 'Dung lượng file vượt quá 2MB. Vui lòng chọn file nhỏ hơn.' 
+        error: 'Dung lượng file vượt quá 10MB. Vui lòng chọn file nhỏ hơn.' 
       };
     }
 

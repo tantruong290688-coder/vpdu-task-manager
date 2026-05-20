@@ -15,13 +15,12 @@ function getServiceClient() {
 }
 
 async function verifyUser(token) {
-  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
   const client = createClient(url, anonKey, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false }
   });
-  const { data: { user }, error } = await client.auth.getUser();
+  const { data: { user }, error } = await client.auth.getUser(token);
   if (error || !user) throw new Error('Unauthorized');
   return user;
 }

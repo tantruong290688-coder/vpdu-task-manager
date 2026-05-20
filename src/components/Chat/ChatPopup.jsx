@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { uploadFileToExternalStorage } from '../../lib/externalStorage';
 import { useAuth } from '../../context/AuthContext';
 import { useMessage } from '../../context/MessageContext';
 import toast from 'react-hot-toast';
@@ -27,6 +28,8 @@ export default function ChatPopup() {
   const [messages, setMessages] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [roomMessages, setRoomMessages] = useState([]);
+  const [reactions, setReactions] = useState([]);
+  const [isWideMode, setIsWideMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
@@ -126,6 +129,43 @@ export default function ChatPopup() {
     };
   }, [user?.id, isChatOpen, activeRoomId]);
 
+  // Real-time for message reactions
+  const reactionsSubRef = useRef(null);
+  const isReactionsSubscribedRef = useRef(false);
+
+  useEffect(() => {
+    if (!user || !isChatOpen || isReactionsSubscribedRef.current) return;
+    isReactionsSubscribedRef.current = true;
+
+    try {
+      const channel = supabase.channel('chat:reactions')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, (payload) => {
+          const react = payload.new;
+          if (payload.eventType === 'INSERT') {
+            setReactions(prev => [...prev.filter(r => r.id !== react.id), react]);
+          } else if (payload.eventType === 'UPDATE') {
+            setReactions(prev => prev.map(r => r.id === react.id ? react : r));
+          } else if (payload.eventType === 'DELETE') {
+            const oldReactId = payload.old.id;
+            setReactions(prev => prev.filter(r => r.id !== oldReactId));
+          }
+        })
+        .subscribe();
+      
+      reactionsSubRef.current = channel;
+    } catch (err) {
+      console.warn('[Chat] Reactions channel error:', err);
+    }
+
+    return () => {
+      if (reactionsSubRef.current) {
+        supabase.removeChannel(reactionsSubRef.current);
+        reactionsSubRef.current = null;
+        isReactionsSubscribedRef.current = false;
+      }
+    };
+  }, [user?.id, isChatOpen]);
+
   // Mark as read when active chat changes
   useEffect(() => {
     if (activeChatUserId && isChatOpen) {
@@ -142,11 +182,21 @@ export default function ChatPopup() {
         supabase.from('messages').select('*').or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`).order('created_at', { ascending: true })
       ]);
 
+      // Tải cảm xúc tin nhắn an toàn (không bị crash nếu bảng chưa được tạo)
+      let reacts = [];
+      try {
+        const { data: reactsData } = await supabase.from('message_reactions').select('*');
+        reacts = reactsData || [];
+      } catch (e) {
+        console.warn('[Chat] Could not load message_reactions, table may not exist yet:', e.message);
+      }
+
       const profMap = {};
       (profs || []).forEach(p => profMap[p.id] = p);
       setProfiles(profMap);
       setRooms(rms || []);
       setMessages(msgs || []);
+      setReactions(reacts);
     } catch (err) {
       console.error('Error loading chat data:', err);
     } finally {
@@ -191,6 +241,66 @@ export default function ChatPopup() {
     }
   };
 
+  const handleReact = async (msgId, reactionType) => {
+    try {
+      const isGroup = !!activeRoomId;
+      const targetColumn = isGroup ? 'chat_message_id' : 'message_id';
+      
+      // Find if we already have a reaction on this message
+      const existing = reactions.find(r => 
+        r.user_id === user.id && 
+        r[targetColumn] === msgId
+      );
+
+      if (existing) {
+        // If it's the exact same reaction, delete it (toggle off)
+        if (existing.reaction === reactionType) {
+          // Optimistic update
+          setReactions(prev => prev.filter(r => r.id !== existing.id));
+          await supabase
+            .from('message_reactions')
+            .delete()
+            .eq('id', existing.id);
+        } else {
+          // If it's a different reaction, update it
+          // Optimistic update
+          setReactions(prev => prev.map(r => r.id === existing.id ? { ...r, reaction: reactionType } : r));
+          await supabase
+            .from('message_reactions')
+            .update({ reaction: reactionType })
+            .eq('id', existing.id);
+        }
+      } else {
+        // Insert new reaction
+        const newReaction = {
+          user_id: user.id,
+          reaction: reactionType,
+          [targetColumn]: msgId
+        };
+        // Optimistic update (we generate a temporary UUID)
+        const tempId = Math.random().toString();
+        setReactions(prev => [...prev, { id: tempId, ...newReaction }]);
+        
+        const { data, error } = await supabase
+          .from('message_reactions')
+          .insert(newReaction)
+          .select();
+        
+        if (error) throw error;
+        
+        // Replace temp reaction with real one
+        if (data && data[0]) {
+          setReactions(prev => prev.map(r => r.id === tempId ? data[0] : r));
+        }
+      }
+    } catch (err) {
+      console.error('Error handling reaction:', err);
+      // Fallback: reload reactions
+      const { data } = await supabase.from('message_reactions').select('*');
+      if (data) setReactions(data);
+    }
+  };
+
   const handleSend = async (content, file = null) => {
     setSending(true);
     const currentReplyTo = replyTo;
@@ -207,26 +317,9 @@ export default function ChatPopup() {
         const fileName = `${Date.now()}_${safeName}`;
         const filePath = activeRoomId ? `room_${activeRoomId}/${user.id}/${fileName}` : `private_${activeChatUserId}/${user.id}/${fileName}`;
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('message-attachments')
-          .upload(filePath, file, {
-            contentType: file.type || 'application/octet-stream',
-            upsert: false
-          });
-
-        if (uploadError) {
-          throw uploadError;
-        }
-
-        // Dùng createSignedUrl thay vì getPublicUrl
-        // Signed URL hết hạn sau 1 giờ – đủ để đọc tin nhắn, an toàn hơn public URL
-        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-          .from('message-attachments')
-          .createSignedUrl(filePath, 60 * 60); // 3600 giây = 1 giờ
-
-        if (signedUrlError) throw signedUrlError;
-
-        attachmentUrl = signedUrlData.signedUrl;
+        // Upload trực tiếp lên Ổ Cứng Ngoài (MinIO)
+        // Helper này sẽ tải tệp lên và tự động tạo link tải về được ký số có thời hạn dài (7 ngày)
+        attachmentUrl = await uploadFileToExternalStorage(file, 'message-attachments', filePath);
 
         attachmentName = file.name;
         attachmentType = file.type;
@@ -296,7 +389,8 @@ export default function ChatPopup() {
       }
     } catch (err) {
       console.error('Send error:', err);
-      toast.error('Không thể gửi tin nhắn hoặc tải tệp lên');
+      const errMsg = err?.message || err?.error_description || 'Lỗi kết nối hoặc phiên đăng nhập hết hạn';
+      toast.error(`Không thể gửi tin nhắn: ${errMsg}`);
     } finally {
       setSending(false);
     }
@@ -341,12 +435,14 @@ export default function ChatPopup() {
   return (
     <div className={`
       fixed top-0 right-0 h-[100dvh] w-full z-[150] flex flex-col bg-white dark:bg-slate-900 shadow-2xl transition-all duration-300 ease-in-out overflow-hidden
-      sm:inset-auto sm:bottom-6 sm:right-6 sm:rounded-[24px] sm:w-[400px] sm:h-[600px] sm:max-h-[85vh] sm:border sm:border-slate-100 dark:sm:border-slate-800
+      sm:inset-auto sm:bottom-6 sm:right-6 sm:rounded-[24px] ${isWideMode ? 'sm:w-[850px] sm:h-[680px] sm:max-h-[90vh]' : 'sm:w-[400px] sm:h-[600px] sm:max-h-[85vh]'} sm:border sm:border-slate-100 dark:sm:border-slate-800
       animate-in slide-in-from-bottom-5 fade-in
     `}>
       <ChatHeader 
         activeUser={profiles[activeChatUserId]} 
         activeRoom={rooms.find(r => r.id === activeRoomId)}
+        isWideMode={isWideMode}
+        onToggleWide={() => setIsWideMode(!isWideMode)}
         onBack={() => { 
           setActiveChatUserId(null); 
           setActiveRoomId(null); 
@@ -360,34 +456,60 @@ export default function ChatPopup() {
         onClose={handleClose}
       />
 
-      <div className="flex-1 overflow-hidden flex flex-col relative">
+      <div className="flex-1 overflow-hidden flex relative min-h-0 bg-slate-50/20 dark:bg-slate-900/5">
         {loading ? (
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 flex items-center justify-center bg-white dark:bg-slate-900">
             <Loader2 className="animate-spin text-blue-500" size={32} />
           </div>
-        ) : (!activeChatUserId && !activeRoomId) ? (
-          <ContactList 
-            profiles={profiles}
-            rooms={rooms}
-            conversations={conversationsMap}
-            onlineUsers={onlineUsers}
-            onSelectUser={setActiveChatUserId}
-            onSelectRoom={setActiveRoomId}
-          />
         ) : (
           <>
-            <MessageList 
-              messages={currentChatMessages}
-              currentUser={user}
-              onReply={setReplyTo}
-              onDelete={handleDelete}
-            />
-            <ChatComposer 
-              onSend={handleSend}
-              sending={sending}
-              replyTo={replyTo}
-              onCancelReply={() => setReplyTo(null)}
-            />
+            {/* Left Column: Contact List (shown in Wide Mode OR when no chat is active) */}
+            {(!activeChatUserId && !activeRoomId || isWideMode) && (
+              <div className={`
+                h-full flex flex-col min-w-0
+                ${isWideMode ? 'w-[320px] shrink-0 border-r border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900' : 'w-full'}
+              `}>
+                <ContactList 
+                  profiles={profiles}
+                  rooms={rooms}
+                  conversations={conversationsMap}
+                  onlineUsers={onlineUsers}
+                  onSelectUser={setActiveChatUserId}
+                  onSelectRoom={setActiveRoomId}
+                />
+              </div>
+            )}
+
+            {/* Right Column: Active Conversation */}
+            {(activeChatUserId || activeRoomId) ? (
+              <div className="flex-1 h-full flex flex-col min-w-0 bg-white dark:bg-slate-900">
+                <MessageList 
+                  messages={currentChatMessages}
+                  currentUser={user}
+                  reactions={reactions}
+                  profiles={profiles}
+                  onReact={handleReact}
+                  onReply={setReplyTo}
+                  onDelete={handleDelete}
+                />
+                <ChatComposer 
+                  onSend={handleSend}
+                  sending={sending}
+                  replyTo={replyTo}
+                  onCancelReply={() => setReplyTo(null)}
+                />
+              </div>
+            ) : isWideMode ? (
+              <div className="flex-1 h-full flex flex-col items-center justify-center p-6 text-center bg-slate-50/30 dark:bg-slate-900/10">
+                <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white mb-4 shadow-md shadow-blue-200 dark:shadow-none animate-bounce duration-1000">
+                  <Send size={24} className="transform rotate-45 -translate-x-0.5 translate-y-0.5" />
+                </div>
+                <h4 className="font-extrabold text-[16px] text-slate-700 dark:text-slate-300 uppercase tracking-wider">VPDU Chat Hub</h4>
+                <p className="text-[12px] text-slate-400 dark:text-slate-500 mt-1.5 max-w-[280px]">
+                  Chọn một cuộc hội thoại ở cột bên trái để bắt đầu trao đổi văn bản và xử lý công việc.
+                </p>
+              </div>
+            ) : null}
           </>
         )}
       </div>

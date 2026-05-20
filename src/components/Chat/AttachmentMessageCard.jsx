@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import AttachmentFileIcon from './AttachmentFileIcon';
 import { Download } from 'lucide-react';
 import { getFileTypeInfo } from '../../utils/fileType';
+import { getFreshUrlIfExpired } from '../../lib/externalStorage';
 
 export default function AttachmentMessageCard({ 
   fileName, 
@@ -12,33 +13,53 @@ export default function AttachmentMessageCard({
   isStandalone
 }) {
   const fileInfo = getFileTypeInfo(fileName, fileType);
+  const [activeUrl, setActiveUrl] = useState(fileUrl);
+
+  useEffect(() => {
+    let isMounted = true;
+    const resolveUrl = async () => {
+      if (!fileUrl) return;
+      try {
+        const fresh = await getFreshUrlIfExpired(fileUrl);
+        if (isMounted) {
+          setActiveUrl(fresh);
+        }
+      } catch (err) {
+        console.error('Failed to resolve fresh download URL:', err);
+      }
+    };
+    resolveUrl();
+    return () => {
+      isMounted = false;
+    };
+  }, [fileUrl]);
   
   if (fileInfo.type === 'image') {
     const imgRounded = isStandalone 
       ? (isMe ? 'rounded-2xl rounded-tr-sm' : 'rounded-2xl rounded-tl-sm') 
       : 'rounded-xl';
     return (
-      <a href={fileUrl} target="_blank" rel="noopener noreferrer" className={`block overflow-hidden relative group/img max-w-[240px] sm:max-w-xs ${imgRounded} ${isStandalone ? 'border border-slate-200 dark:border-slate-700 shadow-sm' : 'border border-black/10 dark:border-white/10'}`}>
-        <img src={fileUrl} alt={fileName || "attachment"} className="max-h-60 max-w-full w-auto object-contain bg-slate-100 dark:bg-slate-800 transition-transform duration-300 group-hover/img:scale-105" />
+      <a href={activeUrl} target="_blank" rel="noopener noreferrer" className={`block overflow-hidden relative group/img max-w-[240px] sm:max-w-xs ${imgRounded} ${isStandalone ? 'border border-slate-200 dark:border-slate-700 shadow-sm' : 'border border-black/10 dark:border-white/10'}`}>
+        <img src={activeUrl} alt={fileName || "attachment"} className="max-h-60 max-w-full w-auto object-contain bg-slate-100 dark:bg-slate-800 transition-transform duration-300 group-hover/img:scale-105" />
       </a>
     );
   }
 
   const getViewerUrl = () => {
     if (fileInfo.type === 'word') {
-      return `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}`;
+      return `https://docs.google.com/viewer?url=${encodeURIComponent(activeUrl)}`;
     }
     if (fileInfo.type === 'excel') {
-      return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(fileUrl)}`;
+      return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(activeUrl)}`;
     }
-    return fileUrl;
+    return activeUrl;
   };
 
   const handleDownload = async (e) => {
     e.preventDefault();
     e.stopPropagation();
     try {
-      const res = await fetch(fileUrl);
+      const res = await fetch(activeUrl);
       const blob = await res.blob();
       const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -50,7 +71,7 @@ export default function AttachmentMessageCard({
       window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.error('Lỗi tải xuống:', err);
-      window.open(fileUrl, '_blank');
+      window.open(activeUrl, '_blank');
     }
   };
 

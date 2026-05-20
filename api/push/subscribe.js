@@ -20,10 +20,9 @@ async function verifyUser(token) {
   if (!url || !anonKey) throw new Error('Thiếu cấu hình Supabase trên Vercel');
 
   const client = createClient(url, anonKey, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false }
   });
-  const { data: { user }, error } = await client.auth.getUser();
+  const { data: { user }, error } = await client.auth.getUser(token);
   if (error || !user) throw new Error('Unauthorized: ' + (error?.message || 'Phiên đăng nhập không hợp lệ'));
   return user;
 }

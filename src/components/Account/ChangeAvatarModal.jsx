@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { Camera, X, Upload, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { uploadFileToExternalStorage } from '../../lib/externalStorage';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -49,22 +50,10 @@ export default function ChangeAvatarModal({ onClose }) {
       const fileName = `avatar-${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
-      // 1. Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, selectedFile, {
-          cacheControl: '3600',
-          upsert: false
-        });
+      // 1. Upload to Local External Storage (MinIO)
+      const publicUrl = await uploadFileToExternalStorage(selectedFile, 'avatars', filePath);
 
-      if (uploadError) throw uploadError;
-
-      // 2. Get Public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      // 3. Update Profile in Database
+      // 2. Update Profile in Database (Supabase Cloud)
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ 

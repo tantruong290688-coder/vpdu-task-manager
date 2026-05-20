@@ -1,8 +1,8 @@
 import { useMessage } from '../../context/MessageContext';
 import { useAuth } from '../../context/AuthContext';
-import { X, Minus, Search, ArrowLeft, Users } from 'lucide-react';
+import { X, Minus, Search, ArrowLeft, Users, Maximize2, Minimize2 } from 'lucide-react';
 
-export default function ChatHeader({ activeUser, activeRoom, onBack, onClose }) {
+export default function ChatHeader({ activeUser, activeRoom, onBack, onClose, isWideMode, onToggleWide }) {
   const { closeChat, minimizeChat } = useMessage();
   const { onlineUsers } = useAuth();
 
@@ -11,11 +11,11 @@ export default function ChatHeader({ activeUser, activeRoom, onBack, onClose }) 
   return (
     <div className="flex items-center justify-between px-4 py-4 sm:py-3 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 shrink-0 select-none pt-[calc(1rem+env(safe-area-inset-top))] sm:pt-3">
       <div className="flex items-center gap-3 overflow-hidden">
-        {/* Nút quay lại – hiện trên mọi thiết bị mobile khi đang trong cuộc hội thoại */}
+        {/* Nút quay lại – hiện trên mobile khi đang trong cuộc hội thoại, HOẶC trên desktop khi KHÔNG ở chế độ Wide Mode */}
         {(activeUser || activeRoom) && (
           <button
             onPointerDown={(e) => { e.stopPropagation(); onBack(); }}
-            className="flex-shrink-0 w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 active:bg-slate-200 dark:active:bg-slate-700 transition-colors touch-manipulation sm:hidden"
+            className={`flex-shrink-0 w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 active:bg-slate-200 dark:active:bg-slate-700 transition-colors touch-manipulation ${isWideMode ? 'sm:hidden' : 'sm:flex'}`}
             aria-label="Quay lại"
           >
             <ArrowLeft size={20} />
@@ -54,6 +54,13 @@ export default function ChatHeader({ activeUser, activeRoom, onBack, onClose }) 
           aria-label="Tìm kiếm"
         >
           <Search size={18} />
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleWide && onToggleWide(); }}
+          className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors hidden sm:flex touch-manipulation active:scale-95"
+          aria-label={isWideMode ? "Thu hẹp" : "Mở rộng"}
+        >
+          {isWideMode ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); minimizeChat(); }}

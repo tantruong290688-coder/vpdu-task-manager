@@ -147,14 +147,13 @@ export default async function handler(req, res) {
 
   try {
     // Verify user token using a dedicated anon client to avoid service_role key conflicts
-    const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-    const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
+    const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const anonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
     const authClient = createClient(url, anonKey, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
       auth: { persistSession: false }
     });
 
-    const { data: { user }, error: authErr } = await authClient.auth.getUser();
+    const { data: { user }, error: authErr } = await authClient.auth.getUser(token);
     if (authErr || !user) return err(res, 401, 'Invalid token: ' + (authErr?.message || 'No user found'));
 
     // Mặc định role lấy từ meta data

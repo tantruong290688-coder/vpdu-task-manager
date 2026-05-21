@@ -9,6 +9,31 @@ const getSessionToken = async () => {
 };
 
 /**
+ * Tự động chuyển đổi các liên kết từ localhost / 127.0.0.1 sang địa chỉ IP/Host hiện tại của client
+ * nhằm giải quyết triệt để lỗi "Failed to fetch" khi thử nghiệm phần mềm qua mạng LAN (IP thay thế localhost)
+ * @param {string} url - URL cần chuyển đổi
+ * @returns {string} URL đã chuyển đổi hostname tương thích
+ */
+const resolveClientUrl = (url) => {
+  if (!url) return '';
+  try {
+    const parsed = new URL(url);
+    if (
+      (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') &&
+      typeof window !== 'undefined' &&
+      window.location.hostname &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1'
+    ) {
+      parsed.hostname = window.location.hostname;
+    }
+    return parsed.toString();
+  } catch (e) {
+    return url;
+  }
+};
+
+/**
  * Tải tệp tin lên ổ cứng ngoài thông qua API ký mã hóa (Presigned PUT URL) của MinIO
  * @param {File} file - Đối tượng File từ HTML Input
  * @param {string} bucket - Tên bucket ('avatars' hoặc 'message-attachments')
@@ -44,9 +69,12 @@ export const uploadFileToExternalStorage = async (file, bucket, filePath) => {
 
     const { uploadUrl, readUrl } = result;
 
-    // 2. Tiến hành tải trực tiếp từ Client lên MinIO qua Cloudflare Tunnel
+    // Tự động giải quyết địa chỉ IP LAN cho uploadUrl
+    const resolvedUploadUrl = resolveClientUrl(uploadUrl);
+
+    // 2. Tiến hành tải trực tiếp từ Client lên MinIO
     // Sử dụng PUT với body là Raw File, bỏ qua proxy server để tối ưu băng thông
-    const uploadResponse = await fetch(uploadUrl, {
+    const uploadResponse = await fetch(resolvedUploadUrl, {
       method: 'PUT',
       headers: {
         'Content-Type': file.type || 'application/octet-stream'
@@ -76,12 +104,12 @@ export const uploadFileToExternalStorage = async (file, bucket, filePath) => {
 
       const getUrlResult = await getUrlResponse.json();
       if (getUrlResponse.ok && getUrlResult.success) {
-        return getUrlResult.downloadUrl;
+        return resolveClientUrl(getUrlResult.downloadUrl);
       }
     }
 
     // Đối với ảnh đại diện (avatars - bucket công khai) hoặc fallback: trả về URL tĩnh
-    return readUrl;
+    return resolveClientUrl(readUrl);
   } catch (error) {
     console.error('[ExternalStorage Upload Error]:', error);
     throw error;
@@ -114,16 +142,16 @@ export const getExternalDownloadUrl = async (filePath, bucket) => {
 
     const result = await response.json();
     if (response.ok && result.success) {
-      return result.downloadUrl;
+      return resolveClientUrl(result.downloadUrl);
     }
     
     // Fallback trả về URL tĩnh
     const publicEndpoint = import.meta.env.VITE_MINIO_ENDPOINT || 'http://localhost:9000';
-    return `${publicEndpoint}/${bucket}/${filePath}`;
+    return resolveClientUrl(`${publicEndpoint}/${bucket}/${filePath}`);
   } catch (error) {
     console.error('[ExternalStorage Get URL Error]:', error);
     const publicEndpoint = import.meta.env.VITE_MINIO_ENDPOINT || 'http://localhost:9000';
-    return `${publicEndpoint}/${bucket}/${filePath}`;
+    return resolveClientUrl(`${publicEndpoint}/${bucket}/${filePath}`);
   }
 };
 
@@ -136,13 +164,16 @@ export const getExternalDownloadUrl = async (filePath, bucket) => {
 export const getFreshUrlIfExpired = async (url) => {
   if (!url) return '';
   
+  // Tự động chuyển đổi sang IP LAN nếu URL lưu trong database chứa localhost
+  const resolvedUrl = resolveClientUrl(url);
+
   // Chỉ xử lý các liên kết từ bucket attachments hoặc avatars của local storage
-  if (!url.includes('/message-attachments/') && !url.includes('/avatars/')) {
-    return url;
+  if (!resolvedUrl.includes('/message-attachments/') && !resolvedUrl.includes('/avatars/')) {
+    return resolvedUrl;
   }
 
   try {
-    const parsed = new URL(url);
+    const parsed = new URL(resolvedUrl);
     const pathname = parsed.pathname; // /bucket-name/path/to/file
     const parts = pathname.split('/');
     
@@ -181,5 +212,5 @@ export const getFreshUrlIfExpired = async (url) => {
     console.error('[StoragePresign] Failed to check/renew signed URL:', err);
   }
   
-  return url;
+  return resolvedUrl;
 };

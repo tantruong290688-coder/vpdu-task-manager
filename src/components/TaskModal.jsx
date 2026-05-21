@@ -1,12 +1,15 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { X, AlertCircle, Sparkles, Trash2, Loader2, ListTodo, Paperclip, CheckCircle2 } from 'lucide-react';
+import { X, AlertCircle, Sparkles, Trash2, Loader2, ListTodo, Paperclip, CheckCircle2, Download } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { writeLog } from '../lib/logger';
 import { canEditTask, canDelegateToStaff, ROLES } from '../lib/permissions';
 import { createNotification } from '../hooks/useNotifications';
 import { generateTaskChecklist, analyzeTaskContext } from '../services/geminiService';
+import { uploadFileToExternalStorage } from '../lib/externalStorage';
+import { getFileTypeInfo } from '../utils/fileType';
+import AttachmentFileIcon from './Chat/AttachmentFileIcon';
 
 // Key for local storage draft
 const getDraftKey = (userId, scheduleItemId) => {
@@ -48,6 +51,10 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
   const [fileMimeType, setFileMimeType] = useState('');
   const [isReadingFile, setIsReadingFile] = useState(false);
   
+  // Task Attachments State
+  const [attachments, setAttachments] = useState([]);
+  const [uploadingFiles, setUploadingFiles] = useState({});
+  
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const isClosingRef = useRef(false);
@@ -82,6 +89,8 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
     setFileBase64('');
     setFileMimeType('');
     setIsReadingFile(false);
+    setAttachments([]);
+    setUploadingFiles({});
   };
 
   useEffect(() => {
@@ -111,6 +120,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
         } else {
           setCollaborators([]);
         }
+        setAttachments(initialData.attachments || []);
         setScheduleItemId(initialData.schedule_item_id || null);
         return;
       }
@@ -142,6 +152,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
           setTaskType(draft.taskType || '');
           setOriginalDueDate(draft.originalDueDate || '');
           setProgress(draft.progress || 0);
+          setAttachments(draft.attachments || []);
           if (scheduleId) toast.success('Đã khôi phục bản nhiệm vụ lưu tạm!', { duration: 2500 });
         } catch (e) {
           console.error('Lỗi khôi phục bản nháp:', e);
@@ -172,6 +183,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
       setTaskType(data.task_type || '');
       setOriginalDueDate(data.original_due_date || '');
       setProgress(data.progress || 0);
+      setAttachments(data.attachments || []);
       setCollaborators([]);
     } else {
       resetForm();
@@ -187,11 +199,12 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
       assignedDate, assignerId, assigneeId, collaborators,
       taskGroup, workArea, title, description, expectedOutput,
       priority, evaluationPeriod, startDate, dueDate,
-      taskType, originalDueDate, progress
+      taskType, originalDueDate, progress, attachments
     };
     const hasData = title || description || assigneeId || taskGroup || workArea ||
                     expectedOutput || (collaborators && collaborators.length > 0) ||
-                    priority || evaluationPeriod || taskType || progress > 0;
+                    priority || evaluationPeriod || taskType || progress > 0 ||
+                    (attachments && attachments.length > 0);
     if (hasData) {
       localStorage.setItem(draftKey, JSON.stringify(draftData));
     }
@@ -210,7 +223,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
     assignedDate, assignerId, assigneeId, collaborators,
     taskGroup, workArea, title, description, expectedOutput,
     priority, evaluationPeriod, startDate, dueDate,
-    taskType, originalDueDate, progress
+    taskType, originalDueDate, progress, attachments
   ]);
 
   // Save on tab switch or page refresh
@@ -226,7 +239,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
       window.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [assignedDate, assignerId, assigneeId, collaborators, taskGroup, workArea, title, description, expectedOutput, priority, evaluationPeriod, startDate, dueDate, taskType, originalDueDate, progress]);
+  }, [assignedDate, assignerId, assigneeId, collaborators, taskGroup, workArea, title, description, expectedOutput, priority, evaluationPeriod, startDate, dueDate, taskType, originalDueDate, progress, attachments]);
 
   const fetchUsers = async () => {
     const { data } = await supabase.from('profiles').select('id, full_name, role');
@@ -323,6 +336,70 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
     setDraftChecklists(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleAttachmentUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const validTypes = [
+      'image/png', 'image/jpeg', 'image/jpg', 'image/webp',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
+
+    for (const file of files) {
+      if (!validTypes.includes(file.type)) {
+        toast.error(`Không hỗ trợ định dạng tệp: ${file.name}`);
+        continue;
+      }
+      if (file.size > 8 * 1024 * 1024) {
+        toast.error(`File ${file.name} vượt quá dung lượng tối đa 8MB.`);
+        continue;
+      }
+
+      const tempId = Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+      setUploadingFiles(prev => ({ ...prev, [tempId]: file.name }));
+
+      try {
+        const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const fileName = `${Date.now()}_${safeName}`;
+        const filePath = `room_tasks/${profile?.id || 'anonymous'}/${fileName}`;
+
+        const uploadedUrl = await uploadFileToExternalStorage(file, 'message-attachments', filePath);
+
+        setAttachments(prev => [
+          ...prev,
+          {
+            name: file.name,
+            url: uploadedUrl,
+            type: file.type,
+            size: file.size
+          }
+        ]);
+        toast.success(`Đã tải lên tệp: ${file.name}`);
+      } catch (err) {
+        console.error('Lỗi tải tệp đính kèm:', err);
+        toast.error(`Không thể tải lên ${file.name}: ` + (err.message || 'Lỗi chưa rõ'));
+      } finally {
+        setUploadingFiles(prev => {
+          const copy = { ...prev };
+          delete copy[tempId];
+          return copy;
+        });
+      }
+    }
+    
+    // Clear input to allow uploading same file
+    e.target.value = '';
+  };
+
+  const removeAttachment = (index) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+    toast.success('Đã gỡ tệp đính kèm');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -350,7 +427,8 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
         task_type: taskType || null,
         original_due_date: originalDueDate || null,
         progress: Number(progress) || 0,
-        schedule_item_id: scheduleItemId || null
+        schedule_item_id: scheduleItemId || null,
+        attachments: attachments || []
       };
 
       let taskId = null;
@@ -789,6 +867,92 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
               <label className="block text-[13px] font-bold text-slate-800 dark:text-slate-200 mb-2">Sản phẩm đầu ra</label>
               <textarea value={expectedOutput} onChange={e => setExpectedOutput(e.target.value)} rows="2"
                 className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none font-admin text-[14.5px] sm:text-[15.5px] font-semibold text-slate-700 dark:text-white resize-none leading-relaxed min-h-[80px]"></textarea>
+            </div>
+
+            {/* Tài liệu đính kèm nhiệm vụ */}
+            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 md:p-5 space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div>
+                  <h4 className="text-[13.5px] font-extrabold text-slate-700 dark:text-slate-300">Tài liệu đính kèm nhiệm vụ</h4>
+                  <p className="text-[11.5px] text-slate-500 dark:text-slate-400 mt-0.5">Đính kèm văn bản chỉ đạo, tờ trình, biểu mẫu hoặc ảnh công việc thực tế.</p>
+                </div>
+                <div className="relative">
+                  <input 
+                    type="file" 
+                    id="actual-task-attachments" 
+                    multiple
+                    onChange={handleAttachmentUpload}
+                    accept=".png,.jpg,.jpeg,.webp,.pdf,.doc,.docx,.xls,.xlsx"
+                    className="hidden" 
+                  />
+                  <label 
+                    htmlFor="actual-task-attachments"
+                    className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-bold rounded-xl cursor-pointer transition-all shadow-[0_2px_8px_rgba(37,99,235,0.2)]"
+                  >
+                    <Paperclip size={13} />
+                    Đính kèm tệp
+                  </label>
+                </div>
+              </div>
+
+              {/* Danh sách tệp đang tải lên */}
+              {Object.keys(uploadingFiles).length > 0 && (
+                <div className="space-y-2">
+                  {Object.entries(uploadingFiles).map(([id, name]) => (
+                    <div key={id} className="flex items-center justify-between gap-3 p-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-800/30 rounded-xl animate-pulse">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Loader2 size={14} className="animate-spin text-blue-500 shrink-0" />
+                        <span className="text-[12.5px] font-bold text-blue-700 dark:text-blue-400 truncate">
+                          Đang tải lên: {name}...
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Danh sách tệp đã đính kèm */}
+              {attachments.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {attachments.map((file, idx) => {
+                    const fileInfo = getFileTypeInfo(file.name, file.type);
+                    return (
+                      <div 
+                        key={idx} 
+                        className="flex items-center justify-between gap-3 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm hover:border-slate-300 dark:hover:border-slate-600 transition-all group"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <AttachmentFileIcon fileInfo={fileInfo} className="w-9 h-9" textClassName="text-[10px]" />
+                          <div className="overflow-hidden flex-1 min-w-0">
+                            <p className="text-[12.5px] font-bold text-slate-700 dark:text-slate-200 truncate" title={file.name}>
+                              {file.name}
+                            </p>
+                            <p className="text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                              {file.size ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : '—'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <button 
+                            type="button" 
+                            onClick={() => removeAttachment(idx)}
+                            className="p-1.5 text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-all"
+                            title="Xóa tệp"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : Object.keys(uploadingFiles).length === 0 && (
+                <div className="text-center py-6 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                  <Paperclip size={20} className="mx-auto text-slate-300 dark:text-slate-700" />
+                  <p className="text-[12.5px] font-bold text-slate-400 dark:text-slate-500 mt-2">Chưa có tệp đính kèm nào</p>
+                  <p className="text-[10.5px] text-slate-400 dark:text-slate-600 mt-0.5">Hỗ trợ các định dạng ảnh, PDF, Word, Excel (Tối đa 8MB/tệp)</p>
+                </div>
+              )}
             </div>
 
             {/* Row 4 */}

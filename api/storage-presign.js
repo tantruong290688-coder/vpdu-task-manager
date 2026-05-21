@@ -6,15 +6,15 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 const ok = (res, d = {}) => res.status(200).json({ success: true, ...d });
 const err = (res, s, m) => res.status(s).json({ error: m });
 
-// Initialize S3 Client for MinIO
+// Initialize S3 Client for MinIO or Cloudflare R2
 const s3Client = new S3Client({
   endpoint: process.env.MINIO_ENDPOINT_SERVER || 'http://localhost:9000',
-  region: 'us-east-1', // Default value required by AWS SDK
+  region: process.env.MINIO_REGION || 'auto', // 'auto' is recommended for Cloudflare R2, falling back to local S3 compatibility
   credentials: {
     accessKeyId: process.env.MINIO_ACCESS_KEY || 'admin_vpdu',
     secretAccessKey: process.env.MINIO_SECRET_KEY || 'VpduPassword2026!',
   },
-  forcePathStyle: true, // Necessary for MinIO compatibility
+  forcePathStyle: true, // Necessary for both MinIO and Cloudflare R2 compatibility
 });
 
 export default async function handler(req, res) {

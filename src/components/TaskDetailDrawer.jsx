@@ -3,7 +3,7 @@ import {
   X, Edit2, Trash2, CheckCircle, Star, Clock, User, Users,
   Calendar, Flag, FileText, Tag, Layers, AlertCircle,
   ChevronRight, Award, MessageSquare, Check, History, ListTodo,
-  Maximize2, Minimize2, Sparkles, Loader2, Zap
+  Maximize2, Minimize2, Sparkles, Loader2, Zap, Paperclip, Download, ExternalLink
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -13,6 +13,9 @@ import { canEditTask, canUpdateProgress as checkCanUpdateProgress, canEvaluate a
 import TaskChecklist from './Tasks/TaskChecklist';
 import confetti from 'canvas-confetti';
 import { predictTaskRisk } from '../services/geminiService';
+import { getFreshUrlIfExpired } from '../lib/externalStorage';
+import { getFileTypeInfo } from '../utils/fileType';
+import AttachmentFileIcon from './Chat/AttachmentFileIcon';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -169,6 +172,64 @@ export default function TaskDetailDrawer({
   const isCollab   = task && (task.task_collaborators || []).some(c => c.user_id === profile?.id);
 
   const [viewedUserIds, setViewedUserIds] = useState(new Set());
+  const [resolvedUrls, setResolvedUrls] = useState({});
+  const [resolvingUrls, setResolvingUrls] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const resolveAttachmentsUrls = async () => {
+      if (!task?.attachments || task.attachments.length === 0) {
+        setResolvedUrls({});
+        return;
+      }
+      
+      setResolvingUrls(true);
+      const newUrls = {};
+      for (const att of task.attachments) {
+        if (att.url) {
+          try {
+            const fresh = await getFreshUrlIfExpired(att.url);
+            newUrls[att.url] = fresh;
+          } catch (err) {
+            console.error('Failed to renew attachment url:', err);
+            newUrls[att.url] = att.url; // fallback
+          }
+        }
+      }
+      
+      if (isMounted) {
+        setResolvedUrls(newUrls);
+        setResolvingUrls(false);
+      }
+    };
+
+    if (isOpen && task) {
+      resolveAttachmentsUrls();
+    }
+  }, [isOpen, task?.attachments, task?.id]);
+
+  const handleDownload = async (e, name, url) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      toast.loading('Đang chuẩn bị tải xuống...', { id: 'download-toast', duration: 1500 });
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = name || 'tai-lieu';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(blobUrl);
+      toast.success('Tải xuống thành công!', { id: 'download-toast' });
+    } catch (err) {
+      console.error('Lỗi tải xuống:', err);
+      toast.error('Không thể tải trực tiếp, đang mở trong tab mới...', { id: 'download-toast' });
+      window.open(url, '_blank');
+    }
+  };
 
   // Tự động ghi nhận "Đã xem" khi mở drawer
   useEffect(() => {
@@ -584,6 +645,72 @@ export default function TaskDetailDrawer({
                 className="admin-output-box admin-doc-content"
               />
             </dl>
+          </section>
+
+          {/* SECTION 2.3: Tài liệu đính kèm */}
+          <section className="animate-in fade-in duration-300">
+            <SectionHeader icon={Paperclip} label="Tài liệu đính kèm" />
+            {task.attachments && task.attachments.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {task.attachments.map((file, idx) => {
+                  const fileInfo = getFileTypeInfo(file.name, file.type);
+                  const activeUrl = resolvedUrls[file.url] || file.url;
+                  
+                  const getViewerUrl = () => {
+                    if (fileInfo.type === 'word') {
+                      return `https://docs.google.com/viewer?url=${encodeURIComponent(activeUrl)}`;
+                    }
+                    if (fileInfo.type === 'excel') {
+                      return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(activeUrl)}`;
+                    }
+                    return activeUrl;
+                  };
+
+                  return (
+                    <div 
+                      key={idx} 
+                      className="flex items-center justify-between gap-3 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-xl hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-100/50 dark:hover:bg-slate-800/40 transition-all shadow-sm group"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <AttachmentFileIcon fileInfo={fileInfo} className="w-9 h-9" textClassName="text-[10px]" />
+                        <div className="overflow-hidden flex-1 min-w-0">
+                          <p className="text-[13px] font-bold text-slate-700 dark:text-slate-200 truncate" title={file.name}>
+                            {file.name}
+                          </p>
+                          <p className="text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                            {file.size ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : '—'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <a 
+                          href={getViewerUrl()} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-lg transition-all"
+                          title="Xem trực tuyến"
+                        >
+                          <ExternalLink size={14} />
+                        </a>
+                        <button 
+                          type="button"
+                          onClick={(e) => handleDownload(e, file.name, activeUrl)}
+                          className="p-1.5 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-lg transition-all"
+                          title="Tải xuống"
+                        >
+                          <Download size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2.5 p-3.5 bg-slate-50/50 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-800 rounded-xl text-slate-400 dark:text-slate-500 italic text-[12.5px] font-medium animate-in fade-in duration-200">
+                <Paperclip size={14} className="shrink-0 animate-pulse" />
+                Nhiệm vụ này chưa có tài liệu đính kèm.
+              </div>
+            )}
           </section>
 
           {/* SECTION 2.5: Danh sách việc cần làm (Checklist) */}

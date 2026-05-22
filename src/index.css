@@ -180,3 +180,70 @@ body {
     padding: 10px 12px;
   }
 }
+
+/* ===== MOBILE FONT SIZE ADJUSTMENT SYSTEM ===== */
+:root {
+  --app-font-scale: 1;
+}
+
+html[data-mobile-font-size="small"] {
+  --app-font-scale: 0.92;
+}
+
+html[data-mobile-font-size="medium"] {
+  --app-font-scale: 1;
+}
+
+html[data-mobile-font-size="large"] {
+  --app-font-scale: 1.08;
+}
+
+html[data-mobile-font-size="xlarge"] {
+  --app-font-scale: 1.16;
+}
+
+/* Các class phông chữ chuyên biệt dùng chung (nếu cần) */
+.text-app-xs { font-size: 12px; }
+.text-app-sm { font-size: 13px; }
+.text-app-base { font-size: 14px; }
+.text-app-lg { font-size: 16px; }
+.text-app-xl { font-size: 20px; }
+
+/* Chỉ áp dụng co giãn cỡ chữ trên màn hình di động (<= 768px) */
+@media (max-width: 768px) {
+  body {
+    font-size: calc(14px * var(--app-font-scale)) !important;
+  }
+  
+  /* Đồng bộ hóa các class app-specific */
+  .text-app-xs { font-size: calc(12px * var(--app-font-scale)) !important; }
+  .text-app-sm { font-size: calc(13px * var(--app-font-scale)) !important; }
+  .text-app-base { font-size: calc(14px * var(--app-font-scale)) !important; }
+  .text-app-lg { font-size: calc(16px * var(--app-font-scale)) !important; }
+  .text-app-xl { font-size: calc(20px * var(--app-font-scale)) !important; }
+  
+  /* Ghi đè tự động các lớp Tailwind cơ bản để đổi cỡ chữ đồng loạt trên mobile */
+  .text-xs { font-size: calc(0.75rem * var(--app-font-scale)) !important; }
+  .text-sm { font-size: calc(0.875rem * var(--app-font-scale)) !important; }
+  .text-base { font-size: calc(1rem * var(--app-font-scale)) !important; }
+  .text-lg { font-size: calc(1.125rem * var(--app-font-scale)) !important; }
+  .text-xl { font-size: calc(1.25rem * var(--app-font-scale)) !important; }
+  .text-2xl { font-size: calc(1.5rem * var(--app-font-scale)) !important; }
+}
+
+/* Các class an toàn chống vỡ bố cục trên Mobile khi tăng kích cỡ chữ */
+.mobile-safe-text {
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  line-height: 1.45 !important;
+}
+
+.mobile-flex-wrap {
+  flex-wrap: wrap !important;
+}
+
+.mobile-card-auto-height {
+  min-height: auto !important;
+  height: auto !important;
+}
+

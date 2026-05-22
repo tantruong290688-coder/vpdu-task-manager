@@ -1,16 +1,17 @@
 import { useState, useRef, useEffect } from 'react';
 import { UserCircle, Palette, Key, ShieldAlert, LogOut } from 'lucide-react';
 import ChangeThemeModal from './ChangeThemeModal';
+import ChangeFontSizeModal from './ChangeFontSizeModal';
 import ChangePasswordModal from './ChangePasswordModal';
 import ForgotPasswordModal from './ForgotPasswordModal';
 import LogoutConfirmDialog from './LogoutConfirmDialog';
 import ChangeAvatarModal from './ChangeAvatarModal';
-import { Camera, BookOpen } from 'lucide-react';
+import { Camera, BookOpen, Type } from 'lucide-react';
 import UserManualModal from './UserManualModal';
 
 export default function AccountMenu() {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeModal, setActiveModal] = useState(null); // 'theme', 'avatar', 'password', 'forgot', 'logout', 'manual', null
+  const [activeModal, setActiveModal] = useState(null); // 'theme', 'fontsize', 'avatar', 'password', 'forgot', 'logout', 'manual', null
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
 
@@ -73,6 +74,7 @@ export default function AccountMenu() {
           >
             <MenuItem icon={Camera} iconColor="text-blue-500" label="Đổi ảnh đại diện" onClick={() => openModal('avatar')} />
             <MenuItem icon={Palette} iconColor="text-orange-500" label="Đổi giao diện" onClick={() => openModal('theme')} />
+            <MenuItem icon={Type} iconColor="text-indigo-500" label="Cỡ chữ điện thoại" onClick={() => openModal('fontsize')} />
             <MenuItem icon={Key} iconColor="text-orange-500" label="Đổi mật khẩu" onClick={() => openModal('password')} />
             <MenuItem icon={ShieldAlert} iconColor="text-blue-600" label="Quên mật khẩu / đặt lại" onClick={() => openModal('forgot')} />
             <MenuItem icon={BookOpen} iconColor="text-emerald-500" label="Hướng dẫn sử dụng" onClick={() => openModal('manual')} />
@@ -83,6 +85,7 @@ export default function AccountMenu() {
       )}
 
       {activeModal === 'theme' && <ChangeThemeModal onClose={() => setActiveModal(null)} />}
+      {activeModal === 'fontsize' && <ChangeFontSizeModal onClose={() => setActiveModal(null)} />}
       {activeModal === 'avatar' && <ChangeAvatarModal onClose={() => setActiveModal(null)} />}
       {activeModal === 'password' && <ChangePasswordModal onClose={() => setActiveModal(null)} />}
       {activeModal === 'forgot' && <ForgotPasswordModal onClose={() => setActiveModal(null)} />}

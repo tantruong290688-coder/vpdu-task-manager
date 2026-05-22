@@ -24,6 +24,7 @@ import { getDashboardFilter, getDashboardFilterTitle, getDashboardEmptyState } f
 import { useTasks } from '../hooks/useTasks';
 import { useQueryClient } from '@tanstack/react-query';
 import confetti from 'canvas-confetti';
+import { deleteAttachmentsOfTask } from '../lib/externalStorage';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -134,6 +135,22 @@ export default function Tasks() {
 
   const handleDelete = useCallback(async (id) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa nhiệm vụ này?')) return;
+    
+    // Tự động xóa các tệp đính kèm trên Cloudflare R2 trước khi xóa nhiệm vụ
+    try {
+      const { data: taskData } = await supabase
+        .from('tasks')
+        .select('attachments, title, id')
+        .eq('id', id)
+        .single();
+      
+      if (taskData) {
+        await deleteAttachmentsOfTask(taskData);
+      }
+    } catch (err) {
+      console.error('Lỗi khi lấy dữ liệu tệp đính kèm để xóa:', err);
+    }
+
     const { error } = await supabase.from('tasks').delete().eq('id', id);
     if (error) {
       toast.error('Lỗi khi xóa: ' + error.message);
@@ -229,6 +246,22 @@ export default function Tasks() {
   const handleBulkDelete = async () => {
     if (!window.confirm(`Bạn có chắc muốn xóa ${selectedTaskIds.length} nhiệm vụ đã chọn?`)) return;
     
+    // Tự động xóa tất cả các tệp đính kèm trên Cloudflare R2 cho toàn bộ các nhiệm vụ được chọn
+    try {
+      const { data: tasksData } = await supabase
+        .from('tasks')
+        .select('attachments, title, id')
+        .in('id', selectedTaskIds);
+      
+      if (tasksData && tasksData.length > 0) {
+        for (const task of tasksData) {
+          await deleteAttachmentsOfTask(task);
+        }
+      }
+    } catch (err) {
+      console.error('Lỗi khi lấy dữ liệu tệp đính kèm xóa hàng loạt:', err);
+    }
+
     const { error } = await supabase
       .from('tasks')
       .delete()

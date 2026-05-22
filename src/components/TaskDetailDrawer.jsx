@@ -13,7 +13,7 @@ import { canEditTask, canUpdateProgress as checkCanUpdateProgress, canEvaluate a
 import TaskChecklist from './Tasks/TaskChecklist';
 import confetti from 'canvas-confetti';
 import { predictTaskRisk } from '../services/geminiService';
-import { getFreshUrlIfExpired } from '../lib/externalStorage';
+import { getFreshUrlIfExpired, deleteAttachmentsOfTask } from '../lib/externalStorage';
 import { getFileTypeInfo } from '../utils/fileType';
 import AttachmentFileIcon from './Chat/AttachmentFileIcon';
 
@@ -393,6 +393,10 @@ export default function TaskDetailDrawer({
     if (!canDelete || !task) return;
     if (!window.confirm(`Bạn có chắc chắn muốn xóa nhiệm vụ "${task.title}"?\nHành động này không thể hoàn tác.`)) return;
     setDeleting(true);
+    
+    // Tự động xóa các tệp đính kèm trên Cloudflare R2
+    await deleteAttachmentsOfTask(task);
+
     const { error } = await supabase.from('tasks').delete().eq('id', task.id);
     setDeleting(false);
     if (error) { toast.error('Lỗi xóa: ' + error.message); return; }

@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 // Helper response functions
@@ -138,6 +138,49 @@ export default async function handler(req, res) {
       const downloadUrl = await getSignedUrl(s3Client, command, { expiresIn: 604800 });
 
       return ok(res, { downloadUrl });
+
+    } else if (action === 'deleteObject') {
+      // ── Enforce Folder Security Rules for Delete ───────────────────────────
+      if (bucket === 'avatars') {
+        // Avatars must be saved in a folder named after the user's ID
+        if (!filePath.startsWith(`${user.id}/`)) {
+          return err(res, 403, 'Từ chối truy cập: Bạn chỉ có quyền xóa ảnh đại diện của chính mình');
+        }
+      } else if (bucket === 'message-attachments') {
+        const parts = filePath.split('/');
+        // Thư mục chứa tệp đính kèm nhiệm vụ hoặc tin nhắn thường có cấu trúc:
+        // - room_tasks/{senderId}/{fileName}
+        // - room_{roomId}/{senderId}/{fileName}
+        // - private_{receiverId}/{senderId}/{fileName}
+        // senderId (phần tử thứ 2) phải khớp với user.id hoặc người thực hiện là Admin/Manager
+        const isOwner = parts.length >= 2 && parts[1] === user.id;
+
+        if (!isOwner) {
+          const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+            auth: { persistSession: false }
+          });
+          const { data: profile } = await authClient
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+          const isAdminOrManager = profile && (profile.role === 'admin' || profile.role === 'manager');
+          if (!isAdminOrManager) {
+            return err(res, 403, 'Từ chối truy cập: Bạn không có quyền xóa tệp đính kèm này');
+          }
+        }
+      }
+
+      // Thực thi lệnh xóa DeleteObjectCommand
+      const command = new DeleteObjectCommand({
+        Bucket: targetBucket,
+        Key: filePath,
+      });
+
+      await s3Client.send(command);
+
+      return ok(res, { message: 'Xóa tệp tin thành công' });
 
     } else {
       return err(res, 400, `Hành động không hợp lệ: ${action}`);

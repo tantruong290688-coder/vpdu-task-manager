@@ -214,3 +214,101 @@ export const getFreshUrlIfExpired = async (url) => {
   
   return resolvedUrl;
 };
+
+/**
+ * Xóa tệp tin khỏi ổ cứng ngoài thông qua API xóa của Backend Vercel Serverless
+ * @param {string} filePath - Đường dẫn tương đối lưu tệp (ví dụ: 'room_tasks/userId/filename')
+ * @param {string} bucket - Tên bucket ('avatars' hoặc 'message-attachments')
+ * @returns {Promise<boolean>} Trả về true nếu xóa thành công, ngược lại ném lỗi
+ */
+export const deleteFileFromExternalStorage = async (filePath, bucket) => {
+  try {
+    const token = await getSessionToken();
+    if (!token) {
+      throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+    }
+
+    const response = await fetch('/api/storage-presign', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        action: 'deleteObject',
+        bucket,
+        filePath
+      })
+    });
+
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || 'Không thể xóa tệp tin khỏi máy chủ lưu trữ.');
+    }
+
+    return true;
+  } catch (error) {
+    console.error('[ExternalStorage Delete Error]:', error);
+    throw error;
+  }
+};
+
+/**
+ * Phân tách một URL để trích xuất tên bucket và filePath tương đối tương thích MinIO / Cloudflare R2
+ * @param {string} url - URL của tệp lưu trữ ngoại vi
+ * @returns {{bucket: string, filePath: string}|null} Đối tượng chứa bucket và filePath hoặc null nếu không khớp
+ */
+export const parseExternalStorageUrl = (url) => {
+  if (!url) return null;
+  try {
+    // Chuyển đổi URL localhost / IP LAN
+    const resolvedUrl = resolveClientUrl(url);
+    const parsed = new URL(resolvedUrl);
+    const pathname = parsed.pathname; // Ví dụ: /message-attachments/room_tasks/...
+    const parts = pathname.split('/');
+    
+    // parts[0] = "", parts[1] = bucketName, parts[2..] = filePath
+    if (parts.length >= 3) {
+      const bucketName = parts[1];
+      const filePath = decodeURIComponent(parts.slice(2).join('/'));
+      
+      const bucketType = bucketName.includes('avatar') ? 'avatars' : 'message-attachments';
+      return {
+        bucket: bucketType,
+        filePath
+      };
+    }
+  } catch (err) {
+    console.error('[StoragePresign] Failed to parse storage URL:', err);
+  }
+  return null;
+};
+
+/**
+ * Duyệt qua mảng attachments của một nhiệm vụ và xóa tất cả các tệp đính kèm tương ứng trên Cloudflare R2
+ * @param {object} task - Đối tượng nhiệm vụ chứa thuộc tính attachments
+ * @returns {Promise<void>}
+ */
+export const deleteAttachmentsOfTask = async (task) => {
+  if (!task || !task.attachments || !Array.isArray(task.attachments) || task.attachments.length === 0) {
+    return;
+  }
+
+  console.log(`[StoragePresign] Bắt đầu xóa tệp đính kèm cho nhiệm vụ: ${task.title || task.id}`);
+  
+  for (const attachment of task.attachments) {
+    if (!attachment.url) continue;
+    
+    const parsed = parseExternalStorageUrl(attachment.url);
+    if (parsed) {
+      try {
+        console.log(`[StoragePresign] Đang xóa tệp: ${parsed.filePath} khỏi bucket: ${parsed.bucket}`);
+        await deleteFileFromExternalStorage(parsed.filePath, parsed.bucket);
+      } catch (err) {
+        // Log lỗi và tiếp tục để tránh làm treo luồng xóa nhiệm vụ chính
+        console.error(`[StoragePresign] Lỗi xóa tệp đính kèm ${attachment.name}:`, err);
+      }
+    }
+  }
+};
+

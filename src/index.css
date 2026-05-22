@@ -187,7 +187,7 @@ body {
 }
 
 html[data-mobile-font-size="small"] {
-  --app-font-scale: 0.92;
+  --app-font-scale: 0.85;
 }
 
 html[data-mobile-font-size="medium"] {
@@ -195,11 +195,11 @@ html[data-mobile-font-size="medium"] {
 }
 
 html[data-mobile-font-size="large"] {
-  --app-font-scale: 1.08;
+  --app-font-scale: 1.15;
 }
 
 html[data-mobile-font-size="xlarge"] {
-  --app-font-scale: 1.16;
+  --app-font-scale: 1.30;
 }
 
 /* Các class phông chữ chuyên biệt dùng chung (nếu cần) */
@@ -229,6 +229,30 @@ html[data-mobile-font-size="xlarge"] {
   .text-lg { font-size: calc(1.125rem * var(--app-font-scale)) !important; }
   .text-xl { font-size: calc(1.25rem * var(--app-font-scale)) !important; }
   .text-2xl { font-size: calc(1.5rem * var(--app-font-scale)) !important; }
+  
+  /* Ghi đè các lớp phông chữ arbitrary chuyên biệt (Custom text-[...px] classes) được sinh ra bởi Tailwind */
+  .text-\[9px\] { font-size: calc(9px * var(--app-font-scale)) !important; }
+  .text-\[10px\] { font-size: calc(10px * var(--app-font-scale)) !important; }
+  .text-\[11px\] { font-size: calc(11px * var(--app-font-scale)) !important; }
+  .text-\[12px\] { font-size: calc(12px * var(--app-font-scale)) !important; }
+  .text-\[13px\] { font-size: calc(13px * var(--app-font-scale)) !important; }
+  .text-\[14px\] { font-size: calc(14px * var(--app-font-scale)) !important; }
+  .text-\[15px\] { font-size: calc(15px * var(--app-font-scale)) !important; }
+  .text-\[16px\] { font-size: calc(16px * var(--app-font-scale)) !important; }
+  .text-\[17px\] { font-size: calc(17px * var(--app-font-scale)) !important; }
+  .text-\[18px\] { font-size: calc(18px * var(--app-font-scale)) !important; }
+  .text-\[19px\] { font-size: calc(19px * var(--app-font-scale)) !important; }
+  .text-\[20px\] { font-size: calc(20px * var(--app-font-scale)) !important; }
+  .text-\[21px\] { font-size: calc(21px * var(--app-font-scale)) !important; }
+  .text-\[22px\] { font-size: calc(22px * var(--app-font-scale)) !important; }
+  .text-\[24px\] { font-size: calc(24px * var(--app-font-scale)) !important; }
+  .text-\[26px\] { font-size: calc(26px * var(--app-font-scale)) !important; }
+  .text-\[28px\] { font-size: calc(28px * var(--app-font-scale)) !important; }
+  .text-\[30px\] { font-size: calc(30px * var(--app-font-scale)) !important; }
+  .text-\[32px\] { font-size: calc(32px * var(--app-font-scale)) !important; }
+  .text-\[36px\] { font-size: calc(36px * var(--app-font-scale)) !important; }
+  .text-\[40px\] { font-size: calc(40px * var(--app-font-scale)) !important; }
+  .text-\[48px\] { font-size: calc(48px * var(--app-font-scale)) !important; }
 }
 
 /* Các class an toàn chống vỡ bố cục trên Mobile khi tăng kích cỡ chữ */

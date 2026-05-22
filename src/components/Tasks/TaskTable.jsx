@@ -1,5 +1,5 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
-import { SlidersHorizontal, ArrowUp, ArrowDown, ArrowUpDown, Eye, CheckCircle, Star, Edit2, Trash2, AlertTriangle, Flag as FlagIcon, Settings2, Check, X } from 'lucide-react';
+import { SlidersHorizontal, ArrowUp, ArrowDown, ArrowUpDown, Eye, CheckCircle, Star, Edit2, Trash2, AlertTriangle, Flag as FlagIcon, Settings2, Check, X, Paperclip } from 'lucide-react';
 import { getTaskRisk } from '../../utils/taskAnalytics';
 import { StatusBadge, PriorityBadge, ScoreBadge, EvaluationStatusBadge } from './TaskBadges';
 import toast from 'react-hot-toast';
@@ -117,6 +117,7 @@ export default function TaskTable({
   });
 
   const [showColumnSettings, setShowColumnSettings] = useState(false);
+  const [activeFileTaskId, setActiveFileTaskId] = useState(null);
   const settingsRef = useRef(null);
 
   useEffect(() => {
@@ -131,11 +132,14 @@ export default function TaskTable({
     localStorage.setItem('task_table_order', JSON.stringify(columnOrder));
   }, [columnOrder]);
 
-  // Close settings when clicking outside
+  // Close settings and file dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (settingsRef.current && !settingsRef.current.contains(event.target)) {
         setShowColumnSettings(false);
+      }
+      if (!event.target.closest('.file-dropdown-btn') && !event.target.closest('.file-dropdown-menu')) {
+        setActiveFileTaskId(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -294,7 +298,7 @@ export default function TaskTable({
                 });
               })()}
               
-              <th className="p-3 w-[145px] text-center whitespace-nowrap sticky right-0 z-20 bg-slate-50 dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.1)]">
+              <th className="p-3 w-[115px] text-center whitespace-nowrap sticky right-0 z-20 bg-slate-50 dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.1)]">
                 <div className="flex items-center justify-center gap-2">
                   <span className="text-slate-400">P. Thao tác</span>
                   <div className="relative" ref={settingsRef}>
@@ -529,34 +533,71 @@ export default function TaskTable({
                     'bg-white dark:bg-[#0f172a] group-hover:bg-slate-50 dark:group-hover:bg-slate-800'
                   }`} onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-center gap-1.5">
-                      {/* Biểu tượng file đính kèm */}
-                      {task.attachments && task.attachments.length > 0 && (
-                        <div className="flex items-center gap-1.5 mr-1">
-                          {task.attachments.slice(0, 3).map((file, idx) => {
-                            const fileInfo = getFileTypeInfo(file.name, file.type);
-                            return (
-                              <button
-                                key={idx}
-                                onClick={(e) => handleAttachmentClick(e, file)}
-                                title={`Tài liệu: ${file.name} (Click để mở nhanh)`}
-                                className="hover:scale-110 active:scale-95 transition-transform"
-                              >
-                                <AttachmentFileIcon 
-                                  fileInfo={fileInfo} 
-                                  className="w-5 h-5" 
-                                  textClassName="text-[6px] font-black" 
-                                />
-                              </button>
-                            );
-                          })}
-                          {task.attachments.length > 3 && (
-                            <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 select-none" title={`Và ${task.attachments.length - 3} tài liệu khác`}>
-                              +{task.attachments.length - 3}
-                            </span>
-                          )}
-                          <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-700/80 ml-1.5 self-center" />
-                        </div>
-                      )}
+                      {/* Nút kẹp giấy đính kèm */}
+                      <div className="relative">
+                        {task.attachments && task.attachments.length > 0 ? (
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveFileTaskId(activeFileTaskId === task.id ? null : task.id);
+                              }}
+                              title={`Nhiệm vụ có ${task.attachments.length} tệp đính kèm. Click để xem danh sách.`}
+                              className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all file-dropdown-btn ${
+                                activeFileTaskId === task.id
+                                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                                  : 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                              }`}
+                            >
+                              <Paperclip size={14} className="hover:scale-110 transition-transform" />
+                              <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[14px] h-[14px] px-0.5 bg-blue-600 dark:bg-blue-500 text-white text-[8px] font-black rounded-full border border-white dark:border-slate-900 shadow-sm animate-pulse">
+                                {task.attachments.length}
+                              </span>
+                            </button>
+
+                            {/* Dropdown danh sách file */}
+                            {activeFileTaskId === task.id && (
+                              <div className="absolute right-0 mt-2 z-50 w-60 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-1.5 file-dropdown-menu animate-in fade-in slide-in-from-top-2 duration-150 origin-top-right">
+                                <div className="px-2 py-1.5 border-b border-slate-100 dark:border-slate-800/80 mb-1 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30 rounded-t-xl">
+                                  <span className="text-[9.5px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Tài liệu đính kèm ({task.attachments.length})</span>
+                                </div>
+                                <div className="max-h-[220px] overflow-y-auto scrollbar-thin space-y-0.5">
+                                  {task.attachments.map((file, idx) => {
+                                    const fileInfo = getFileTypeInfo(file.name, file.type);
+                                    return (
+                                      <div 
+                                        key={idx}
+                                        onClick={(e) => handleAttachmentClick(e, file)}
+                                        className="flex items-center justify-between gap-2.5 p-2 hover:bg-blue-50/40 dark:hover:bg-blue-950/20 rounded-xl transition-all group/item cursor-pointer text-left"
+                                        title={`Nhấp để mở: ${file.name}`}
+                                      >
+                                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                                          <AttachmentFileIcon fileInfo={fileInfo} className="w-6.5 h-6.5" textClassName="text-[6.5px] font-black" />
+                                          <div className="overflow-hidden flex-1 min-w-0">
+                                            <p className="text-[11.5px] font-bold text-slate-700 dark:text-slate-200 truncate group-hover/item:text-blue-600 dark:group-hover/item:text-blue-400 transition-colors">
+                                              {file.name}
+                                            </p>
+                                            <p className="text-[9px] text-slate-400 dark:text-slate-500 font-medium">
+                                              {file.size ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : '—'}
+                                            </p>
+                                          </div>
+                                        </div>
+                                        <Eye size={12} className="text-slate-400 group-hover/item:text-blue-600 dark:group-hover/item:text-blue-400 transition-colors shrink-0" />
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 dark:text-slate-700/40 opacity-30 select-none pointer-events-none">
+                            <Paperclip size={14} />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-700/80 self-center mx-0.5" />
 
                       {/* Các nút thao tác */}
                       <div className="flex items-center gap-0.5">

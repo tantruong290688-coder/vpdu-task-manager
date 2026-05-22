@@ -1,5 +1,5 @@
-import React, { memo, useCallback } from 'react';
-import { SlidersHorizontal, Clock, Calendar, Star, Eye, CheckCircle, Edit2, Trash2, AlertTriangle, Flag } from 'lucide-react';
+import React, { memo, useCallback, useState, useEffect } from 'react';
+import { SlidersHorizontal, Clock, Calendar, Star, Eye, CheckCircle, Edit2, Trash2, AlertTriangle, Flag, Paperclip } from 'lucide-react';
 import { StatusBadge, PriorityBadge, EvaluationStatusBadge } from './TaskBadges';
 import { canEditTask, canUpdateProgress, canEvaluate, canOpenEvaluationModal } from '../../lib/permissions';
 import { getDashboardEmptyState } from '../../lib/taskFilters';
@@ -31,7 +31,7 @@ const getLateDays = (task) => {
 
 // ── Sub-component cho mỗi task card – memo để tránh re-render không cần thiết ─
 
-const TaskCard = memo(function TaskCard({ task, profile, actions }) {
+const TaskCard = memo(function TaskCard({ task, profile, actions, activeFileTaskId, setActiveFileTaskId }) {
   const { setSelectedTask, setIsDrawerOpen, handleStatusChange, setEvalModalTask, openEditModal, handleDelete } = actions;
 
   const isOverdue =
@@ -186,33 +186,69 @@ const TaskCard = memo(function TaskCard({ task, profile, actions }) {
 
       {/* Row 4: Actions */}
       <div className="mt-2.5 flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-        {/* Biểu tượng file đính kèm */}
-        {task.attachments && task.attachments.length > 0 && (
-          <div className="flex items-center gap-1.5 mr-auto">
-            {task.attachments.slice(0, 3).map((file, idx) => {
-              const fileInfo = getFileTypeInfo(file.name, file.type);
-              return (
-                <button
-                  key={idx}
-                  onClick={(e) => handleAttachmentClick(e, file)}
-                  title={`Tài liệu: ${file.name} (Click để mở nhanh)`}
-                  className="hover:scale-110 active:scale-95 transition-transform"
-                >
-                  <AttachmentFileIcon 
-                    fileInfo={fileInfo} 
-                    className="w-5 h-5" 
-                    textClassName="text-[6px] font-black" 
-                  />
-                </button>
-              );
-            })}
-            {task.attachments.length > 3 && (
-              <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 select-none" title={`Và ${task.attachments.length - 3} tài liệu khác`}>
-                +{task.attachments.length - 3}
-              </span>
-            )}
-          </div>
-        )}
+        {/* Nút kẹp giấy đính kèm */}
+        <div className="relative mr-auto">
+          {task.attachments && task.attachments.length > 0 ? (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveFileTaskId(activeFileTaskId === task.id ? null : task.id);
+                }}
+                title={`Nhiệm vụ có ${task.attachments.length} tệp đính kèm. Click để xem danh sách.`}
+                className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all file-dropdown-btn ${
+                  activeFileTaskId === task.id
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                    : 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 bg-blue-50/50 dark:bg-blue-900/10'
+                }`}
+              >
+                <Paperclip size={14} className="hover:scale-110 transition-transform" />
+                <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[14px] h-[14px] px-0.5 bg-blue-600 dark:bg-blue-500 text-white text-[8px] font-black rounded-full border border-white dark:border-slate-900 shadow-sm animate-pulse">
+                  {task.attachments.length}
+                </span>
+              </button>
+
+              {/* Dropdown danh sách file */}
+              {activeFileTaskId === task.id && (
+                <div className="absolute left-0 mt-2 z-50 w-60 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-1.5 file-dropdown-menu animate-in fade-in slide-in-from-top-2 duration-150 origin-top-left">
+                  <div className="px-2 py-1.5 border-b border-slate-100 dark:border-slate-800/80 mb-1 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30 rounded-t-xl">
+                    <span className="text-[9.5px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Tài liệu ({task.attachments.length})</span>
+                  </div>
+                  <div className="max-h-[200px] overflow-y-auto scrollbar-thin space-y-0.5">
+                    {task.attachments.map((file, idx) => {
+                      const fileInfo = getFileTypeInfo(file.name, file.type);
+                      return (
+                        <div 
+                          key={idx}
+                          onClick={(e) => handleAttachmentClick(e, file)}
+                          className="flex items-center justify-between gap-2.5 p-2 hover:bg-blue-50/40 dark:hover:bg-blue-950/20 rounded-xl transition-all group/item cursor-pointer text-left"
+                          title={`Nhấp để mở: ${file.name}`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <AttachmentFileIcon fileInfo={fileInfo} className="w-6.5 h-6.5" textClassName="text-[6.5px] font-black" />
+                            <div className="overflow-hidden flex-1 min-w-0">
+                              <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200 truncate group-hover/item:text-blue-600 dark:group-hover/item:text-blue-400 transition-colors">
+                                {file.name}
+                              </p>
+                              <p className="text-[9px] text-slate-400 dark:text-slate-500 font-medium">
+                                {file.size ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : '—'}
+                              </p>
+                            </div>
+                          </div>
+                          <Eye size={12} className="text-slate-400 group-hover/item:text-blue-600 dark:group-hover/item:text-blue-400 transition-colors shrink-0" />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 dark:text-slate-700/40 opacity-30 select-none pointer-events-none">
+              <Paperclip size={14} />
+            </div>
+          )}
+        </div>
 
         <button
           onClick={handleOpen}
@@ -272,10 +308,33 @@ const TaskMobileList = memo(function TaskMobileList({
   searchStr,
   actions,
 }) {
+  const [activeFileTaskId, setActiveFileTaskId] = useState(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.file-dropdown-btn') && !event.target.closest('.file-dropdown-menu')) {
+        setActiveFileTaskId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
+
   return (
     <div className="md:hidden pb-6 divide-y divide-slate-100 dark:divide-slate-800">
       {paginatedTasks.map((task) => (
-        <TaskCard key={task.id} task={task} profile={profile} actions={actions} />
+        <TaskCard 
+          key={task.id} 
+          task={task} 
+          profile={profile} 
+          actions={actions} 
+          activeFileTaskId={activeFileTaskId}
+          setActiveFileTaskId={setActiveFileTaskId}
+        />
       ))}
 
       {tasks.length === 0 && (

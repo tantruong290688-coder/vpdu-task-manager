@@ -66,15 +66,16 @@ Ví dụ: ["Bước 1", "Bước 2", "Bước 3"]
 export const analyzeTaskContext = async (title, description, context, fileData = '', mimeType = '') => {
     const prompt = `
 Bạn là một trợ lý ảo quản lý dự án xuất sắc. 
-Hãy phân tích nội dung công việc dưới đây để tự động phân loại và rút trích các thông tin quan trọng.
+Hãy phân tích nội dung công việc dưới đây (bao gồm Tiêu đề hiện tại, Mô tả, Văn bản nguồn/Bối cảnh, hoặc tệp đính kèm) để tự động phân loại, trích xuất thông tin quan trọng và tự động đề xuất tiêu đề nhiệm vụ chuẩn xác.
 
-Tiêu đề: ${title || "Chưa nhập"}
+Tiêu đề hiện tại: ${title || "Chưa nhập"}
 Nội dung/Mô tả: ${description || "Chưa nhập"}
 Văn bản nguồn/Bối cảnh: ${context || "Không có"}
 
 YÊU CẦU:
 Trả về CHỈ một đối tượng JSON với các khóa (keys) chính xác như sau, không có bất kỳ văn bản nào khác bao quanh:
 {
+  "title": "...", // TÊN NHIỆM VỤ / CÔNG VIỆC: Hãy dựa trên Văn bản nguồn/Bối cảnh (nếu có), Tệp đính kèm (nếu có), Nội dung/Mô tả, hoặc Tiêu đề hiện tại để tóm tắt thành một tiêu đề nhiệm vụ ngắn gọn, chuyên nghiệp theo dạng TRÍCH YẾU nội dung công văn hành chính Việt Nam. LƯU Ý: Đi thẳng vào nội dung công việc, TUYỆT ĐỐI KHÔNG sử dụng các tiền tố như "V/v", "Về việc", "Về", "Công văn về việc", v.v. ở đầu câu. Hãy bắt đầu trực tiếp bằng các động từ hành động hoặc cụm từ tóm tắt nhiệm vụ chính (Ví dụ: "Tổ chức hội nghị sơ kết...", "Báo cáo tiến độ...", "Triển khai kế hoạch...", "Giải quyết đơn thư...", "Tham mưu xây dựng văn bản..."). Bảo đảm phản ánh đúng và bao quát nội dung cốt lõi của công văn/tài liệu được cung cấp. Nếu không thể trích xuất được thông tin ý nghĩa từ văn bản nguồn hoặc tệp đính kèm, hãy giữ nguyên tiêu đề hiện tại nhưng loại bỏ hoàn toàn tiền tố "V/v" nếu có ở đầu.
   "taskGroup": "...", // CHỌN 1 trong các tùy chọn: 'Tham mưu - tổng hợp', 'Theo dõi, đôn đốc', 'Soạn thảo, thẩm định văn bản', 'Hội nghị - giao ban', 'Văn thư - lưu trữ', 'Kế toán - tài chính', 'Hành chính - quản trị', 'Hậu cần - lễ tân', 'Nhiệm vụ đột xuất/khác' (nếu không rõ, chọn 'Nhiệm vụ đột xuất/khác')
   "workArea": "...", // CHỌN 1 trong các tùy chọn: 'Tổng hợp chung', 'Công tác xây dựng Đảng', 'Chính quyền', 'Kinh tế', 'Văn hóa - Xã hội', 'Nội chính', 'Tuyên giáo', 'Dân vận', 'Trung tâm chính trị', 'Kiểm tra, giám sát', 'Quốc phòng - an ninh', 'Tôn giáo', 'Phòng, chống tham nhũng/THTK, CLP', 'Văn thư - lưu trữ', 'Tài chính - tài sản', 'CNTT - chuyển đổi số', 'Hành chính - quản trị', 'Hội nghị - hậu cần', 'Đối thoại' (nếu không rõ, chọn 'Tổng hợp chung')
   "priority": "...", // CHỌN 1 trong các tùy chọn: 'high', 'normal', 'low'. ('high' nếu khẩn cấp, có hạn gấp; 'low' nếu là việc phụ).

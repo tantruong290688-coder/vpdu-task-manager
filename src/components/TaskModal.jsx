@@ -318,6 +318,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
       const data = await analyzeTaskContext(title, description, aiContext, fileBase64, fileMimeType);
       
       // Update states if AI returned valid data
+      if (data.title) setTitle(data.title);
       if (data.taskGroup && taskGroups.includes(data.taskGroup)) setTaskGroup(data.taskGroup);
       if (data.workArea && workAreas.includes(data.workArea)) setWorkArea(data.workArea);
       if (data.priority) setPriority(data.priority);

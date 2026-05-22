@@ -5,6 +5,9 @@ import { StatusBadge, PriorityBadge, ScoreBadge, EvaluationStatusBadge } from '.
 import toast from 'react-hot-toast';
 import { canEditTask, canUpdateProgress, canEvaluate, canOpenEvaluationModal } from '../../lib/permissions';
 import { getDashboardEmptyState } from '../../lib/taskFilters';
+import { getFileTypeInfo } from '../../utils/fileType';
+import AttachmentFileIcon from '../Chat/AttachmentFileIcon';
+import { getFreshUrlIfExpired } from '../../lib/externalStorage';
 
 // ── Module-level memoized sub-components (không bị re-create mỗi render) ─────
 
@@ -201,6 +204,34 @@ export default function TaskTable({
     }
   };
 
+  const handleAttachmentClick = async (e, file) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      toast.loading('Đang chuẩn bị tài liệu...', { id: 'file-table-toast', duration: 1500 });
+      const activeUrl = await getFreshUrlIfExpired(file.url);
+      if (!activeUrl) {
+        toast.error('Không thể lấy liên kết tải tệp.', { id: 'file-table-toast' });
+        return;
+      }
+
+      const fileInfo = getFileTypeInfo(file.name, file.type);
+      let viewerUrl = activeUrl;
+
+      if (fileInfo.type === 'word') {
+        viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(activeUrl)}`;
+      } else if (fileInfo.type === 'excel') {
+        viewerUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(activeUrl)}`;
+      }
+
+      window.open(viewerUrl, '_blank');
+      toast.success('Đã mở tài liệu!', { id: 'file-table-toast' });
+    } catch (err) {
+      console.error('Lỗi khi mở tệp:', err);
+      toast.error('Không thể mở tệp tin này.', { id: 'file-table-toast' });
+    }
+  };
+
   const resetTable = () => {
     setWidths(DEFAULT_WIDTHS);
     setVisibleColumns(Object.keys(DEFAULT_WIDTHS).reduce((acc, k) => ({ ...acc, [k]: true }), {}));
@@ -263,7 +294,7 @@ export default function TaskTable({
                 });
               })()}
               
-              <th className="p-3 w-[100px] text-center whitespace-nowrap sticky right-0 z-20 bg-slate-50 dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.1)]">
+              <th className="p-3 w-[145px] text-center whitespace-nowrap sticky right-0 z-20 bg-slate-50 dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.1)]">
                 <div className="flex items-center justify-center gap-2">
                   <span className="text-slate-400">P. Thao tác</span>
                   <div className="relative" ref={settingsRef}>
@@ -497,50 +528,82 @@ export default function TaskTable({
                     actions.selectedIds?.includes(task.id) ? 'bg-blue-50 dark:bg-[#111c33]' :
                     'bg-white dark:bg-[#0f172a] group-hover:bg-slate-50 dark:group-hover:bg-slate-800'
                   }`} onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-center gap-1">
-                      <button
-                        onClick={() => openDrawer(task)}
-                        title="Xem chi tiết"
-                        className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                      >
-                        <Eye size={14} />
-                      </button>
-                      {task.status !== 'completed' && canUpdateProgress(profile, task) && (
-                        <button
-                          onClick={() => handleStatusChange(task.id, 'completed')}
-                          title="Đánh dấu hoàn thành"
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
-                        >
-                          <CheckCircle size={14} />
-                        </button>
+                    <div className="flex items-center justify-center gap-1.5">
+                      {/* Biểu tượng file đính kèm */}
+                      {task.attachments && task.attachments.length > 0 && (
+                        <div className="flex items-center gap-1.5 mr-1">
+                          {task.attachments.slice(0, 3).map((file, idx) => {
+                            const fileInfo = getFileTypeInfo(file.name, file.type);
+                            return (
+                              <button
+                                key={idx}
+                                onClick={(e) => handleAttachmentClick(e, file)}
+                                title={`Tài liệu: ${file.name} (Click để mở nhanh)`}
+                                className="hover:scale-110 active:scale-95 transition-transform"
+                              >
+                                <AttachmentFileIcon 
+                                  fileInfo={fileInfo} 
+                                  className="w-5 h-5" 
+                                  textClassName="text-[6px] font-black" 
+                                />
+                              </button>
+                            );
+                          })}
+                          {task.attachments.length > 3 && (
+                            <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 select-none" title={`Và ${task.attachments.length - 3} tài liệu khác`}>
+                              +{task.attachments.length - 3}
+                            </span>
+                          )}
+                          <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-700/80 ml-1.5 self-center" />
+                        </div>
                       )}
-                      {canOpenEvaluationModal(profile, task) && (
+
+                      {/* Các nút thao tác */}
+                      <div className="flex items-center gap-0.5">
                         <button
-                          onClick={() => setEvalModalTask(task)}
-                          title={task.evaluation_score !== null ? 'Xem/Sửa đánh giá' : 'Đánh giá kết quả'}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
-                        >
-                          <Star size={14} className={task.evaluation_score !== null ? 'fill-amber-400 text-amber-500' : ''} />
-                        </button>
-                      )}
-                      {canEditRow && (
-                        <button
-                          onClick={() => openEditModal(task)}
-                          title="Sửa nhiệm vụ"
+                          onClick={() => openDrawer(task)}
+                          title="Xem chi tiết"
                           className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                         >
-                          <Edit2 size={14} />
+                          <Eye size={14} />
                         </button>
-                      )}
-                      {canEditRow && (
-                        <button
-                          onClick={() => handleDelete(task.id)}
-                          title="Xóa nhiệm vụ"
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
+                        {task.status !== 'completed' && canUpdateProgress(profile, task) && (
+                          <button
+                            onClick={() => handleStatusChange(task.id, 'completed')}
+                            title="Đánh dấu hoàn thành"
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                          >
+                            <CheckCircle size={14} />
+                          </button>
+                        )}
+                        {canOpenEvaluationModal(profile, task) && (
+                          <button
+                            onClick={() => setEvalModalTask(task)}
+                            title={task.evaluation_score !== null ? 'Xem/Sửa đánh giá' : 'Đánh giá kết quả'}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                          >
+                            <Star size={14} className={task.evaluation_score !== null ? 'fill-amber-400 text-amber-500' : ''} />
+                          </button>
+                        )}
+                        {canEditRow && (
+                          <button
+                            onClick={() => openEditModal(task)}
+                            title="Sửa nhiệm vụ"
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                        )}
+                        {canEditRow && (
+                          <button
+                            onClick={() => handleDelete(task.id)}
+                            title="Xóa nhiệm vụ"
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </td>
                 </tr>

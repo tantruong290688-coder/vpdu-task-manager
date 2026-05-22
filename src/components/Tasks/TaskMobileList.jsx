@@ -4,6 +4,10 @@ import { StatusBadge, PriorityBadge, EvaluationStatusBadge } from './TaskBadges'
 import { canEditTask, canUpdateProgress, canEvaluate, canOpenEvaluationModal } from '../../lib/permissions';
 import { getDashboardEmptyState } from '../../lib/taskFilters';
 import { getTaskRisk } from '../../utils/taskAnalytics';
+import { getFileTypeInfo } from '../../utils/fileType';
+import AttachmentFileIcon from '../Chat/AttachmentFileIcon';
+import { getFreshUrlIfExpired } from '../../lib/externalStorage';
+import toast from 'react-hot-toast';
 
 // ── Helpers ngoài component để tránh tạo lại mỗi render ──────────────────────
 
@@ -75,6 +79,34 @@ const TaskCard = memo(function TaskCard({ task, profile, actions }) {
     },
     [task.id, handleDelete]
   );
+
+  const handleAttachmentClick = useCallback(async (e, file) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      toast.loading('Đang chuẩn bị tài liệu...', { id: 'file-mobile-toast', duration: 1500 });
+      const activeUrl = await getFreshUrlIfExpired(file.url);
+      if (!activeUrl) {
+        toast.error('Không thể lấy liên kết tải tệp.', { id: 'file-mobile-toast' });
+        return;
+      }
+
+      const fileInfo = getFileTypeInfo(file.name, file.type);
+      let viewerUrl = activeUrl;
+
+      if (fileInfo.type === 'word') {
+        viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(activeUrl)}`;
+      } else if (fileInfo.type === 'excel') {
+        viewerUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(activeUrl)}`;
+      }
+
+      window.open(viewerUrl, '_blank');
+      toast.success('Đã mở tài liệu!', { id: 'file-mobile-toast' });
+    } catch (err) {
+      console.error('Lỗi khi mở tệp:', err);
+      toast.error('Không thể mở tệp tin này.', { id: 'file-mobile-toast' });
+    }
+  }, []);
 
   return (
     <div
@@ -154,6 +186,34 @@ const TaskCard = memo(function TaskCard({ task, profile, actions }) {
 
       {/* Row 4: Actions */}
       <div className="mt-2.5 flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+        {/* Biểu tượng file đính kèm */}
+        {task.attachments && task.attachments.length > 0 && (
+          <div className="flex items-center gap-1.5 mr-auto">
+            {task.attachments.slice(0, 3).map((file, idx) => {
+              const fileInfo = getFileTypeInfo(file.name, file.type);
+              return (
+                <button
+                  key={idx}
+                  onClick={(e) => handleAttachmentClick(e, file)}
+                  title={`Tài liệu: ${file.name} (Click để mở nhanh)`}
+                  className="hover:scale-110 active:scale-95 transition-transform"
+                >
+                  <AttachmentFileIcon 
+                    fileInfo={fileInfo} 
+                    className="w-5 h-5" 
+                    textClassName="text-[6px] font-black" 
+                  />
+                </button>
+              );
+            })}
+            {task.attachments.length > 3 && (
+              <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 select-none" title={`Và ${task.attachments.length - 3} tài liệu khác`}>
+                +{task.attachments.length - 3}
+              </span>
+            )}
+          </div>
+        )}
+
         <button
           onClick={handleOpen}
           className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 bg-slate-50 dark:bg-slate-700/30"

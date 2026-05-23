@@ -192,7 +192,7 @@ export default function UserManualModal({ onClose }) {
                         <GuideRow 
                           icon={Calendar} iconColor="text-sky-500" label="Lịch công tác tuần" 
                           action="Xem lịch trình công tác tuần chung của toàn đơn vị và xuất bản in Excel chất lượng cao."
-                          note="Viewer được phép theo dõi lịch tuần để phục vụ công tác điều phối nhưng không có quyền sửa đổi."
+                          note="Viewer được xem lịch tuần chung của đơn vị để phục vụ công tác báo cáo nhưng không có quyền chỉnh sửa/điều phối."
                         />
                         <GuideRow 
                           icon={LayoutList} iconColor="text-indigo-500" label="Tra cứu nhiệm vụ" 
@@ -312,7 +312,7 @@ export default function UserManualModal({ onClose }) {
                     {(isAdmin || isManager) ? (
                       <>Công thức tính điểm thi đua tự động: **Điểm chốt = (Chất lượng * 0.6) + (Tiến độ * 0.3) + (Khối lượng * 0.1) + Điểm cộng - Điểm trừ**. Lãnh đạo có quyền chốt điểm và thay đổi điểm bất cứ lúc nào khi có khiếu nại của cán bộ.</>
                     ) : isViewer ? (
-                      <>Với quyền hạn **Viewer**, đồng chí có góc nhìn quan sát trung lập, không tham gia chấm hay chỉnh sửa điểm số nhưng có thể giám sát tính công bằng của quy trình chốt điểm dựa trên công thức 60-30-10 của đơn vị.</>
+                      <>Với quyền hạn **Viewer**, đồng chí có góc nhìn quan sát trung lập, không tham gia chấm điểm và không được xem chi tiết phiếu chấm điểm nội bộ để đảm bảo tính bảo mật và riêng tư của quy trình đánh giá.</>
                     ) : (
                       <>Khi tự đề xuất điểm, hãy đính kèm minh chứng hoặc mô tả kỹ sản phẩm đã làm. Điều này giúp lãnh đạo có cơ sở phê duyệt điểm cao cho đồng chí.</>
                     )}

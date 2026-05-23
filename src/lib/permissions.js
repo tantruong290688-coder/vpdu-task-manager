@@ -129,7 +129,7 @@ export function canOpenEvaluationModal(profile, task) {
     (task.task_collaborators || []).some(c => c.user_id === profile.id) ||
     task.assigned_by === profile.id;
     
-  return profile.role === ROLES.ADMIN || profile.role === ROLES.MANAGER || profile.role === ROLES.VIEWER || isParticipant;
+  return profile.role === ROLES.ADMIN || profile.role === ROLES.MANAGER || isParticipant;
 }
 
 /**
@@ -143,7 +143,7 @@ export function canViewEvaluation(profile, task) {
     (task.task_collaborators || []).some(c => c.user_id === profile.id) ||
     task.assigned_by === profile.id;
     
-  return profile.role === ROLES.ADMIN || profile.role === ROLES.MANAGER || profile.role === ROLES.VIEWER || isParticipant;
+  return profile.role === ROLES.ADMIN || profile.role === ROLES.MANAGER || isParticipant;
 }
 
 /**
@@ -174,7 +174,6 @@ export function canManageSchedules(profile) {
   return (
     profile.role === ROLES.ADMIN ||
     profile.role === ROLES.MANAGER ||
-    profile.role === ROLES.VIEWER ||
     profile.email === 'phthuyet@gmail.com'
   );
 }

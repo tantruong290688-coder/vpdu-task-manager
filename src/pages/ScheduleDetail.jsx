@@ -6,6 +6,7 @@ import { ArrowLeft, Plus, Save, Trash2, Calendar as CalendarIcon, CheckSquare, D
 import toast from 'react-hot-toast';
 import TaskModal from '../components/TaskModal';
 import { exportScheduleToExcel, sortSchedulesForExport } from '../utils/exportSchedule';
+import { exportScheduleToDocx } from '../utils/exportScheduleDocx';
 import { ensureWeekendHolidays, normalizeDateVNToISO, getDaysOfWeek, determineSession, getISOWeek } from '../utils/scheduleUtils';
 import AIScheduleParserModal from '../components/Schedules/AIScheduleParserModal';
 import ScheduleItemModal from '../components/Schedules/ScheduleItemModal';
@@ -24,6 +25,7 @@ export default function ScheduleDetail() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportingDocx, setExportingDocx] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   
   // State for TaskModal
@@ -413,22 +415,40 @@ export default function ScheduleDetail() {
         
         <div className="flex items-center gap-2 ml-auto">
           {id !== 'new' && (
-            <button 
-              onClick={async () => {
-                if (isDirty || items.some(i => i.id.toString().startsWith('temp_'))) {
-                  toast.error('Có thay đổi chưa lưu. Vui lòng lưu dữ liệu trước khi xuất Excel.');
-                  return;
-                }
-                setExporting(true);
-                await exportScheduleToExcel(schedule, items);
-                setExporting(false);
-              }} 
-              disabled={exporting}
-              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-2xl text-[13px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50"
-            >
-              <Download size={18} strokeWidth={3} className={exporting ? 'animate-bounce' : ''} />
-              <span className="hidden sm:inline">{exporting ? 'Đang xuất...' : 'Xuất Excel'}</span>
-            </button>
+            <>
+              <button 
+                onClick={async () => {
+                  if (isDirty || items.some(i => i.id.toString().startsWith('temp_'))) {
+                    toast.error('Có thay đổi chưa lưu. Vui lòng lưu dữ liệu trước khi xuất Excel.');
+                    return;
+                  }
+                  setExporting(true);
+                  await exportScheduleToExcel(schedule, items);
+                  setExporting(false);
+                }} 
+                disabled={exporting}
+                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-2xl text-[13px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50"
+              >
+                <Download size={18} strokeWidth={3} className={exporting ? 'animate-bounce' : ''} />
+                <span className="hidden sm:inline">{exporting ? 'Đang xuất...' : 'Xuất Excel'}</span>
+              </button>
+              <button 
+                onClick={async () => {
+                  if (isDirty || items.some(i => i.id.toString().startsWith('temp_'))) {
+                    toast.error('Có thay đổi chưa lưu. Vui lòng lưu dữ liệu trước khi xuất Word.');
+                    return;
+                  }
+                  setExportingDocx(true);
+                  await exportScheduleToDocx(schedule, items);
+                  setExportingDocx(false);
+                }} 
+                disabled={exportingDocx}
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-2xl text-[13px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50"
+              >
+                <FileText size={18} strokeWidth={3} className={exportingDocx ? 'animate-bounce' : ''} />
+                <span className="hidden sm:inline">{exportingDocx ? 'Đang xuất...' : 'Xuất Word'}</span>
+              </button>
+            </>
           )}
           {canEdit && (
             <button 

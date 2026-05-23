@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, Plus, ChevronLeft, ChevronRight, Edit2, Trash2, Eye, LayoutList, CheckSquare, FileSpreadsheet } from 'lucide-react';
+import { Calendar, Plus, ChevronLeft, ChevronRight, Edit2, Trash2, Eye, LayoutList, CheckSquare, FileSpreadsheet, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { canManageSchedules } from '../lib/permissions';
 import ScheduleTracking from '../components/Schedules/ScheduleTracking';
 import { getStartDateOfWeek, getISOWeek } from '../utils/scheduleUtils';
 import { exportScheduleToExcel } from '../utils/exportSchedule';
+import { exportScheduleToDocx } from '../utils/exportScheduleDocx';
 
 export default function Schedules() {
   const { profile } = useAuth();
@@ -115,6 +116,26 @@ export default function Schedules() {
     } catch (err) {
       console.error('Export error:', err);
       toast.error('Lỗi khi xuất Excel', { id: 'export-list' });
+    }
+  };
+
+  const handleExportDocx = async (e, schedule) => {
+    e.stopPropagation();
+    try {
+      toast.loading('Đang chuẩn bị dữ liệu Word...', { id: 'export-docx-list' });
+      const { data: items, error } = await supabase
+        .from('schedule_items')
+        .select('*')
+        .eq('schedule_id', schedule.id)
+        .order('date', { ascending: true });
+      
+      if (error) throw error;
+      
+      await exportScheduleToDocx(schedule, items);
+      toast.success('Xuất Word thành công', { id: 'export-docx-list' });
+    } catch (err) {
+      console.error('Export DOCX error:', err);
+      toast.error('Lỗi khi xuất Word', { id: 'export-docx-list' });
     }
   };
 
@@ -351,6 +372,13 @@ export default function Schedules() {
                             >
                               <FileSpreadsheet size={18} />
                             </button>
+                            <button 
+                              onClick={(e) => handleExportDocx(e, schedule)}
+                              className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all border border-slate-100 dark:border-slate-700"
+                              title="Xuất Word (.docx)"
+                            >
+                              <FileText size={18} />
+                            </button>
                             {canEditSchedule && (
                               <button 
                                 onClick={(e) => { e.stopPropagation(); handleDelete(schedule.id); }} 
@@ -421,6 +449,12 @@ export default function Schedules() {
                         className="p-2 text-emerald-600 font-bold text-[11px] flex items-center gap-1"
                       >
                         <FileSpreadsheet size={14} /> Xuất Excel
+                      </button>
+                      <button 
+                        onClick={(e) => handleExportDocx(e, schedule)}
+                        className="p-2 text-blue-600 font-bold text-[11px] flex items-center gap-1"
+                      >
+                        <FileText size={14} /> Xuất Word
                       </button>
                     </div>
                     <div className="flex items-center gap-2">

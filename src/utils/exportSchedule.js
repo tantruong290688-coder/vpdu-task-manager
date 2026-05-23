@@ -138,11 +138,20 @@ function getScheduleDateValue(item) {
 
 function getSessionPriority(item) {
   const time = item.time || item.start_time || item.thoiGian || "";
-  const session =
-    item.session ||
-    item.buoi ||
-    getSessionFromTime(time);
+  let session = item.session || item.buoi || "";
+  
+  if (!session) {
+    const t = String(time).toLowerCase().trim();
+    if (t === "sáng") session = "Sáng";
+    else if (t === "chiều") session = "Chiều";
+    else if (t === "tối") session = "Tối";
+    else if (t === "cả ngày") session = "Cả ngày";
+    else {
+      session = getSessionFromTime(time);
+    }
+  }
 
+  if (session === "Cả ngày") return 0;
   if (session === "Sáng") return 1;
   if (session === "Chiều") return 2;
   if (session === "Tối") return 3;

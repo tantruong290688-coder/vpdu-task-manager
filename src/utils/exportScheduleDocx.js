@@ -2,8 +2,8 @@ import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import { saveAs } from 'file-saver';
 import toast from 'react-hot-toast';
-import { sortSchedulesForExport } from './exportSchedule';
-import { determineSession } from './scheduleUtils';
+import { sortSchedulesForExport } from './exportSchedule.js';
+import { determineSession } from './scheduleUtils.js';
 
 const dayNames = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
 
@@ -15,6 +15,40 @@ const formatDateVN = (dateStr) => {
   const date = d.getDate().toString().padStart(2, '0');
   const month = (d.getMonth() + 1).toString().padStart(2, '0');
   return `${dayName}\n(${date}/${month})`;
+};
+
+// Helper escape ký tự đặc biệt cho XML
+const escapeXml = (unsafe) => {
+  return String(unsafe || '').replace(/[<>&'"]/g, (c) => {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case '\'': return '&apos;';
+      case '"': return '&quot;';
+      default: return c;
+    }
+  });
+};
+
+// Helper tạo XML cấu trúc cho noi_dung (hỗ trợ bôi đậm giờ và giữ nguyên xuống dòng \n)
+const formatContentXml = (extractedTime, rawContent) => {
+  const formatTextWithBreaks = (text) => {
+    const escaped = escapeXml(text);
+    const lines = escaped.split('\n');
+    return lines.map(line => `<w:t xml:space="preserve">${line}</w:t>`).join('<w:br/>');
+  };
+
+  const normalRunPr = `<w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr>`;
+  const boldRunPr = `<w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:b/><w:bCs/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr>`;
+
+  if (extractedTime) {
+    const escapedTime = escapeXml(extractedTime);
+    return `<w:r>${boldRunPr}<w:t>${escapedTime}:</w:t></w:r>` +
+           `<w:r>${normalRunPr}${formatTextWithBreaks(' ' + rawContent)}</w:r>`;
+  } else {
+    return `<w:r>${normalRunPr}${formatTextWithBreaks(rawContent)}</w:r>`;
+  }
 };
 
 export const exportScheduleToDocx = async (schedule, items) => {
@@ -69,20 +103,23 @@ export const exportScheduleToDocx = async (schedule, items) => {
       const isNewDate = item.date !== lastDate;
       lastDate = item.date;
 
-      let content = item.content || '';
+      const content = item.content || '';
       const timeText = item._normalizedTime || '';
+      let extractedTime = '';
       
       // Định dạng hiển thị giờ giấc kèm nội dung
       if (timeText && timeText.match(/^\d{2}h\d{2}$/)) {
-        content = `${timeText}: ${content}`;
+        extractedTime = timeText;
       } else if (item.time && !item.time.toLowerCase().match(/^(sáng|chiều|tối|cả ngày)$/)) {
-        content = `${item.time}: ${content}`;
+        extractedTime = item.time;
       }
+
+      const contentXml = formatContentXml(extractedTime, content);
 
       return {
         ngay_hien_thi: isNewDate ? formatDateVN(item.date) : '',
         buoi: determineSession(item) || '',
-        noi_dung: content,
+        noi_dung: contentXml,
         chu_tri: item.host || '',
         dia_diem: item.location || '',
         chuan_bi: item.prepare_by || '',

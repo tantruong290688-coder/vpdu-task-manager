@@ -39,16 +39,20 @@ const formatContentXml = (extractedTime, rawContent) => {
     return lines.map(line => `<w:t xml:space="preserve">${line}</w:t>`).join('<w:br/>');
   };
 
+  const pPr = `<w:pPr><w:jc w:val="left"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr></w:pPr>`;
   const normalRunPr = `<w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr>`;
   const boldRunPr = `<w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:b/><w:bCs/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr>`;
 
+  let innerXml = '';
   if (extractedTime) {
     const escapedTime = escapeXml(extractedTime);
-    return `<w:r>${boldRunPr}<w:t>${escapedTime}:</w:t></w:r>` +
-           `<w:r>${normalRunPr}${formatTextWithBreaks(' ' + rawContent)}</w:r>`;
+    innerXml = `<w:r>${boldRunPr}<w:t>${escapedTime}:</w:t></w:r>` +
+               `<w:r>${normalRunPr}${formatTextWithBreaks(' ' + rawContent)}</w:r>`;
   } else {
-    return `<w:r>${normalRunPr}${formatTextWithBreaks(rawContent)}</w:r>`;
+    innerXml = `<w:r>${normalRunPr}${formatTextWithBreaks(rawContent)}</w:r>`;
   }
+
+  return `<w:p>${pPr}${innerXml}</w:p>`;
 };
 
 export const exportScheduleToDocx = async (schedule, items) => {

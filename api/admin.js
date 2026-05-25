@@ -19,7 +19,7 @@ async function listUsers(db, res) {
 
   const { data: profiles } = await db
     .from('profiles')
-    .select('id, full_name, role, status, is_locked, is_online, last_seen_at, last_login_at, created_at');
+    .select('id, full_name, role, status, is_online, last_seen_at, last_login_at, created_at');
 
   const profileMap = {};
   (profiles || []).forEach(p => { profileMap[p.id] = p; });
@@ -34,7 +34,7 @@ async function listUsers(db, res) {
       full_name: p.full_name || u.user_metadata?.full_name || u.email?.split('@')[0] || '',
       role: p.role || u.user_metadata?.role || 'staff',
       status: isBanned ? 'locked' : (p.status || 'active'),
-      is_locked: isBanned || p.is_locked || false,
+      is_locked: isBanned || p.status === 'locked' || false,
       is_online: p.is_online || false,
       last_seen_at: p.last_seen_at || null,
       last_login_at: p.last_login_at || u.last_sign_in_at || null,
@@ -109,7 +109,7 @@ async function toggleLock(db, d, res) {
   const ban = d.isLocked ? '876000h' : 'none';
   const [r1, r2] = await Promise.all([
     db.auth.admin.updateUserById(d.userId, { ban_duration: ban }),
-    db.from('profiles').update({ is_locked: d.isLocked, status: d.isLocked ? 'locked' : 'active' }).eq('id', d.userId),
+    db.from('profiles').update({ status: d.isLocked ? 'locked' : 'active' }).eq('id', d.userId),
   ]);
   if (r1.error) throw r1.error;
   if (r2.error) throw r2.error;

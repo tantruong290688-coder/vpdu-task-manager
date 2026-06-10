@@ -323,7 +323,7 @@ export default function ScheduleDetail() {
           const original = newItemsInfo[i].originalItem;
           if (original.pendingAttachments && original.pendingAttachments.length > 0) {
             try {
-              const { uploadCalendarAttachment } = await import('../../services/calendarAttachmentService');
+              const { uploadCalendarAttachment } = await import('../services/calendarAttachmentService');
               for (const file of original.pendingAttachments) {
                 await uploadCalendarAttachment(dbItem.id, file);
               }

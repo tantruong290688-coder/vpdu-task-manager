@@ -92,8 +92,8 @@ export default async function handler(req, res) {
 
   const { action, eventId, attachmentId } = req.query;
 
-  // Cloudflare R2 bucket specifically for calendar events
-  const targetBucket = process.env.CLOUDFLARE_R2_BUCKET_NAME || 'calendar-events';
+  // Cloudflare R2 bucket specifically for calendar events. Fallback to message-attachments to prevent bucket not found errors.
+  const targetBucket = process.env.CLOUDFLARE_R2_BUCKET_NAME || process.env.MINIO_CHAT_BUCKET || 'message-attachments';
 
   try {
     // ----------------------------------------------------------------------

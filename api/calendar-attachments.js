@@ -47,19 +47,52 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Authenticate User
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return err(res, 401, 'Không có quyền truy cập. Vui lòng đăng nhập.');
-  }
+  const { action, eventId, attachmentId } = req.query;
 
-  const token = authHeader.split(' ')[1];
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseServiceKey) {
     return err(res, 500, 'Thiếu cấu hình Supabase trên máy chủ');
   }
+
+  const targetBucket = process.env.CLOUDFLARE_R2_BUCKET_NAME || process.env.MINIO_CHAT_BUCKET || 'message-attachments';
+
+  // Handle Public Endpoints (No Auth Required)
+  if (req.method === 'GET' && action === 'public-get-signed-url') {
+    if (!attachmentId) return err(res, 400, 'Thiếu attachmentId');
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
+    
+    try {
+      const { data: attachment, error: fetchErr } = await supabaseAdmin
+        .from('calendar_event_attachments')
+        .select('*')
+        .eq('id', attachmentId)
+        .single();
+
+      if (fetchErr || !attachment) return err(res, 404, 'Không tìm thấy tệp đính kèm');
+
+      const command = new GetObjectCommand({
+        Bucket: targetBucket,
+        Key: attachment.file_path,
+        ResponseContentDisposition: `inline; filename="${encodeURIComponent(attachment.file_name)}"`,
+        ResponseContentType: attachment.mime_type || 'application/octet-stream'
+      });
+
+      const downloadUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+      return ok(res, { downloadUrl, fileName: attachment.file_name, mimeType: attachment.mime_type });
+    } catch (e) {
+      return err(res, 500, 'Lỗi public get signed url: ' + e.message);
+    }
+  }
+
+  // Authenticate User for other endpoints
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return err(res, 401, 'Không có quyền truy cập. Vui lòng đăng nhập.');
+  }
+
+  const token = authHeader.split(' ')[1];
 
   let user;
   let authClient;
@@ -89,11 +122,6 @@ export default async function handler(req, res) {
   const role = profile?.role;
   const canEdit = role === 'admin' || role === 'manager';
   const canView = true; // Any authenticated user can view
-
-  const { action, eventId, attachmentId } = req.query;
-
-  // Cloudflare R2 bucket specifically for calendar events. Fallback to message-attachments to prevent bucket not found errors.
-  const targetBucket = process.env.CLOUDFLARE_R2_BUCKET_NAME || process.env.MINIO_CHAT_BUCKET || 'message-attachments';
 
   try {
     // ----------------------------------------------------------------------

@@ -26,11 +26,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <NotificationProvider>
-            <MessageProvider>
+          <MessageProvider>
+            <NotificationProvider>
               <App />
-            </MessageProvider>
-          </NotificationProvider>
+            </NotificationProvider>
+          </MessageProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

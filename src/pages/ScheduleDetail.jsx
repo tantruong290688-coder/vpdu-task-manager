@@ -106,7 +106,7 @@ export default function ScheduleDetail() {
 
       const { data: itemsData, error: itemsError } = await supabase
         .from('schedule_items')
-        .select('*')
+        .select('*, calendar_event_attachments(id)')
         .eq('schedule_id', id)
         .order('date', { ascending: true })
         .order('time', { ascending: true });
@@ -280,17 +280,22 @@ export default function ScheduleDetail() {
       }
 
       // Save Items
-      const itemsToInsert = validItems.filter(item => item.id.toString().startsWith('temp_')).map(item => ({
-        schedule_id: currentScheduleId,
-        date: item.date,
-        time: item.time || '',
-        content: item.content || '',
-        host: item.host || '',
-        attendees: item.attendees || '',
-        location: item.location || '',
-        prepare_by: item.prepare_by || '',
-        type: item.type || 'meeting'
+      // We map keeping a reference to the original temp item to know its pendingAttachments
+      const newItemsInfo = validItems.filter(item => item.id.toString().startsWith('temp_')).map(item => ({
+        originalItem: item,
+        dbRecord: {
+          schedule_id: currentScheduleId,
+          date: item.date,
+          time: item.time || '',
+          content: item.content || '',
+          host: item.host || '',
+          attendees: item.attendees || '',
+          location: item.location || '',
+          prepare_by: item.prepare_by || '',
+          type: item.type || 'meeting'
+        }
       }));
+      const itemsToInsert = newItemsInfo.map(info => info.dbRecord);
 
       const itemsToUpdate = validItems.filter(item => !item.id.toString().startsWith('temp_'));
 
@@ -308,8 +313,26 @@ export default function ScheduleDetail() {
 
       // 3. Insert new items
       if (itemsToInsert.length > 0) {
-        const { error } = await supabase.from('schedule_items').insert(itemsToInsert);
+        const { data: insertedItems, error } = await supabase.from('schedule_items').insert(itemsToInsert).select();
         if (error) throw error;
+
+        // Upload pending attachments cho các sự kiện mới
+        // Vì Supabase trả về cùng thứ tự (nếu insert mảng) nên ta map với newItemsInfo
+        for (let i = 0; i < insertedItems.length; i++) {
+          const dbItem = insertedItems[i];
+          const original = newItemsInfo[i].originalItem;
+          if (original.pendingAttachments && original.pendingAttachments.length > 0) {
+            try {
+              const { uploadCalendarAttachment } = await import('../../services/calendarAttachmentService');
+              for (const file of original.pendingAttachments) {
+                await uploadCalendarAttachment(dbItem.id, file);
+              }
+            } catch (err) {
+              console.error('Lỗi khi tải tệp đính kèm cho sự kiện mới:', err);
+              toast.error(`Không thể tải lên một số tệp cho sự kiện: ${original.content}`);
+            }
+          }
+        }
       }
 
       for (const item of itemsToUpdate) {
@@ -356,7 +379,7 @@ export default function ScheduleDetail() {
       due_date: item.date,
       work_area: 'Hội nghị - hậu cần', // Default category
       task_group: 'Hậu cần - lễ tân',
-      schedule_item_id: item.id // Pass this to link it (custom property handled in TaskModal or post-save)
+      schedule_item_id: item.id.toString().startsWith('temp_') ? null : item.id // Pass this to link it (custom property handled in TaskModal or post-save)
     });
     setIsTaskModalOpen(true);
   };
@@ -563,8 +586,8 @@ export default function ScheduleDetail() {
                                     <ScheduleEventCard 
                                       key={item.id} 
                                       item={item} 
-                                      onClick={() => canEdit && handleOpenItemModal(item)}
-                                      onAddTask={canAddTasks ? () => handleOpenTaskModal(item) : undefined}
+                                      onClick={() => handleOpenItemModal(item)}
+                                      onAddTask={(canAddTasks && !item.id.toString().startsWith('temp_')) ? () => handleOpenTaskModal(item) : undefined}
                                     />
                                   ))}
                                   {canEdit && (

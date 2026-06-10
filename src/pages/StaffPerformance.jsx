@@ -591,6 +591,35 @@ function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
                 </div>
              </div>
 
+             {/* Official Job Description / Chức trách Phân công */}
+             {staff.job_description && (
+                <div className="bg-slate-50 dark:bg-slate-800/40 p-6 rounded-[24px] border border-slate-100 dark:border-slate-800/50">
+                   <div className="flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+                      <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                         <Award size={16} />
+                      </div>
+                      <div>
+                         <h3 className="text-[13px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider leading-none">Chức trách phân công công tác chính thức</h3>
+                         <p className="text-[10px] font-bold text-slate-400 mt-1">Theo Quy chế phân công nhiệm vụ Văn phòng Đảng ủy</p>
+                      </div>
+                   </div>
+                   <div className="space-y-4">
+                      <div>
+                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Phạm vi / Lĩnh vực phụ trách</span>
+                         <p className="text-[13px] font-bold text-slate-800 dark:text-slate-200 leading-snug">{staff.job_description.scope}</p>
+                      </div>
+                      <div>
+                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Các nhiệm vụ chi tiết được giao</span>
+                         <ul className="space-y-1.5 list-disc pl-4 text-[12px] font-medium text-slate-600 dark:text-slate-300 leading-relaxed">
+                            {staff.job_description.duties.map((duty, idx) => (
+                               <li key={idx} className="marker:text-indigo-500 pl-0.5">{duty}</li>
+                            ))}
+                         </ul>
+                      </div>
+                   </div>
+                </div>
+             )}
+
              {/* AI Analysis Section */}
              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-[24px] shadow-sm">
                 <div className="flex items-center justify-between mb-6">

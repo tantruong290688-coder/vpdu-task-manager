@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { writeLog } from '../lib/logger';
 import { canEditTask, canDelegateToStaff, ROLES } from '../lib/permissions';
 import { createNotification } from '../hooks/useNotifications';
-import { generateTaskChecklist, analyzeTaskContext } from '../services/geminiService';
+import { generateTaskChecklist, analyzeTaskContext, suggestTaskAssignee } from '../services/geminiService';
 import { uploadFileToExternalStorage } from '../lib/externalStorage';
 import { getFileTypeInfo } from '../utils/fileType';
 import AttachmentFileIcon from './Chat/AttachmentFileIcon';
@@ -44,6 +44,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
   const [aiContext, setAiContext] = useState('');
   const [isGeneratingChecklist, setIsGeneratingChecklist] = useState(false);
   const [isAutoFilling, setIsAutoFilling] = useState(false);
+  const [isSuggestingAssignee, setIsSuggestingAssignee] = useState(false);
   
   // AI Multimodal File upload
   const [selectedFile, setSelectedFile] = useState(null);
@@ -242,7 +243,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
   }, [assignedDate, assignerId, assigneeId, collaborators, taskGroup, workArea, title, description, expectedOutput, priority, evaluationPeriod, startDate, dueDate, taskType, originalDueDate, progress, attachments]);
 
   const fetchUsers = async () => {
-    const { data } = await supabase.from('profiles').select('id, full_name, role');
+    const { data } = await supabase.from('profiles').select('id, full_name, role, job_description');
     if (data) setUsers(data);
   };
 
@@ -297,13 +298,65 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
     
     setIsGeneratingChecklist(true);
     try {
-      const suggestedItems = await generateTaskChecklist(title, description, aiContext, fileBase64, fileMimeType);
+      let assigneeName = '';
+      let jobDesc = null;
+      if (assigneeId) {
+        const selectedUser = users.find(u => u.id === assigneeId);
+        if (selectedUser) {
+          assigneeName = selectedUser.full_name;
+          jobDesc = selectedUser.job_description;
+        }
+      }
+
+      const suggestedItems = await generateTaskChecklist(
+        title, 
+        description, 
+        aiContext, 
+        fileBase64, 
+        fileMimeType, 
+        assigneeName, 
+        jobDesc
+      );
       setDraftChecklists(suggestedItems.map(item => ({ content: item, checked: true })));
-      toast.success('AI đã tạo checklist thành công!');
+      toast.success(assigneeName ? `AI đã tạo checklist cá nhân hóa cho đ/c ${assigneeName}!` : 'AI đã tạo checklist thành công!');
     } catch (error) {
       toast.error(error.message || 'Lỗi khi gọi AI. Vui lòng thử lại.');
     } finally {
       setIsGeneratingChecklist(false);
+    }
+  };
+
+  const handleSuggestAssignee = async () => {
+    if (!title && !description && !aiContext && !fileBase64) {
+      toast.error('Vui lòng nhập Tiêu đề, Nội dung, Bối cảnh hoặc đính kèm tệp để AI phân tích cán bộ!');
+      return;
+    }
+
+    setIsSuggestingAssignee(true);
+    const loadingToast = toast.loading('AI đang phân tích chức trách cán bộ...');
+    try {
+      const result = await suggestTaskAssignee(title, description, aiContext || '', fileBase64, fileMimeType, assignableUsers);
+      toast.dismiss(loadingToast);
+
+      if (result && result.suggestedId) {
+        const matchName = users.find(u => u.id === result.suggestedId)?.full_name || 'Cán bộ phù hợp';
+        setAssigneeId(result.suggestedId);
+        
+        let msg = `AI gợi ý đ/c ${matchName} (Khớp ${result.matchingPercentage}%)\nLý do: ${result.reason}`;
+        if (result.backupSuggestedId) {
+          const backupName = users.find(u => u.id === result.backupSuggestedId)?.full_name || 'Cán bộ phối hợp';
+          msg += `\n* Dự phòng/Phối hợp: đ/c ${backupName}`;
+        }
+        
+        toast.success(msg, { duration: 10000 });
+      } else {
+        toast.error('AI không tìm thấy cán bộ nào có chức trách phù hợp với công việc này.');
+      }
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      toast.error('Lỗi gợi ý cán bộ: ' + (error.message || 'Vui lòng thử lại'));
+    } finally {
+      setIsSuggestingAssignee(false);
     }
   };
 
@@ -428,7 +481,7 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
         task_type: taskType || null,
         original_due_date: originalDueDate || null,
         progress: Number(progress) || 0,
-        schedule_item_id: scheduleItemId || null,
+        schedule_item_id: (scheduleItemId && !scheduleItemId.toString().startsWith('temp_')) ? scheduleItemId : null,
         attachments: attachments || []
       };
 
@@ -648,7 +701,19 @@ export default function TaskModal({ isOpen, onClose, onTaskAdded, initialData })
                     className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none text-[14px] font-medium text-slate-700 dark:text-slate-200 dark:placeholder-slate-500" />
                 </div>
                 <div>
-                  <label className="block text-[13px] font-bold text-slate-800 dark:text-slate-200 mb-2">Người thực hiện chính</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-[13px] font-bold text-slate-800 dark:text-slate-200">Người thực hiện chính</label>
+                    <button
+                      type="button"
+                      onClick={handleSuggestAssignee}
+                      disabled={isSuggestingAssignee || (!title && !description && !aiContext && !fileBase64)}
+                      className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-850 dark:hover:text-indigo-350 transition-colors disabled:opacity-50"
+                      title="AI phân tích bối cảnh và gợi ý đồng chí phụ trách theo quy chế phân công nhiệm vụ"
+                    >
+                      {isSuggestingAssignee ? <Loader2 size={12} className="animate-spin text-indigo-500" /> : <Sparkles size={12} className="text-amber-500" />}
+                      <span>💡 Gợi ý AI</span>
+                    </button>
+                  </div>
                   <select value={assigneeId} onChange={e => setAssigneeId(e.target.value)} required
                     className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-[3px] focus:ring-blue-500/20 focus:border-blue-500 outline-none text-[14px] font-medium text-slate-700 dark:text-slate-200">
                     <option value="">-- Chọn --</option>

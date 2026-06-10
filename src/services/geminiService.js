@@ -2,15 +2,35 @@
  * Gemini AI Service calling Vercel Serverless Proxy
  */
 
-export const generateTaskChecklist = async (title, description, aiContext = '', fileData = '', mimeType = '') => {
+export const generateTaskChecklist = async (
+    title, 
+    description, 
+    aiContext = '', 
+    fileData = '', 
+    mimeType = '', 
+    assigneeName = '', 
+    jobDescription = null
+) => {
     const contextInstruction = aiContext ? `\nDưới đây là tài liệu nguồn/bối cảnh đi kèm (quan trọng để trích xuất checklist):\n"""\n${aiContext}\n"""\nHãy phân tích kỹ tài liệu trên để đưa ra các bước công việc phù hợp.` : '';
 
+    let assigneeInstruction = '';
+    if (assigneeName && jobDescription) {
+        assigneeInstruction = `
+Nhiệm vụ này được giao cho cán bộ: **${assigneeName}**
+Chức danh/Vai trò chính thức: **${jobDescription.title || "Chưa rõ"}**
+Lĩnh vực phụ trách: **${jobDescription.scope || "Chưa rõ"}**
+Các nhiệm vụ chi tiết được giao trong cơ quan:
+${Array.isArray(jobDescription.duties) ? jobDescription.duties.map(d => `- ${d}`).join('\n') : '- Chưa cấu hình'}
+
+Hãy cá nhân hóa danh sách checklist hành động này để nó PHÙ HỢP hoàn toàn với chức trách, vai trò và phạm vi nhiệm vụ thực tế của cán bộ **${assigneeName}** đối với công việc trên. Chỉ tập trung vào phần việc cán bộ đó chịu trách nhiệm xử lý hoặc triển khai theo bản phân công chức năng nhiệm vụ.`;
+    }
+
     const prompt = `
-Bạn là một trợ lý quản lý dự án chuyên nghiệp.
+Bạn là một trợ lý quản lý dự án chuyên nghiệp phục vụ Văn phòng Đảng ủy.
 Hãy phân rã công việc sau đây thành một danh sách các công việc con (checklist) cụ thể, rõ ràng và có thể hành động được.
 
 Tiêu đề công việc: ${title || "Không có tiêu đề"}
-Mô tả công việc: ${description || "Không có mô tả"}${contextInstruction}
+Mô tả công việc: ${description || "Không có mô tả"}${contextInstruction}${assigneeInstruction}
 
 Yêu cầu định dạng đầu ra:
 Trả về CHỈ một mảng JSON các chuỗi (strings), mỗi chuỗi là một mục trong checklist. Số lượng từ 3 đến 7 mục.
@@ -56,6 +76,62 @@ Ví dụ: ["Bước 1", "Bước 2", "Bước 3"]
         
     } catch (error) {
         console.error("Error generating checklist via proxy:", error);
+        throw error;
+    }
+};
+
+/**
+ * AI Service: Gợi ý cán bộ phụ trách tối ưu nhất dựa trên bản phân công công tác VPDU
+ */
+export const suggestTaskAssignee = async (title, description, aiContext = '', fileData = '', mimeType = '', profilesList = []) => {
+    // Rút gọn thông tin profiles để gửi lên AI tiết kiệm token
+    const profilesFormatted = profilesList.map(p => {
+        return {
+            id: p.id,
+            full_name: p.full_name,
+            role: p.role,
+            job_description: p.job_description || { title: p.role, scope: "Chưa cấu hình", duties: [] }
+        };
+    });
+
+    const prompt = `
+Bạn là một trợ lý ảo phân phối công việc thông minh cho cơ quan Văn phòng Đảng ủy (VPDU). 
+Nhiệm vụ của bạn là đọc thông tin về công việc mới và so khớp (semantic matching) với chức năng, nhiệm vụ của các cán bộ trong cơ quan để gợi ý người phụ trách tối ưu nhất.
+
+DỮ LIỆU CÔNG VIỆC MỚI:
+- Tiêu đề: ${title || "Chưa nhập"}
+- Mô tả: ${description || "Chưa nhập"}
+- Tài liệu đính kèm/Bối cảnh: ${aiContext || "Không có"}
+
+DANH SÁCH CÁN BỘ VPDU & PHÂN CÔNG CHỨC TRÁCH CỦA HỌ:
+${JSON.stringify(profilesFormatted, null, 2)}
+
+YÊU CẦU:
+Hãy phân tích tỉ mỉ và đưa ra gợi ý cán bộ phù hợp nhất.
+Trả về CHỈ một đối tượng JSON với định dạng chính xác sau đây, không kèm theo bất kỳ văn bản nào khác:
+{
+  "suggestedId": "...", // ID của cán bộ phù hợp nhất (id từ danh sách trên). Nếu không thể xác định ai phù hợp, để null.
+  "matchingPercentage": <number từ 0 đến 100>, // Mức độ trùng khớp về mặt chuyên môn, chức trách.
+  "reason": "...", // Giải trình lý do cụ thể vì sao lại chọn cán bộ này (1-2 câu ngắn gọn, trích dẫn nhiệm vụ của họ trong bản phân công công tác để chứng minh).
+  "backupSuggestedId": "...", // ID của cán bộ phù hợp thứ hai làm phương án dự phòng (phối hợp). Nếu không có, để null.
+  "backupReason": "..." // Lý do chọn phương án dự phòng (1 câu).
+}
+    `.trim();
+
+    try {
+        const response = await fetch('/api/ai-assistant', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt, temperature: 0.2, fileData, mimeType })
+        });
+
+        if (!response.ok) throw new Error('Lỗi kết nối AI gợi ý cán bộ');
+
+        const data = await response.json();
+        let cleanText = data.text.replace(/```json/g, '').replace(/```/g, '').trim();
+        return JSON.parse(cleanText);
+    } catch (error) {
+        console.error("Error suggesting task assignee:", error);
         throw error;
     }
 };

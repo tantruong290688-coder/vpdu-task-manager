@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import toast, { Toaster } from 'react-hot-toast';
 import { lazy, Suspense, useState, useEffect, Component } from 'react';
@@ -79,9 +79,12 @@ const ProtectedRoute = ({ children }) => {
 
 // ── Root Layout Component ──────────────────────────────────────────────────
 function RootLayout() {
+  const navigate = useNavigate();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
+    window.routerNavigate = navigate;
+
     // Shortcuts listener
     const handleShortcuts = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {

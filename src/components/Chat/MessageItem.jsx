@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Check, CheckCheck, Reply, Trash2, Smile } from 'lucide-react';
 import AttachmentMessageCard from './AttachmentMessageCard';
+import { getUserAvatar } from '../../utils/avatarHelper';
 
 const EMOJI_MAP = {
   heart: '❤️',
@@ -20,6 +21,7 @@ export default function MessageItem({
   repliedMessage, 
   reactions = [], 
   profiles = {}, 
+  roomReads = [],
   onReact, 
   onReply, 
   onDelete 
@@ -31,6 +33,21 @@ export default function MessageItem({
 
   // Filter reactions for this specific message (private or group)
   const msgReactions = reactions.filter(r => r.message_id === message.id || r.chat_message_id === message.id);
+
+  // Tính toán những người đã xem tin nhắn này
+  const readUsers = (() => {
+    const isGroup = !message.receiver_id;
+    if (isGroup) {
+      return roomReads
+        .filter(r => r.message_id === message.id && r.user_id !== message.sender_id)
+        .map(r => profiles[r.user_id])
+        .filter(Boolean);
+    } else {
+      return (isMe && message.is_read && profiles[message.receiver_id]) 
+        ? [profiles[message.receiver_id]] 
+        : [];
+    }
+  })();
 
   const handleDoubleClick = () => {
     if (message.is_deleted || !onReact) return;
@@ -106,9 +123,14 @@ export default function MessageItem({
         {!isMe && (
           <div className="w-8 shrink-0 flex items-end mb-1">
             {showAvatar ? (
-              <div className="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold shadow-sm ring-2 ring-white dark:ring-slate-900">
-                {(message.sender_name || '?').charAt(0).toUpperCase()}
-              </div>
+              <img 
+                src={getUserAvatar(profiles[message.sender_id] || message.sender_name)} 
+                alt="Avatar"
+                className="w-10 h-10 sm:w-8 sm:h-8 rounded-full object-cover shadow-sm ring-2 ring-white dark:ring-slate-900 border border-slate-100 dark:border-slate-800"
+                onError={(e) => {
+                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(message.sender_name || 'User')}&background=4f46e5&color=fff`;
+                }}
+              />
             ) : (
               <div className="w-10 sm:w-8" />
             )}
@@ -291,10 +313,24 @@ export default function MessageItem({
 
           <div className={`flex items-center gap-1.5 mt-1 px-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
             <span className="text-[12px] sm:text-[10px] text-slate-400 font-medium">{formatTime(message.created_at)}</span>
-            {isMe && !message.is_deleted && (
-              message.is_read 
-                ? <CheckCheck size={12} className="text-blue-500" /> 
-                : <Check size={12} className="text-slate-400" />
+            {isMe && !message.is_deleted && readUsers.length === 0 && (
+              <Check size={12} className="text-slate-400" />
+            )}
+            {!message.is_deleted && readUsers.length > 0 && (
+              <div className="flex -space-x-1 overflow-hidden ml-1 py-0.5">
+                {readUsers.map((usr) => (
+                  <img
+                    key={usr.id}
+                    src={getUserAvatar(usr)}
+                    alt={usr.full_name}
+                    title={`Đã xem bởi: ${usr.full_name}`}
+                    className="w-3.5 h-3.5 sm:w-3 sm:h-3 rounded-full border border-white dark:border-slate-900 object-cover shadow-sm transition-transform hover:scale-125 cursor-help"
+                    onError={(e) => {
+                      e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(usr.full_name || 'User')}&background=4f46e5&color=fff`;
+                    }}
+                  />
+                ))}
+              </div>
             )}
           </div>
         </div>

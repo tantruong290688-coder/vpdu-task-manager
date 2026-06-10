@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, MapPin, CheckSquare, Plus } from 'lucide-react';
+import { User, MapPin, CheckSquare, Plus, Paperclip } from 'lucide-react';
 
 export default function ScheduleEventCard({ item, onClick, onAddTask }) {
   const isHoliday = item.type === 'holiday' || (item.content || '').toLowerCase().includes('nghỉ');
@@ -49,6 +49,12 @@ export default function ScheduleEventCard({ item, onClick, onAddTask }) {
           <div className="flex items-start gap-1 text-slate-500 dark:text-slate-500 text-[11px]">
             <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" />
             <span className="line-clamp-1">{item.location}</span>
+          </div>
+        )}
+        {item.calendar_event_attachments && item.calendar_event_attachments.length > 0 && (
+          <div className="flex items-start gap-1 text-blue-500 dark:text-blue-400 text-[11px] font-medium mt-0.5">
+            <Paperclip className="w-3.5 h-3.5 shrink-0" />
+            <span>{item.calendar_event_attachments.length} tệp đính kèm</span>
           </div>
         )}
       </div>

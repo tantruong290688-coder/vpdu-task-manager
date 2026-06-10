@@ -10,7 +10,7 @@ export function useStaffPerformance(period = null) {
       // 1. Lấy tất cả cán bộ
       const { data: profiles, error: pError } = await supabase
         .from('profiles')
-        .select('id, full_name, role, department')
+        .select('id, full_name, role, department, job_description')
         .neq('role', 'viewer')
         .order('full_name');
 

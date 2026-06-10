@@ -3,12 +3,15 @@
 // Tương thích ngược cả schema cũ (chỉ có message, task_id)
 // lẫn schema mới (title, body, type, related_task_id)
 // ═══════════════════════════════════════════════════════════
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { useMessage } from '../context/MessageContext';
+import toast from 'react-hot-toast';
 
 export function useNotifications({ filter = 'all', page = 1, limit = 20 } = {}) {
   const { user } = useAuth();
+  const { isChatOpen, activeChatUserId, activeRoomId } = useMessage();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount,   setUnreadCount]   = useState(0);
   const [total,         setTotal]         = useState(0);
@@ -79,6 +82,16 @@ export function useNotifications({ filter = 'all', page = 1, limit = 20 } = {}) 
     setUnreadCount(count || 0);
   }, [user?.id]);
 
+  const isChatOpenRef = useRef(isChatOpen);
+  const activeChatUserIdRef = useRef(activeChatUserId);
+  const activeRoomIdRef = useRef(activeRoomId);
+
+  useEffect(() => {
+    isChatOpenRef.current = isChatOpen;
+    activeChatUserIdRef.current = activeChatUserId;
+    activeRoomIdRef.current = activeRoomId;
+  }, [isChatOpen, activeChatUserId, activeRoomId]);
+
   // Initial load + realtime subscription
   useEffect(() => {
     if (!user?.id) return;
@@ -101,6 +114,99 @@ export function useNotifications({ filter = 'all', page = 1, limit = 20 } = {}) 
               setNotifications((prev) => [payload.new, ...prev]);
               setUnreadCount((prev) => prev + 1);
               setTotal((prev) => prev + 1);
+
+              // Hiển thị thông báo nổi in-app (Toast) hoặc Native Notification cho người dùng đang hoạt động
+              if (payload.new.actor_id !== user.id) {
+                const title = payload.new.title || 'Thông báo mới';
+                const body = payload.new.body || payload.new.message || '';
+                const type = payload.new.type || 'general';
+                const isMsg = type.startsWith('message');
+
+                // Chặn thông báo trùng lặp nếu đang mở phòng chat tương ứng
+                let shouldSuppress = false;
+                if (isMsg && isChatOpenRef.current) {
+                  if (type === 'message_private' && activeChatUserIdRef.current === payload.new.actor_id) {
+                    shouldSuppress = true;
+                  } else if (type === 'message_group') {
+                    const targetUrl = payload.new.url || payload.new.related_url || '';
+                    const urlParams = new URLSearchParams(targetUrl.split('?')[1] || '');
+                    const roomId = urlParams.get('room');
+                    if (roomId && activeRoomIdRef.current === roomId) {
+                      shouldSuppress = true;
+                    }
+                  }
+                }
+
+                if (!shouldSuppress) {
+                  // 1. Nếu tab đang chạy ngầm (background), hiển thị Native Notification thông qua Service Worker
+                  if (
+                    typeof window !== 'undefined' &&
+                    'Notification' in window &&
+                    Notification.permission === 'granted' &&
+                    document.visibilityState === 'hidden'
+                  ) {
+                    if ('serviceWorker' in navigator) {
+                      navigator.serviceWorker.ready.then((reg) => {
+                        reg.showNotification(title, {
+                          body: body,
+                          icon: '/icon-512.png',
+                          badge: '/favicon.svg',
+                          tag: payload.new.id || 'general',
+                          renotify: true,
+                          data: {
+                            url: payload.new.url || payload.new.related_url || '/notifications',
+                          }
+                        });
+                      });
+                    }
+                  } else {
+                    // 2. Nếu tab ở foreground, hiện Toast
+                    toast.custom((t) => 
+                      React.createElement('div', {
+                        key: t.id,
+                        onClick: () => {
+                          toast.dismiss(t.id);
+                          const targetUrl = payload.new.url || payload.new.related_url;
+                          if (targetUrl) {
+                            if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
+                              window.open(targetUrl, '_blank');
+                            } else if (window.routerNavigate) {
+                              window.routerNavigate(targetUrl);
+                            } else {
+                              window.location.href = targetUrl;
+                            }
+                          }
+                        },
+                        className: `${
+                          t.visible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+                        } max-w-sm w-full bg-white dark:bg-slate-800 shadow-xl rounded-2xl pointer-events-auto flex ring-1 ring-black/5 dark:ring-white/10 border border-slate-100 dark:border-slate-700 cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-2xl`
+                      }, [
+                        React.createElement('div', { className: 'flex-1 p-4', key: 'body' }, 
+                          React.createElement('div', { className: 'flex items-start gap-3' }, [
+                            React.createElement('div', { className: 'flex-shrink-0 w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-lg', key: 'icon' }, isMsg ? '💬' : '🔔'),
+                            React.createElement('div', { className: 'flex-1 min-w-0', key: 'text' }, [
+                              React.createElement('p', { className: 'text-[13px] font-extrabold text-slate-900 dark:text-white truncate', key: 'title' }, title),
+                              body ? React.createElement('p', { className: 'mt-0.5 text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed', key: 'desc' }, body) : null
+                            ])
+                          ])
+                        ),
+                        React.createElement('div', { className: 'flex border-l border-slate-100 dark:border-slate-700', key: 'action' }, 
+                          React.createElement('button', {
+                            onClick: (e) => {
+                              e.stopPropagation();
+                              toast.dismiss(t.id);
+                            },
+                            className: 'w-full px-4 border border-transparent rounded-none rounded-r-2xl text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors focus:outline-none'
+                          }, 'Đóng')
+                        )
+                      ]), {
+                        duration: 5000,
+                        position: 'top-right',
+                      }
+                    );
+                  }
+                }
+              }
             }
           }
         )

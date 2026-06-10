@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Search, Users, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { getUserAvatar } from '../../utils/avatarHelper';
 
 export default function ContactList({ profiles, rooms, conversations, onlineUsers, onSelectUser, onSelectRoom }) {
   const [search, setSearch] = useState('');
@@ -97,9 +98,14 @@ export default function ContactList({ profiles, rooms, conversations, onlineUser
                   className="w-full flex items-center gap-4 sm:gap-3 p-4 sm:p-3 rounded-2xl hover:bg-white dark:hover:bg-slate-800 transition-all group text-left hover:shadow-sm mb-1 border border-transparent hover:border-slate-100 dark:hover:border-slate-700"
                 >
                   <div className="relative shrink-0">
-                    <div className="w-14 h-14 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-sm group-hover:rotate-2 transition-transform">
-                      {(p.full_name || p.email || '?').charAt(0).toUpperCase()}
-                    </div>
+                    <img 
+                      src={getUserAvatar(p)} 
+                      alt={p.full_name || 'Avatar'}
+                      className="w-14 h-14 sm:w-12 sm:h-12 rounded-2xl object-cover shadow-sm group-hover:rotate-2 transition-transform border border-slate-100 dark:border-slate-800"
+                      onError={(e) => {
+                        e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(p.full_name || 'User')}&background=4f46e5&color=fff`;
+                      }}
+                    />
                     {isOnline && (
                       <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-slate-50 dark:border-slate-900 rounded-full"></span>
                     )}

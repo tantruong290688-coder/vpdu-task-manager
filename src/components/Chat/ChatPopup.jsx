@@ -29,6 +29,7 @@ export default function ChatPopup() {
   const [rooms, setRooms] = useState([]);
   const [roomMessages, setRoomMessages] = useState([]);
   const [reactions, setReactions] = useState([]);
+  const [roomReads, setRoomReads] = useState([]);
   const [isWideMode, setIsWideMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -166,6 +167,42 @@ export default function ChatPopup() {
     };
   }, [user?.id, isChatOpen]);
 
+  // Real-time for room reads
+  const roomReadsSubRef = useRef(null);
+  const isRoomReadsSubscribedRef = useRef(false);
+
+  useEffect(() => {
+    if (!user || !isChatOpen || isRoomReadsSubscribedRef.current) return;
+    isRoomReadsSubscribedRef.current = true;
+
+    try {
+      const channel = supabase.channel('chat:room_reads')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_message_reads' }, (payload) => {
+          const readRec = payload.new;
+          if (payload.eventType === 'INSERT') {
+            setRoomReads(prev => [...prev.filter(r => r.id !== readRec.id), readRec]);
+          } else if (payload.eventType === 'UPDATE') {
+            setRoomReads(prev => prev.map(r => r.id === readRec.id ? readRec : r));
+          } else if (payload.eventType === 'DELETE') {
+            setRoomReads(prev => prev.filter(r => r.id !== payload.old.id));
+          }
+        })
+        .subscribe();
+      
+      roomReadsSubRef.current = channel;
+    } catch (err) {
+      console.warn('[Chat] Room reads channel error:', err);
+    }
+
+    return () => {
+      if (roomReadsSubRef.current) {
+        supabase.removeChannel(roomReadsSubRef.current);
+        roomReadsSubRef.current = null;
+        isRoomReadsSubscribedRef.current = false;
+      }
+    };
+  }, [user?.id, isChatOpen]);
+
   // Mark as read when active chat changes
   useEffect(() => {
     if (activeChatUserId && isChatOpen) {
@@ -177,7 +214,7 @@ export default function ChatPopup() {
     setLoading(true);
     try {
       const [{ data: profs }, { data: rms }, { data: msgs }] = await Promise.all([
-        supabase.from('profiles').select('id, full_name, email, role, is_online, last_seen_at'),
+        supabase.from('profiles').select('id, full_name, email, role, is_online, last_seen_at, avatar_url'),
         supabase.from('chat_rooms').select('*'),
         supabase.from('messages').select('*').or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`).order('created_at', { ascending: true })
       ]);
@@ -191,12 +228,22 @@ export default function ChatPopup() {
         console.warn('[Chat] Could not load message_reactions, table may not exist yet:', e.message);
       }
 
+      // Tải trạng thái xem tin nhắn nhóm an toàn
+      let groupReads = [];
+      try {
+        const { data: readsData } = await supabase.from('chat_message_reads').select('*');
+        groupReads = readsData || [];
+      } catch (e) {
+        console.warn('[Chat] Could not load chat_message_reads, table may not exist yet:', e.message);
+      }
+
       const profMap = {};
       (profs || []).forEach(p => profMap[p.id] = p);
       setProfiles(profMap);
       setRooms(rms || []);
       setMessages(msgs || []);
       setReactions(reacts);
+      setRoomReads(groupReads);
     } catch (err) {
       console.error('Error loading chat data:', err);
     } finally {
@@ -225,6 +272,58 @@ export default function ChatPopup() {
       setReplyTo(null);
     }
   }, [activeRoomId]);
+
+  const markRoomAsRead = async (roomId) => {
+    if (!roomId || !user || roomMessages.length === 0) return;
+    
+    // Tìm các tin nhắn của người khác trong phòng chat hiện tại
+    const otherMessages = roomMessages.filter(m => m.sender_id !== user.id);
+    if (otherMessages.length === 0) return;
+
+    // Tìm các tin nhắn chưa được đánh dấu đã đọc bởi user hiện tại
+    const unreadMsgIds = otherMessages
+      .filter(m => !roomReads.some(r => r.message_id === m.id && r.user_id === user.id))
+      .map(m => m.id);
+
+    if (unreadMsgIds.length > 0) {
+      const readPayload = unreadMsgIds.map(mId => ({
+        message_id: mId,
+        user_id: user.id
+      }));
+
+      // Optimistic update
+      const tempRecords = readPayload.map((p, index) => ({
+        id: `temp-read-${Date.now()}-${index}`,
+        message_id: p.message_id,
+        user_id: p.user_id,
+        read_at: new Date().toISOString()
+      }));
+      setRoomReads(prev => [...prev, ...tempRecords]);
+
+      const { data, error } = await supabase
+        .from('chat_message_reads')
+        .insert(readPayload)
+        .select();
+
+      if (error) {
+        console.error('Lỗi khi lưu trạng thái xem tin nhắn nhóm:', error);
+        // Rollback optimistic update
+        setRoomReads(prev => prev.filter(r => !r.id.toString().startsWith('temp-read-')));
+      } else if (data) {
+        // Thay thế bản ghi tạm bằng bản ghi thật từ DB
+        setRoomReads(prev => [
+          ...prev.filter(r => !r.id.toString().startsWith('temp-read-')),
+          ...data
+        ]);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (activeRoomId && isChatOpen && roomMessages.length > 0) {
+      markRoomAsRead(activeRoomId);
+    }
+  }, [activeRoomId, isChatOpen, roomMessages, roomReads.length]);
 
   const markAsRead = async (otherUserId) => {
     const unreadIds = messages
@@ -488,6 +587,7 @@ export default function ChatPopup() {
                   currentUser={user}
                   reactions={reactions}
                   profiles={profiles}
+                  roomReads={roomReads}
                   onReact={handleReact}
                   onReply={setReplyTo}
                   onDelete={handleDelete}

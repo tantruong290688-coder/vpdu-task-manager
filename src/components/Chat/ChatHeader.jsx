@@ -1,6 +1,7 @@
 import { useMessage } from '../../context/MessageContext';
 import { useAuth } from '../../context/AuthContext';
 import { X, Minus, Search, ArrowLeft, Users, Maximize2, Minimize2 } from 'lucide-react';
+import { getUserAvatar } from '../../utils/avatarHelper';
 
 export default function ChatHeader({ activeUser, activeRoom, onBack, onClose, isWideMode, onToggleWide }) {
   const { closeChat, minimizeChat } = useMessage();
@@ -23,15 +24,20 @@ export default function ChatHeader({ activeUser, activeRoom, onBack, onClose, is
         )}
 
         <div className="relative shrink-0">
-          <div className={`w-12 h-12 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-bold shadow-sm bg-gradient-to-br ${
-            activeRoom ? 'from-amber-400 to-orange-600' : 'from-blue-500 to-indigo-600'
-          }`}>
-            {activeRoom ? (
+          {activeRoom ? (
+            <div className="w-12 h-12 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-bold shadow-sm bg-gradient-to-br from-amber-400 to-orange-600">
               <Users size={20} />
-            ) : (
-              (activeUser?.full_name || activeUser?.email || '?').charAt(0).toUpperCase()
-            )}
-          </div>
+            </div>
+          ) : (
+            <img 
+              src={getUserAvatar(activeUser)} 
+              alt={activeUser?.full_name || 'Avatar'}
+              className="w-12 h-12 sm:w-10 sm:h-10 rounded-full object-cover shadow-sm border border-slate-100 dark:border-slate-800"
+              onError={(e) => {
+                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(activeUser?.full_name || 'User')}&background=4f46e5&color=fff`;
+              }}
+            />
+          )}
           {activeUser && isOnline && (
             <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-slate-900 rounded-full"></span>
           )}

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import MessageItem from './MessageItem';
 import { ChevronDown } from 'lucide-react';
 
-export default function MessageList({ messages, currentUser, reactions = [], profiles = {}, onReact, onReply, onDelete }) {
+export default function MessageList({ messages, currentUser, reactions = [], profiles = {}, roomReads = [], onReact, onReply, onDelete }) {
   const scrollRef = useRef(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
 
@@ -54,6 +54,7 @@ export default function MessageList({ messages, currentUser, reactions = [], pro
               repliedMessage={repliedMessage}
               reactions={reactions}
               profiles={profiles}
+              roomReads={roomReads}
               onReact={onReact}
               onReply={onReply}
               onDelete={onDelete}

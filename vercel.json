@@ -1,5 +1,8 @@
 {
   "rewrites": [
+    { "source": "/api/calendar-events/:eventId/attachments", "destination": "/api/calendar-attachments?action=upload&eventId=$eventId" },
+    { "source": "/api/calendar-events/attachments/:attachmentId/signed-url", "destination": "/api/calendar-attachments?action=get-signed-url&attachmentId=$attachmentId" },
+    { "source": "/api/calendar-events/attachments/:attachmentId", "destination": "/api/calendar-attachments?action=delete&attachmentId=$attachmentId" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],

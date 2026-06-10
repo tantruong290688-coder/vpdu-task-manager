@@ -1,10 +1,10 @@
 // ═══════════════════════════════════════════════════════════
 // Service Worker – VPĐU Task Manager PWA
-// Version: 2026.05.02.08 (Force Update - VAPID Sync)
+// Version: 2026.05.27.01 (Force Update - PWA Push Resiliency)
 // ═══════════════════════════════════════════════════════════
 
-const SW_VERSION = '2026.05.16.02';
-const CACHE_NAME = 'vpdu-v7'; // Đổi tên cache để ép trình duyệt xóa bản cũ
+const SW_VERSION = '2026.05.27.01';
+const CACHE_NAME = 'vpdu-v8'; // Đổi tên cache để ép trình duyệt xóa bản cũ
 const OFFLINE_URL = '/offline.html';
 
 // ── Install: pre-cache shell ─────────────────────────────
@@ -89,8 +89,8 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'VPĐU Trà Bồng';
   const options = {
     body:     data.body || '',
-    icon:     '/icon-512.png',
-    badge:    '/favicon.svg',
+    icon:     data.icon || '/icon-512.png',
+    badge:    data.badge || '/favicon.svg',
     vibrate:  [200, 100, 200],
     tag:      data.entity_id || 'general', // Tránh trùng lặp cùng 1 thực thể
     renotify: true,
@@ -108,14 +108,26 @@ self.addEventListener('push', (event) => {
     ],
   };
 
-  // Cập nhật App Badge (số lượng thông báo trên icon app)
-  if ('setAppBadge' in navigator && data.unreadCount !== undefined) {
-    navigator.setAppBadge(data.unreadCount).catch(() => {});
+  // Cập nhật App Badge an toàn (tránh lỗi ReferenceError trên một số dòng máy cũ)
+  try {
+    if (typeof navigator !== 'undefined' && 'setAppBadge' in navigator && data.unreadCount !== undefined) {
+      navigator.setAppBadge(data.unreadCount).catch(() => {});
+    }
+  } catch (e) {
+    console.warn('[SW] setAppBadge error:', e);
   }
 
   event.waitUntil(
     self.registration.showNotification(title, options)
       .then(() => console.log('[SW] Notification Shown'))
+      .catch((err) => {
+        console.error('[SW] showNotification failed, trying basic fallback:', err);
+        // Fallback tối giản nhất cho thiết bị kén chọn (như iOS hoặc điện thoại cũ)
+        return self.registration.showNotification(title, {
+          body: data.body || '',
+          icon: '/icon-512.png',
+        });
+      })
   );
 });
 

@@ -26,6 +26,7 @@
     "es-toolkit": "^1.45.1",
     "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",
+    "formidable": "^3.5.4",
     "lucide-react": "^1.8.0",
     "pizzip": "^3.2.0",
     "postcss": "^8.5.10",

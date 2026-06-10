@@ -12,6 +12,7 @@ import {
   getFileIcon
 } from '../../services/calendarAttachmentService';
 import toast from 'react-hot-toast';
+import AttachmentPreviewModal from './AttachmentPreviewModal';
 
 export default function ScheduleItemModal({ isOpen, onClose, onSave, onDelete, initialData }) {
   const { profile } = useAuth();
@@ -36,6 +37,14 @@ export default function ScheduleItemModal({ isOpen, onClose, onSave, onDelete, i
   const [loadingAttachments, setLoadingAttachments] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
+
+  const [previewState, setPreviewState] = useState({
+    isOpen: false,
+    attachment: null,
+    signedUrl: null,
+    loading: false,
+    error: null
+  });
 
   useEffect(() => {
     if (isOpen && initialData) {
@@ -146,27 +155,28 @@ export default function ScheduleItemModal({ isOpen, onClose, onSave, onDelete, i
   };
 
   const handleViewAttachment = async (attachment) => {
-    const loadingToast = toast.loading('Đang tạo liên kết an toàn...');
+    setPreviewState({
+      isOpen: true,
+      attachment,
+      signedUrl: null,
+      loading: true,
+      error: null
+    });
+
     try {
       const { downloadUrl } = await getCalendarAttachmentSignedUrl(attachment.id);
-      toast.dismiss(loadingToast);
       
-      const ext = attachment.file_name.split('.').pop().toLowerCase();
-      if (['doc', 'docx'].includes(ext)) {
-        // Tự động tải xuống nếu là Word
-        const a = document.createElement('a');
-        a.href = downloadUrl;
-        a.download = attachment.file_name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } else {
-        // Mở tab mới với PDF/Ảnh
-        window.open(downloadUrl, '_blank');
-      }
+      setPreviewState(prev => ({
+        ...prev,
+        signedUrl: downloadUrl,
+        loading: false
+      }));
     } catch (error) {
-      toast.dismiss(loadingToast);
-      toast.error('Không thể mở tệp: ' + error.message);
+      setPreviewState(prev => ({
+        ...prev,
+        loading: false,
+        error: error.message || 'Không thể xem tệp này. Bạn không có quyền hoặc tệp đã bị lỗi.'
+      }));
     }
   };
 
@@ -523,6 +533,15 @@ export default function ScheduleItemModal({ isOpen, onClose, onSave, onDelete, i
         </div>
 
       </div>
+      
+      <AttachmentPreviewModal 
+        isOpen={previewState.isOpen}
+        onClose={() => setPreviewState(prev => ({ ...prev, isOpen: false }))}
+        attachment={previewState.attachment}
+        signedUrl={previewState.signedUrl}
+        loading={previewState.loading}
+        error={previewState.error}
+      />
     </div>
   );
 }

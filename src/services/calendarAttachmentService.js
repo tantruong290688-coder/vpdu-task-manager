@@ -12,7 +12,7 @@ const getAuthHeaders = async () => {
 };
 
 // Cấu hình URL endpoint
-const API_BASE = '/api/calendar-events';
+const API_BASE = '/api/calendar-attachments';
 
 /**
  * Upload file đính kèm cho sự kiện
@@ -24,7 +24,7 @@ export const uploadCalendarAttachment = async (eventId, file) => {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${API_BASE}/${eventId}/attachments`, {
+    const response = await fetch(`${API_BASE}?action=upload&eventId=${eventId}`, {
       method: 'POST',
       headers,
       body: formData
@@ -68,7 +68,7 @@ export const getCalendarAttachments = async (eventId) => {
 export const getCalendarAttachmentSignedUrl = async (attachmentId) => {
   try {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE}/attachments/${attachmentId}/signed-url`, {
+    const response = await fetch(`${API_BASE}?action=get-signed-url&attachmentId=${attachmentId}`, {
       method: 'GET',
       headers
     });
@@ -92,7 +92,7 @@ export const getCalendarAttachmentSignedUrl = async (attachmentId) => {
 export const deleteCalendarAttachment = async (attachmentId) => {
   try {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE}/attachments/${attachmentId}`, {
+    const response = await fetch(`${API_BASE}?action=delete&attachmentId=${attachmentId}`, {
       method: 'DELETE',
       headers
     });

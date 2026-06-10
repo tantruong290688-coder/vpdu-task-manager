@@ -30,11 +30,13 @@ export const uploadCalendarAttachment = async (eventId, file) => {
       body: formData
     });
 
-    const result = await response.json();
-    if (!response.ok || !result.success) {
-      throw new Error(result.error || 'Lỗi khi tải lên tệp đính kèm');
+    const responseText = await response.text();
+    if (!response.ok) {
+      let errorData = {};
+      try { errorData = JSON.parse(responseText); } catch (e) {}
+      throw new Error(errorData.error || `Lấy link tải thất bại ${response.status}`);
     }
-
+    const result = JSON.parse(responseText);
     return result.attachment;
   } catch (error) {
     console.error('[CalendarAttachmentService] upload error:', error);
@@ -73,12 +75,18 @@ export const getCalendarAttachmentSignedUrl = async (attachmentId) => {
       headers
     });
 
-    const result = await response.json();
-    if (!response.ok || !result.success) {
-      throw new Error(result.error || 'Lỗi khi tạo liên kết truy cập');
+    const responseText = await response.text();
+    if (!response.ok) {
+      let errorData = {};
+      try { errorData = JSON.parse(responseText); } catch (e) {}
+      throw new Error(errorData.error || `Upload failed with status ${response.status}: ${responseText.substring(0, 50)}`);
     }
-
-    return result; // { downloadUrl, fileName, mimeType }
+    
+    try {
+      return JSON.parse(responseText);
+    } catch (e) {
+      throw new Error(`Lỗi parse JSON. Server trả về: ${responseText.substring(0, 100)}`);
+    } // { downloadUrl, fileName, mimeType }
   } catch (error) {
     console.error('[CalendarAttachmentService] get signed URL error:', error);
     throw error;

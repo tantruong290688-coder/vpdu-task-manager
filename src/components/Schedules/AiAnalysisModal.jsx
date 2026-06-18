@@ -57,10 +57,10 @@ export default function AiAnalysisModal({ isOpen, onClose }) {
       schedulesData.forEach(schedule => {
         const items = schedule.schedule_items || [];
         items.forEach(item => {
-          // If filterMonth is set, check if item.date falls in that month
           if (filterMonth) {
-            const [, m, ] = item.date.split('/'); // DD/MM/YYYY
-            if (parseInt(m) !== parseInt(filterMonth)) return;
+            if (!item.date) return;
+            const itemDate = new Date(item.date);
+            if (isNaN(itemDate.getTime()) || (itemDate.getMonth() + 1) !== parseInt(filterMonth)) return;
           }
           allItems.push({ ...item, schedule });
         });
@@ -260,7 +260,7 @@ export default function AiAnalysisModal({ isOpen, onClose }) {
                       {results.map((item) => (
                         <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                           <td className="px-4 py-3">
-                            <div className="font-bold">{item.date}</div>
+                            <div className="font-bold">{item.date ? new Date(item.date).toLocaleDateString('vi-VN') : ''}</div>
                             <div className="text-xs text-slate-500">{item.time}</div>
                           </td>
                           <td className="px-4 py-3 whitespace-normal min-w-[200px]">

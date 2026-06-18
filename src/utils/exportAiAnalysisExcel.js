@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import { normalizeDateVNToISO } from './scheduleUtils';
 
 export const exportAiAnalysisExcel = async (results, summary, fromDate, toDate, userProfile) => {
   const workbook = new ExcelJS.Workbook();
@@ -117,7 +118,7 @@ export const exportAiAnalysisExcel = async (results, summary, fromDate, toDate, 
     const row = sheet2.addRow({
       stt: index + 1,
       week: item.schedule?.week || '',
-      date: item.date ? new Date(item.date).toLocaleDateString('vi-VN') : '',
+      date: item.date ? new Date(normalizeDateVNToISO(item.date)).toLocaleDateString('vi-VN') : '',
       time: item.time,
       content: item.content,
       host: item.host,
@@ -196,7 +197,7 @@ export const exportAiAnalysisExcel = async (results, summary, fromDate, toDate, 
     const row = sheet4.addRow({
       stt: sttReview++,
       week: item.schedule?.week || '',
-      date: item.date ? new Date(item.date).toLocaleDateString('vi-VN') : '',
+      date: item.date ? new Date(normalizeDateVNToISO(item.date)).toLocaleDateString('vi-VN') : '',
       time: item.time,
       content: item.content,
       host: item.host,

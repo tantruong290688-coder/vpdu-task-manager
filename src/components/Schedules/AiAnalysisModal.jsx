@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { analyzeCalendarData } from '../../services/aiCalendarAnalysisService';
 import { exportAiAnalysisExcel } from '../../utils/exportAiAnalysisExcel';
+import { normalizeDateVNToISO } from '../../utils/scheduleUtils';
 import { useAuth } from '../../context/AuthContext';
 import { X, BrainCircuit, Download, RefreshCw, Calendar as CalendarIcon, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -44,7 +45,7 @@ export default function AiAnalysisModal({ isOpen, onClose }) {
         // Approximate week to month, or just fetch all year and filter items by month
         // We'll fetch all by year, then filter below for precision
       }
-      if (filterWeek) {
+      if (filterWeek && parseInt(filterWeek) > 0) {
         query = query.eq('week', filterWeek);
       }
 
@@ -59,7 +60,7 @@ export default function AiAnalysisModal({ isOpen, onClose }) {
         items.forEach(item => {
           if (filterMonth) {
             if (!item.date) return;
-            const itemDate = new Date(item.date);
+            const itemDate = new Date(normalizeDateVNToISO(item.date));
             if (isNaN(itemDate.getTime()) || (itemDate.getMonth() + 1) !== parseInt(filterMonth)) return;
           }
           allItems.push({ ...item, schedule });
@@ -260,7 +261,7 @@ export default function AiAnalysisModal({ isOpen, onClose }) {
                       {results.map((item) => (
                         <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                           <td className="px-4 py-3">
-                            <div className="font-bold">{item.date ? new Date(item.date).toLocaleDateString('vi-VN') : ''}</div>
+                            <div className="font-bold">{item.date ? new Date(normalizeDateVNToISO(item.date)).toLocaleDateString('vi-VN') : ''}</div>
                             <div className="text-xs text-slate-500">{item.time}</div>
                           </td>
                           <td className="px-4 py-3 whitespace-normal min-w-[200px]">

@@ -136,7 +136,7 @@ ${JSON.stringify(eventsToReview.map(e => ({
   host: e.host,
   attendees: e.attendees,
   type: e.type
-}))))}`;
+})))}`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;

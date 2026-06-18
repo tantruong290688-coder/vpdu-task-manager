@@ -67,12 +67,18 @@ export const analyzeEventRuleBased = (event) => {
       return keywords.some(kw => normalizedText.includes(normalizeString(kw)));
     };
 
-    if (checkMatch(host, LEADERSHIP_CONFIG.biThu)) isBiThu = true;
+    const checkMatchBiThu = (normalizedText) => {
+      // Remove 'pho bi thu' to prevent false positive match for 'bi thu'
+      const textWithoutPho = normalizedText.replace(/pho bi thu/g, '');
+      return LEADERSHIP_CONFIG.biThu.some(kw => textWithoutPho.includes(normalizeString(kw)));
+    };
+
+    if (checkMatchBiThu(host)) isBiThu = true;
     if (checkMatch(host, LEADERSHIP_CONFIG.phoBiThuThuongTruc)) isPBT_TT = true;
     if (checkMatch(host, LEADERSHIP_CONFIG.phoBiThuChuTich)) isPBT_CT = true;
 
     // 3. Kiểm tra theo thành phần tham dự
-    if (!isBiThu && checkMatch(fullText, LEADERSHIP_CONFIG.biThu)) isBiThu = true;
+    if (!isBiThu && checkMatchBiThu(fullText)) isBiThu = true;
     if (!isPBT_TT && checkMatch(fullText, LEADERSHIP_CONFIG.phoBiThuThuongTruc)) isPBT_TT = true;
     if (!isPBT_CT && checkMatch(fullText, LEADERSHIP_CONFIG.phoBiThuChuTich)) isPBT_CT = true;
 

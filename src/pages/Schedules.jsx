@@ -8,6 +8,8 @@ import { canManageSchedules } from '../lib/permissions';
 import ScheduleTracking from '../components/Schedules/ScheduleTracking';
 import { getStartDateOfWeek, getISOWeek } from '../utils/scheduleUtils';
 import { exportScheduleToDocx } from '../utils/exportScheduleDocx';
+import { BrainCircuit } from 'lucide-react';
+import AiAnalysisModal from '../components/Schedules/AiAnalysisModal';
 
 export default function Schedules() {
   const { profile } = useAuth();
@@ -18,6 +20,7 @@ export default function Schedules() {
   const [activeTab, setActiveTab] = useState('list'); // 'list' or 'tracking'
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -166,13 +169,22 @@ export default function Schedules() {
               </div>
 
               {canEditSchedule && activeTab === 'list' && (
-                <button
-                  onClick={handleCreateSchedule}
-                  className="flex items-center gap-2 px-4 md:px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[11px] md:text-[13px] font-black uppercase tracking-widest shadow-lg shadow-rose-500/20 transition-all active:scale-95"
-                >
-                  <Plus size={18} strokeWidth={3} />
-                  <span className="hidden md:inline">Thêm lịch</span>
-                </button>
+                <>
+                  <button
+                    onClick={() => setIsAiModalOpen(true)}
+                    className="flex items-center gap-2 px-4 md:px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl text-[11px] md:text-[13px] font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20 transition-all active:scale-95"
+                  >
+                    <BrainCircuit size={18} strokeWidth={2.5} />
+                    <span className="hidden md:inline">AI thống kê lịch đã ban hành</span>
+                  </button>
+                  <button
+                    onClick={handleCreateSchedule}
+                    className="flex items-center gap-2 px-4 md:px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[11px] md:text-[13px] font-black uppercase tracking-widest shadow-lg shadow-rose-500/20 transition-all active:scale-95"
+                  >
+                    <Plus size={18} strokeWidth={3} />
+                    <span className="hidden md:inline">Thêm lịch</span>
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -451,6 +463,11 @@ export default function Schedules() {
           </>
         )}
       </div>
+
+      <AiAnalysisModal 
+        isOpen={isAiModalOpen} 
+        onClose={() => setIsAiModalOpen(false)} 
+      />
     </div>
   );
 }

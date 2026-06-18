@@ -92,7 +92,8 @@ export const analyzeEventRuleBased = (event) => {
 
   // Fallback: Xử lý từ khóa "Phó Bí thư" chung nếu chưa match cụ thể TT hay CT
   if (!isPBT_TT && !isPBT_CT && (fullText.includes('pho bi thu') || fullText.includes('phó bí thư'))) {
-    // Nếu chỉ ghi chung chung "Phó Bí thư", có thể là cả 2 hoặc 1 trong 2, nên để cờ rà soát
+    // Nếu chỉ ghi chung chung "Phó Bí thư", mặc định đánh dấu cho Phó Bí thư Thường trực
+    isPBT_TT = true;
     needsReview = true;
     reliability = 'Trung bình';
   }

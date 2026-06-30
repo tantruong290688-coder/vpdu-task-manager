@@ -6,7 +6,18 @@ import { getDashboardFilter, applySmartPeriodFilter } from '../lib/taskFilters';
 const ROWS_PER_PAGE = 10;
 
 // ── Hàm fetch tasks thuần túy (tách ra để dễ test và tái sử dụng) ─────────────
-async function fetchTasksFromDB({ filters, sortConfig, currentPage, filterParam, searchStr, pathname, profileId, role }) {
+async function fetchTasksFromDB({
+  filters,
+  sortConfig,
+  currentPage,
+  filterParam,
+  searchStr,
+  pathname,
+  profileId,
+  role,
+  skipPagination = false,
+  exportLimit = 5000
+}) {
   const isAdmin = role === 'admin';
   const isViewer = role === 'viewer';
   const isMyTasksPage = pathname === '/my-tasks';
@@ -99,7 +110,10 @@ async function fetchTasksFromDB({ filters, sortConfig, currentPage, filterParam,
   if (filters.workArea)        query = query.eq('work_area', filters.workArea);
   if (filters.taskGroup)       query = query.eq('task_group', filters.taskGroup);
   if (filters.status) {
-    if (filters.status === 'finalized') {
+    if (filters.status === 'overdue') {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      query = query.not('due_date', 'is', null).lt('due_date', todayStr).neq('status', 'completed').is('evaluation_score', null);
+    } else if (filters.status === 'finalized') {
       query = query.eq('status', 'completed').not('evaluation_score', 'is', null);
     } else if (filters.status === 'pending_eval') {
       query = query.eq('status', 'completed').is('evaluation_score', null);
@@ -150,10 +164,14 @@ async function fetchTasksFromDB({ filters, sortConfig, currentPage, filterParam,
     query = query.order('created_at', { ascending: false });
   }
 
-  // Phân trang
-  const from = (currentPage - 1) * ROWS_PER_PAGE;
-  const to = from + ROWS_PER_PAGE - 1;
-  query = query.range(from, to);
+  // Phân trang. Khi xuất Excel, lấy toàn bộ dữ liệu trong giới hạn an toàn.
+  if (skipPagination) {
+    query = query.range(0, exportLimit - 1);
+  } else {
+    const from = (currentPage - 1) * ROWS_PER_PAGE;
+    const to = from + ROWS_PER_PAGE - 1;
+    query = query.range(from, to);
+  }
 
   const { data, count, error } = await query;
   if (error) throw error;

@@ -1,15 +1,15 @@
 import { useState, useMemo } from 'react';
 import { useStaffPerformance } from '../hooks/useStaffPerformance';
-import { 
+import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
   LineChart, Line
 } from 'recharts';
-import { 
-  Trophy, TrendingUp, Users, Target, Award, ChevronRight, Search, 
+import {
+  Trophy, TrendingUp, Users, Target, Award, ChevronRight, Search,
   Filter, Calendar, Download, AlertTriangle, CheckCircle2, Info,
   ChevronDown, FileText, Star, Activity, MoreHorizontal, User,
-  Sparkles, Loader2
+  Sparkles, Loader2, Upload, BarChart3
 } from 'lucide-react';
 import { calculateTaskScore, getPerformanceRank, generateAutoComment, getEvaluationLabel } from '../utils/performanceScoring';
 import * as XLSX from 'xlsx';
@@ -18,6 +18,11 @@ import { useAuth } from '../context/AuthContext';
 import { ROLES } from '../lib/permissions';
 import { analyzeStaffPerformance } from '../services/performanceAIService';
 import ReactMarkdown from 'react-markdown';
+import KpiImportModal from '../components/KPI/KpiImportModal';
+import KpiAnalysisResult from '../components/KPI/KpiAnalysisResult';
+import { useKpiImport } from '../hooks/useKpiImport';
+import { supabase } from '../lib/supabase';
+import toast from 'react-hot-toast';
 
 export default function StaffPerformance() {
   const { profile } = useAuth();
@@ -25,6 +30,10 @@ export default function StaffPerformance() {
   const [selectedPeriod, setSelectedPeriod] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStaff, setSelectedStaff] = useState(null); // For detail view
+
+  // KPI import modal state
+  const [kpiImportTarget, setKpiImportTarget] = useState(null);   // staff object đang nhập
+  const [kpiResultTarget, setKpiResultTarget] = useState(null);   // staff object đang xem kết quả
 
   const periodKey = useMemo(() => {
     if (periodType === 'month') return selectedPeriod;
@@ -282,11 +291,12 @@ export default function StaffPerformance() {
                         const isInsufficient = staff.stats.isInsufficient;
 
                         return (
-                          <tr 
-                            key={staff.id} 
+                          <tr
+                            key={staff.id}
                             onClick={() => setSelectedStaff(staff)}
                             className="group cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors"
                           >
+
                             <td className="px-8 py-5">
                                 <div className="flex items-center gap-3">
                                     <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-[13px] font-black ${
@@ -342,9 +352,9 @@ export default function StaffPerformance() {
                                     </div>
                                   </div>
                               </td>
-                              <td className="px-8 py-5 text-right">
-                                  <div className="flex items-center justify-end gap-3">
-                                    <div className="text-right">
+                              <td className="px-4 py-5 text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <div className="text-right mr-1">
                                         <div className={`text-[18px] font-black ${
                                           rank.color === 'green' ? 'text-emerald-600' :
                                           rank.color === 'blue' ? 'text-blue-600' :
@@ -360,6 +370,29 @@ export default function StaffPerformance() {
                                           {getEvaluationLabel(staff.displayScore).label}
                                         </div>
                                     </div>
+
+                                    {/* Nút nhập PDF/Excel */}
+                                    {canReview && (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); setKpiImportTarget(staff); }}
+                                        title="Nhập PDF/Excel phân tích KPI"
+                                        className="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors opacity-0 group-hover:opacity-100"
+                                      >
+                                        <Upload size={15} />
+                                      </button>
+                                    )}
+
+                                    {/* Nút xem kết quả KPI */}
+                                    {canReview && (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); setKpiResultTarget(staff); }}
+                                        title="Xem phân tích KPI từ văn bản"
+                                        className="p-2 rounded-xl text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors opacity-0 group-hover:opacity-100"
+                                      >
+                                        <BarChart3 size={15} />
+                                      </button>
+                                    )}
+
                                     <ChevronRight size={16} className="text-slate-300 group-hover:text-indigo-500 transition-colors" />
                                   </div>
                               </td>
@@ -452,12 +485,30 @@ export default function StaffPerformance() {
 
       {/* Staff Detail Drawer/Modal */}
       {selectedStaff && (
-        <StaffDetailView 
-          staff={selectedStaff} 
-          onClose={() => setSelectedStaff(null)} 
+        <StaffDetailView
+          staff={selectedStaff}
+          onClose={() => setSelectedStaff(null)}
           periodKey={periodKey}
           canReview={canReview}
           onRefresh={refetch}
+        />
+      )}
+
+      {/* KPI Import Modal */}
+      {kpiImportTarget && (
+        <KpiImportWrapper
+          staff={kpiImportTarget}
+          periodKey={periodKey}
+          onClose={() => setKpiImportTarget(null)}
+        />
+      )}
+
+      {/* KPI Analysis Result Modal */}
+      {kpiResultTarget && (
+        <KpiResultWrapper
+          staff={kpiResultTarget}
+          periodKey={periodKey}
+          onClose={() => setKpiResultTarget(null)}
         />
       )}
     </div>
@@ -829,6 +880,90 @@ function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
           </div>
        </div>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// Wrapper: KPI Import – kết nối hook + modal
+// ─────────────────────────────────────────────────────────
+function KpiImportWrapper({ staff, periodKey, onClose }) {
+  const staffConfig = {
+    id: staff.id,
+    full_name: staff.full_name,
+    aliases: staff.job_description?.aliases || [],
+    is_reviewer: staff.job_description?.is_reviewer || false,
+    can_review_documents: staff.job_description?.can_review_documents || staff.job_description?.is_reviewer || ['admin', 'manager'].includes(staff.role),
+    review_scope: Array.isArray(staff.job_description?.review_scope) ? staff.job_description.review_scope : [],
+    role: staff.role,
+  };
+
+  const { uploadFiles, isUploading, isParsing, parseProgress } = useKpiImport(staff.id, staffConfig);
+
+  const handleUpload = async (files, opts) => {
+    await uploadFiles(files, { ...opts, periodLabel: periodKey });
+    onClose();
+  };
+
+  return (
+    <KpiImportModal
+      staffName={staff.full_name}
+      onClose={onClose}
+      onUpload={handleUpload}
+      isUploading={isUploading}
+      isParsing={isParsing}
+      parseProgress={parseProgress}
+    />
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// Wrapper: KPI Analysis Result – kết nối hook + modal
+// ─────────────────────────────────────────────────────────
+function KpiResultWrapper({ staff, periodKey, onClose }) {
+  const staffConfig = {
+    id: staff.id,
+    full_name: staff.full_name,
+    aliases: staff.job_description?.aliases || [],
+    is_reviewer: staff.job_description?.is_reviewer || false,
+    can_review_documents: staff.job_description?.can_review_documents || staff.job_description?.is_reviewer || ['admin', 'manager'].includes(staff.role),
+    review_scope: Array.isArray(staff.job_description?.review_scope) ? staff.job_description.review_scope : [],
+    role: staff.role,
+  };
+
+  const { batches, latestBatch, runAiAnalysis, deleteBatch, isAnalyzing } = useKpiImport(staff.id, staffConfig);
+
+  if (!latestBatch) {
+    return (
+      <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-[#0f172a] rounded-[32px] p-8 max-w-sm w-full shadow-2xl border border-slate-100 dark:border-slate-800 text-center">
+          <BarChart3 size={32} className="text-slate-300 mx-auto mb-4" />
+          <h3 className="text-[16px] font-black text-slate-800 dark:text-white mb-2">Chưa có dữ liệu KPI</h3>
+          <p className="text-[13px] text-slate-400 font-bold mb-6">
+            {staff.full_name} chưa có đợt nhập văn bản nào. Hãy dùng nút "Nhập PDF/Excel" để bắt đầu.
+          </p>
+          <button
+            onClick={onClose}
+            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[13px] font-black transition-colors"
+          >
+            Đóng
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <KpiAnalysisResult
+      batch={latestBatch}
+      staffName={staff.full_name}
+      staffId={staff.id}
+      staffConfig={staffConfig}
+      onClose={onClose}
+      onRunAnalysis={runAiAnalysis}
+      onDeleteBatch={deleteBatch}
+      isAnalyzing={isAnalyzing}
+      tasks={[...staff.primaryTasks, ...staff.collabTasks]}
+    />
   );
 }
 

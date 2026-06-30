@@ -1,10 +1,10 @@
 // ═══════════════════════════════════════════════════════════
 // Service Worker – VPĐU Task Manager PWA
-// Version: 2026.05.27.01 (Force Update - PWA Push Resiliency)
+// Version: 2026.06.23.01 (Force Update - PWA Push Resiliency)
 // ═══════════════════════════════════════════════════════════
 
-const SW_VERSION = '2026.05.27.01';
-const CACHE_NAME = 'vpdu-v8'; // Đổi tên cache để ép trình duyệt xóa bản cũ
+const SW_VERSION = '2026.06.23.01';
+const CACHE_NAME = 'vpdu-v9'; // Đổi tên cache để ép trình duyệt xóa bản cũ
 const OFFLINE_URL = '/offline.html';
 
 // ── Install: pre-cache shell ─────────────────────────────
@@ -40,9 +40,12 @@ self.addEventListener('message', (event) => {
 
 // ── Fetch: network-first với fallback cache ──────────────
 self.addEventListener('fetch', (event) => {
+  const requestUrl = new URL(event.request.url);
+
   // Chỉ cache GET requests không phải API
   if (
     event.request.method !== 'GET' ||
+    !['http:', 'https:'].includes(requestUrl.protocol) ||
     event.request.url.includes('/api/') ||
     event.request.url.includes('supabase')
   ) {
@@ -57,7 +60,7 @@ self.addEventListener('fetch', (event) => {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
-          });
+          }).catch((err) => console.warn('[SW] cache.put skipped:', err));
         }
         return response;
       })

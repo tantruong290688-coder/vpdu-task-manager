@@ -122,7 +122,7 @@ export const analyzeEventsAI = async (eventsToReview, apiKey) => {
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.1-flash-lite' });
 
     const prompt = `Bạn là một trợ lý phân tích lịch công tác.
 Tôi có một danh sách các sự kiện cần rà soát lại thành phần tham dự.

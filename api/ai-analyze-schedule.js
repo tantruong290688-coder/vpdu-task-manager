@@ -1,8 +1,31 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createClient } from '@supabase/supabase-js';
+
+/* global process */
+
+// Xác thực user qua Supabase access token (Bearer). Trả về user hoặc null.
+async function verifyUser(req) {
+  const authHeader = req.headers.authorization || '';
+  if (!authHeader.startsWith('Bearer ')) return null;
+  const token = authHeader.split(' ')[1];
+  const url  = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const anon = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  if (!url || !anon) return null;
+  const client = createClient(url, anon, { auth: { persistSession: false } });
+  const { data: { user }, error } = await client.auth.getUser(token);
+  if (error || !user) return null;
+  return user;
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
+  // Bắt buộc đăng nhập: chặn lạm dụng proxy AI / tiêu quota Gemini.
+  const user = await verifyUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized: vui lòng đăng nhập để sử dụng AI' });
   }
 
   const { rawText, fileData, mimeType, currentWeek, currentYear, userRole } = req.body;
@@ -18,9 +41,9 @@ export default async function handler(req, res) {
 
   // Danh sách models để dự phòng
   const candidateModels = [
+    "gemini-3.1-flash-lite",
     "gemini-3.1-flash",
     "gemini-2.5-flash",
-    "gemini-3.1-flash-lite",
     "gemini-flash-latest"
   ];
 

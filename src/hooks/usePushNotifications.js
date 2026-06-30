@@ -142,7 +142,7 @@ export function usePushNotifications() {
 
       const subJson = sub.toJSON();
       const ua = navigator.userAgent || '';
-      await fetch('/api/push/subscribe', {
+      await fetch('/api/push?action=subscribe', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -184,7 +184,7 @@ export function usePushNotifications() {
         await sub.unsubscribe();
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
-          await fetch('/api/push/unsubscribe', {
+          await fetch('/api/push?action=unsubscribe', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

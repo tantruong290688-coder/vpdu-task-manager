@@ -1,6 +1,15 @@
 /**
  * Service for AI-driven performance analysis
  */
+import { supabase } from '../lib/supabase';
+
+// Header kèm Supabase access token để proxy AI xác thực (chống lạm dụng quota).
+const aiHeaders = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers = { 'Content-Type': 'application/json' };
+    if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+    return headers;
+};
 
 export const analyzeStaffPerformance = async (staffData, periodKey) => {
     const { full_name, role, stats, primaryTasks, collabTasks, job_description } = staffData;
@@ -55,9 +64,7 @@ Lưu ý: Văn phong trang trọng, chuẩn mực công sở Việt Nam. Nếu d�
     try {
         const response = await fetch('/api/ai-assistant', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: await aiHeaders(),
             body: JSON.stringify({ prompt })
         });
 

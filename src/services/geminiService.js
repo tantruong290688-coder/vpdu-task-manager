@@ -1,6 +1,32 @@
 /**
  * Gemini AI Service calling Vercel Serverless Proxy
  */
+import { supabase } from '../lib/supabase';
+
+// Header kèm Supabase access token để proxy AI xác thực (chống lạm dụng quota).
+const aiHeaders = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers = { 'Content-Type': 'application/json' };
+    if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+    return headers;
+};
+
+const parseJsonObject = (textOutput, fallback = {}) => {
+    if (!textOutput) return fallback;
+    const cleanText = textOutput.replace(/```json/g, '').replace(/```/g, '').trim();
+    try {
+        return JSON.parse(cleanText);
+    } catch (error) {
+        console.error("AI JSON parse error:", error);
+        return fallback;
+    }
+};
+
+const normalizeAiList = (value) => {
+    if (Array.isArray(value)) return value.filter(Boolean).map(String);
+    if (typeof value === 'string' && value.trim()) return [value.trim()];
+    return [];
+};
 
 export const generateTaskChecklist = async (
     title, 
@@ -42,9 +68,7 @@ Ví dụ: ["Bước 1", "Bước 2", "Bước 3"]
         // Gọi tới API Proxy trên Vercel thay vì gọi trực tiếp tới Google từ Browser
         const response = await fetch('/api/ai-assistant', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: await aiHeaders(),
             body: JSON.stringify({ prompt, fileData, mimeType })
         });
 
@@ -66,7 +90,7 @@ Ví dụ: ["Bước 1", "Bước 2", "Bước 3"]
             if (Array.isArray(checklist)) {
                 return checklist;
             }
-        } catch (parseError) {
+        } catch {
             const fallbackList = textOutput
                 .split('\n')
                 .map(line => line.replace(/^[-*0-9.]+\s*/, '').trim())
@@ -121,7 +145,7 @@ Trả về CHỈ một đối tượng JSON với định dạng chính xác sau
     try {
         const response = await fetch('/api/ai-assistant', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: await aiHeaders(),
             body: JSON.stringify({ prompt, temperature: 0.2, fileData, mimeType })
         });
 
@@ -163,7 +187,7 @@ Trả về CHỈ một đối tượng JSON với các khóa (keys) chính xác 
     try {
         const response = await fetch('/api/ai-assistant', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: await aiHeaders(),
             body: JSON.stringify({ prompt, temperature: 0.2, fileData, mimeType }) // Temp thấp để output JSON chính xác
         });
 
@@ -242,7 +266,7 @@ Trả về CHỈ một đối tượng JSON với các khóa sau, không có vă
     try {
         const response = await fetch('/api/ai-assistant', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: await aiHeaders(),
             body: JSON.stringify({ prompt, temperature: 0.7 })
         });
 
@@ -277,3 +301,61 @@ Trả về CHỈ một đối tượng JSON với các khóa sau, không có vă
         throw error;
     }
 };
+
+/**
+ * AI Service: Sinh bản tham mưu xử lý nhanh cho một nhiệm vụ cụ thể
+ */
+export const generateTaskAdvisory = async (taskDetails) => {
+    const prompt = `
+Bạn là trợ lý tham mưu của Văn phòng Đảng ủy xã Trà Bồng, hỗ trợ lãnh đạo và cán bộ xử lý nhiệm vụ.
+Hãy phân tích nhiệm vụ dưới đây và tạo bản gợi ý ngắn, rõ việc, đúng văn phong hành chính Đảng.
+
+NGUYÊN TẮC:
+- Chỉ sử dụng dữ liệu được cung cấp, không tự bịa số hiệu, ngày ban hành, người ký, số liệu hoặc căn cứ pháp lý.
+- Nếu thiếu thông tin, ghi rõ "Chưa có dữ liệu" hoặc "[bổ sung]".
+- Gợi ý phải cụ thể, có thể hành động, phù hợp phạm vi Văn phòng Đảng ủy cấp xã.
+
+DỮ LIỆU NHIỆM VỤ:
+${JSON.stringify(taskDetails, null, 2)}
+
+YÊU CẦU ĐẦU RA:
+Trả về CHỈ một đối tượng JSON, không kèm markdown, theo đúng cấu trúc:
+{
+  "summary": "Tóm tắt nhiệm vụ trong 2-3 câu.",
+  "riskLevel": "Thấp | Trung bình | Cao",
+  "riskReason": "Lý do đánh giá rủi ro, bám vào hạn, tiến độ, checklist, lịch sử cập nhật.",
+  "nextActions": ["Việc cần làm 1", "Việc cần làm 2", "Việc cần làm 3"],
+  "coordinationNotes": ["Nội dung cần phối hợp/đôn đốc nếu có"],
+  "progressReportDraft": "Đoạn báo cáo tiến độ ngắn, dùng được trong trao đổi nội bộ hoặc báo cáo lãnh đạo."
+}
+    `.trim();
+
+    try {
+        const response = await fetch('/api/ai-assistant', {
+            method: 'POST',
+            headers: await aiHeaders(),
+            body: JSON.stringify({ prompt, temperature: 0.3 })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Lỗi kết nối AI tham mưu nhiệm vụ');
+        }
+
+        const data = await response.json();
+        const parsed = parseJsonObject(data.text, {});
+
+        return {
+            summary: parsed.summary || 'AI chưa tạo được phần tóm tắt. Cần rà soát lại dữ liệu nhiệm vụ.',
+            riskLevel: ['Thấp', 'Trung bình', 'Cao'].includes(parsed.riskLevel) ? parsed.riskLevel : 'Trung bình',
+            riskReason: parsed.riskReason || 'Chưa có đủ dữ liệu để đánh giá chắc chắn.',
+            nextActions: normalizeAiList(parsed.nextActions).slice(0, 5),
+            coordinationNotes: normalizeAiList(parsed.coordinationNotes).slice(0, 4),
+            progressReportDraft: parsed.progressReportDraft || 'Chưa có dữ liệu để dự thảo báo cáo tiến độ.'
+        };
+    } catch (error) {
+        console.error("Error generating task advisory:", error);
+        throw error;
+    }
+};
+

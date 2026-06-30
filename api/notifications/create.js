@@ -81,9 +81,11 @@ export default async function handler(req, res) {
     const token = authHeader.split(' ')[1];
     try {
       const user = await verifyUser(token);
-      // Lấy role từ metadata hoặc profile table nếu cần, nhưng ở đây ta chấp nhận tất cả user có token hợp lệ
-      // để họ có thể gửi thông báo tin nhắn cho nhau.
-      callerRole = user.user_metadata?.role || 'staff';
+      // Role lấy từ bảng profiles (nguồn tin cậy), KHÔNG dùng user_metadata
+      // vì user tự ghi được -> tránh leo thang đặc quyền.
+      const svc = getServiceClient();
+      const { data: profile } = await svc.from('profiles').select('role').eq('id', user.id).single();
+      callerRole = profile?.role || 'staff';
     } catch (e) {
       return err(res, 401, e.message);
     }

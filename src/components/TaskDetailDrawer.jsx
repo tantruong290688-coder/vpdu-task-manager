@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
 import { canEditTask, canUpdateProgress as checkCanUpdateProgress, canEvaluate as checkCanEvaluate, canOpenEvaluationModal, ROLES } from '../lib/permissions';
 import TaskChecklist from './Tasks/TaskChecklist';
 import confetti from 'canvas-confetti';
-import { predictTaskRisk } from '../services/geminiService';
+import { generateTaskAdvisory, predictTaskRisk } from '../services/geminiService';
 import { getFreshUrlIfExpired, deleteAttachmentsOfTask } from '../lib/externalStorage';
 import { getFileTypeInfo } from '../utils/fileType';
 import AttachmentFileIcon from './Chat/AttachmentFileIcon';
@@ -156,6 +156,8 @@ export default function TaskDetailDrawer({
   // AI Risk Prediction states
   const [riskAnalysis, setRiskAnalysis] = useState(null);
   const [isAnalyzingRisk, setIsAnalyzingRisk] = useState(false);
+  const [taskAdvisory, setTaskAdvisory] = useState(null);
+  const [isGeneratingAdvisory, setIsGeneratingAdvisory] = useState(false);
 
   // Permissions
   const isAdmin       = profile?.role === ROLES.ADMIN;
@@ -304,7 +306,7 @@ export default function TaskDetailDrawer({
     setRiskAnalysis(null);
     try {
       const { count: totalChecklists } = await supabase.from('task_checklists').select('*', { count: 'exact', head: true }).eq('task_id', task.id);
-      const { count: completedChecklists } = await supabase.from('task_checklists').select('*', { count: 'exact', head: true }).eq('task_id', task.id).eq('is_completed', true);
+      const { count: completedChecklists } = await supabase.from('task_checklists').select('*', { count: 'exact', head: true }).eq('task_id', task.id).eq('is_done', true);
       
       let elapsedTimePercent = 0;
       if (task.start_date && task.due_date) {
@@ -336,10 +338,86 @@ export default function TaskDetailDrawer({
     }
   };
 
+  const handleGenerateTaskAdvisory = async () => {
+    if (!task) return;
+    setIsGeneratingAdvisory(true);
+    try {
+      const { data: checklistData, error: checklistError } = await supabase
+        .from('task_checklists')
+        .select('content, is_done, position')
+        .eq('task_id', task.id)
+        .order('position', { ascending: true });
+
+      if (checklistError) throw checklistError;
+
+      let elapsedTimePercent = 0;
+      let daysUntilDue = null;
+      if (task.start_date && task.due_date) {
+        const start = new Date(task.start_date).getTime();
+        const end = new Date(task.due_date).getTime();
+        const now = new Date().getTime();
+        if (end > start) {
+          elapsedTimePercent = Math.min(100, Math.max(0, Math.round(((now - start) / (end - start)) * 100)));
+        }
+      }
+      if (task.due_date) {
+        const due = new Date(`${task.due_date}T23:59:59`).getTime();
+        daysUntilDue = Math.ceil((due - new Date().getTime()) / (1000 * 60 * 60 * 24));
+      }
+
+      const taskDetails = {
+        code: task.code,
+        title: task.title,
+        description: task.description || 'Chưa có dữ liệu',
+        expectedOutput: task.expected_output || 'Chưa có dữ liệu',
+        status: statusInfo.label,
+        priority: priorityInfo.label,
+        taskGroup: task.task_group || 'Chưa phân loại',
+        workArea: task.work_area || 'Chưa phân loại',
+        taskType: task.task_type || 'Chưa có dữ liệu',
+        evaluationPeriod: task.evaluation_period || 'Chưa có dữ liệu',
+        assignedDate: fmtDate(task.assigned_date),
+        startDate: fmtDate(task.start_date),
+        dueDate: fmtDate(task.due_date),
+        daysUntilDue,
+        progress: task.progress || 0,
+        elapsedTimePercent,
+        assigner: task.assigner?.full_name || 'Chưa có dữ liệu',
+        assignee: task.assignee?.full_name || 'Chưa có dữ liệu',
+        collaborators: (task.task_collaborators || []).map(c => c.profiles?.full_name).filter(Boolean),
+        checklist: (checklistData || []).map(item => ({
+          content: item.content,
+          done: !!item.is_done
+        })),
+        recentUpdates: history.slice(0, 5).map(item => ({
+          time: fmtDateTime(item.created_at),
+          actor: item.profiles?.full_name || 'Hệ thống',
+          action: item.action || 'Cập nhật',
+          details: item.details || 'Không có chi tiết'
+        }))
+      };
+
+      const result = await generateTaskAdvisory(taskDetails);
+      setTaskAdvisory({ taskId: task.id, data: result });
+      toast.success('AI đã tạo bản tham mưu xử lý nhiệm vụ.');
+    } catch (error) {
+      toast.error('Lỗi AI tham mưu nhiệm vụ: ' + (error.message || 'Vui lòng thử lại'));
+    } finally {
+      setIsGeneratingAdvisory(false);
+    }
+  };
+
   // Derived
   const isOverdue = task && task.due_date && new Date(task.due_date) < new Date() && task?.status !== 'completed' && task?.evaluation_score === null;
   const statusInfo = STATUS_MAP[task?.status] || STATUS_MAP.pending;
   const priorityInfo = PRIORITY_MAP[task?.priority] || PRIORITY_MAP.normal;
+  const activeTaskAdvisory = taskAdvisory && taskAdvisory.taskId === task?.id ? taskAdvisory.data : null;
+  const advisoryRiskClass =
+    activeTaskAdvisory?.riskLevel === 'Cao'
+      ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-900/40'
+      : activeTaskAdvisory?.riskLevel === 'Trung bình'
+        ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-900/40'
+        : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-900/40';
 
   // Close on Escape
   useEffect(() => {
@@ -715,6 +793,99 @@ export default function TaskDetailDrawer({
                 Nhiệm vụ này chưa có tài liệu đính kèm.
               </div>
             )}
+          </section>
+
+          {/* SECTION 2.4: AI tham mưu xử lý */}
+          <section className="animate-in fade-in duration-300">
+            <SectionHeader icon={Sparkles} label="AI tham mưu xử lý" />
+            <div className="border border-indigo-100 dark:border-indigo-900/40 rounded-2xl bg-indigo-50/40 dark:bg-indigo-950/10 p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-[13px] font-black text-slate-800 dark:text-slate-100">
+                    Gợi ý điều phối, đôn đốc và báo cáo tiến độ
+                  </h4>
+                  <p className="text-[11.5px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    AI phân tích từ nhiệm vụ, tiến độ, checklist và lịch sử cập nhật gần nhất.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleGenerateTaskAdvisory}
+                  disabled={isGeneratingAdvisory}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-black transition-colors disabled:opacity-60 shrink-0"
+                >
+                  {isGeneratingAdvisory ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                  {isGeneratingAdvisory ? 'Đang tham mưu...' : activeTaskAdvisory ? 'Tạo lại' : 'Tạo gợi ý'}
+                </button>
+              </div>
+
+              {activeTaskAdvisory && (
+                <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="bg-white dark:bg-slate-900/70 rounded-xl border border-slate-200 dark:border-slate-800 p-3">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Tóm tắt</span>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-lg border text-[11px] font-black ${advisoryRiskClass}`}>
+                        Rủi ro: {activeTaskAdvisory.riskLevel}
+                      </span>
+                    </div>
+                    <p className="text-[13px] text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
+                      {activeTaskAdvisory.summary}
+                    </p>
+                    <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-relaxed mt-2">
+                      {activeTaskAdvisory.riskReason}
+                    </p>
+                  </div>
+
+                  {activeTaskAdvisory.nextActions?.length > 0 && (
+                    <div className="bg-white dark:bg-slate-900/70 rounded-xl border border-slate-200 dark:border-slate-800 p-3">
+                      <div className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2">Việc cần làm tiếp theo</div>
+                      <div className="space-y-2">
+                        {activeTaskAdvisory.nextActions.map((item, idx) => (
+                          <div key={idx} className="flex items-start gap-2 text-[13px] text-slate-700 dark:text-slate-200 leading-relaxed">
+                            <CheckCircle size={14} className="text-indigo-500 mt-0.5 shrink-0" />
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTaskAdvisory.coordinationNotes?.length > 0 && (
+                    <div className="bg-white dark:bg-slate-900/70 rounded-xl border border-slate-200 dark:border-slate-800 p-3">
+                      <div className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2">Phối hợp, đôn đốc</div>
+                      <div className="space-y-2">
+                        {activeTaskAdvisory.coordinationNotes.map((item, idx) => (
+                          <div key={idx} className="flex items-start gap-2 text-[13px] text-slate-700 dark:text-slate-200 leading-relaxed">
+                            <ChevronRight size={14} className="text-amber-500 mt-0.5 shrink-0" />
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="bg-white dark:bg-slate-900/70 rounded-xl border border-slate-200 dark:border-slate-800 p-3">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="text-[11px] font-black uppercase tracking-widest text-slate-400">Dự thảo báo cáo tiến độ</div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard?.writeText(activeTaskAdvisory.progressReportDraft);
+                          toast.success('Đã sao chép dự thảo báo cáo.');
+                        }}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[11px] font-bold text-slate-600 dark:text-slate-300 transition-colors"
+                      >
+                        <Check size={12} />
+                        Sao chép
+                      </button>
+                    </div>
+                    <p className="text-[13px] text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
+                      {activeTaskAdvisory.progressReportDraft}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </section>
 
           {/* SECTION 2.5: Danh sách việc cần làm (Checklist) */}

@@ -21,8 +21,8 @@ const s3Client = new S3Client({
   endpoint: process.env.MINIO_ENDPOINT_SERVER || 'http://localhost:9000',
   region: process.env.MINIO_REGION || 'auto',
   credentials: {
-    accessKeyId: process.env.MINIO_ACCESS_KEY || 'admin_vpdu',
-    secretAccessKey: process.env.MINIO_SECRET_KEY || 'VpduPassword2026!',
+    accessKeyId: process.env.MINIO_ACCESS_KEY,
+    secretAccessKey: process.env.MINIO_SECRET_KEY,
   },
   forcePathStyle: true,
 });

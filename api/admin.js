@@ -156,9 +156,11 @@ export default async function handler(req, res) {
     const { data: { user }, error: authErr } = await authClient.auth.getUser(token);
     if (authErr || !user) return err(res, 401, 'Invalid token: ' + (authErr?.message || 'No user found'));
 
-    // Mặc định role lấy từ meta data
-    const role = user.user_metadata?.role || 'staff';
-    
+    // Role PHẢI lấy từ bảng profiles (nguồn tin cậy, do RLS kiểm soát),
+    // KHÔNG dùng user_metadata vì user tự ghi được -> leo thang đặc quyền.
+    const { data: profile } = await db.from('profiles').select('role').eq('id', user.id).single();
+    const role = profile?.role || 'staff';
+
     // Nếu không phải admin và muốn làm hành động thay đổi data -> 403
     if (role !== 'admin' && action !== 'list_users') {
       return err(res, 403, 'Không có quyền thực hiện. Yêu cầu role admin.');

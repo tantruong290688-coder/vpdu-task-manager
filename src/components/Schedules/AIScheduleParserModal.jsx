@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Sparkles, AlertCircle, CheckCircle2, ChevronRight, Edit3, Trash2, UploadCloud } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { checkScheduleConflicts, getISOWeek } from '../../utils/scheduleUtils';
+import { supabase } from '../../lib/supabase';
 
 export default function AIScheduleParserModal({ isOpen, onClose, onApply, currentWeek, currentYear, existingSchedules = [] }) {
   const [rawText, setRawText] = useState('');
@@ -87,10 +88,13 @@ export default function AIScheduleParserModal({ isOpen, onClose, onApply, curren
 
     setIsProcessing(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers = { 'Content-Type': 'application/json' };
+      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
       const response = await fetch('/api/ai-analyze-schedule', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        headers,
+        body: JSON.stringify({
           rawText, 
           fileData: fileBase64,
           mimeType: fileMimeType,

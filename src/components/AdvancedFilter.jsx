@@ -39,7 +39,7 @@ const EMPTY_FILTERS = {
   isForMe: false,
 };
 
-export default function AdvancedFilter({ isOpen, onClose, onApply, activeCount, onExport, isExporting }) {
+export default function AdvancedFilter({ isOpen, onClose, filters: externalFilters, onApply, onReset, onExport, isExporting }) {
   const { profile } = useAuth();
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [users, setUsers] = useState([]);
@@ -49,6 +49,12 @@ export default function AdvancedFilter({ isOpen, onClose, onApply, activeCount, 
     supabase.from('profiles').select('id, full_name').order('full_name')
       .then(({ data }) => data && setUsers(data));
   }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      setFilters({ ...EMPTY_FILTERS, ...(externalFilters || {}) });
+    }
+  }, [isOpen, externalFilters]);
 
   // ESC to close
   useEffect(() => {
@@ -68,7 +74,10 @@ export default function AdvancedFilter({ isOpen, onClose, onApply, activeCount, 
 
   const set = (key, value) => setFilters(prev => ({ ...prev, [key]: value }));
 
-  const handleReset = () => setFilters(EMPTY_FILTERS);
+  const handleReset = () => {
+    setFilters(EMPTY_FILTERS);
+    onReset?.();
+  };
 
   const handleApply = () => {
     onApply(filters);

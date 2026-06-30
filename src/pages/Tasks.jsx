@@ -21,10 +21,12 @@ import toast from 'react-hot-toast';
 import { writeLog } from '../lib/logger';
 import { canEditTask, canUpdateProgress, canEvaluate, canCreateTask, canOpenEvaluationModal, ROLES } from '../lib/permissions';
 import { getDashboardFilter, getDashboardFilterTitle, getDashboardEmptyState } from '../lib/taskFilters';
-import { useTasks } from '../hooks/useTasks';
+import { useTasks, fetchTasksFromDB } from '../hooks/useTasks';
 import { useQueryClient } from '@tanstack/react-query';
 import confetti from 'canvas-confetti';
 import { deleteAttachmentsOfTask } from '../lib/externalStorage';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -44,10 +46,55 @@ const EMPTY_FILTERS = {
   dueDateFrom: '',
   dueDateTo: '',
   completedDateFrom: '',
-  completedDateTo: ''
+  completedDateTo: '',
+  isOverdue: false,
+  isDueSoon: false,
+  isForMe: false
 };
 
 const ROWS_PER_PAGE = 10;
+
+const STATUS_LABELS = {
+  pending: 'Chờ xử lý',
+  in_progress: 'Đang thực hiện',
+  completed: 'Hoàn thành'
+};
+
+const PRIORITY_LABELS = {
+  high: 'Cao',
+  normal: 'Trung bình',
+  low: 'Thấp'
+};
+
+const fmtExcelDate = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
+  return date.toLocaleDateString('vi-VN');
+};
+
+const buildTaskExportRows = (items) => items.map((task, index) => ({
+  'STT': index + 1,
+  'Mã nhiệm vụ': task.code || '',
+  'Tên nhiệm vụ': task.title || '',
+  'Người giao': task.assigner?.full_name || '',
+  'Người thực hiện': task.assignee?.full_name || '',
+  'Người phối hợp': (task.task_collaborators || []).map(c => c.profiles?.full_name).filter(Boolean).join(', '),
+  'Trạng thái': STATUS_LABELS[task.status] || task.status || '',
+  'Mức ưu tiên': PRIORITY_LABELS[task.priority] || task.priority || '',
+  'Tiến độ (%)': task.progress ?? '',
+  'Ngày giao': fmtExcelDate(task.assigned_date),
+  'Ngày bắt đầu': fmtExcelDate(task.start_date),
+  'Hạn hoàn thành': fmtExcelDate(task.due_date),
+  'Ngày hoàn thành': fmtExcelDate(task.completed_at),
+  'Nhóm nhiệm vụ': task.task_group || '',
+  'Lĩnh vực công tác': task.work_area || '',
+  'Loại nhiệm vụ': task.task_type || '',
+  'Kỳ đánh giá': task.evaluation_period || '',
+  'Điểm đánh giá': task.evaluation_score ?? '',
+  'Nội dung': task.description || '',
+  'Sản phẩm/kết quả': task.expected_output || ''
+}));
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -123,7 +170,10 @@ export default function Tasks() {
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
-  const handleResetFilters = useCallback(() => setActiveFilters(EMPTY_FILTERS), []);
+  const handleResetFilters = useCallback(() => {
+    setActiveFilters(EMPTY_FILTERS);
+    setCurrentPage(1);
+  }, []);
 
   const requestSort = useCallback((key) => {
     setSortConfig(prev => ({
@@ -277,10 +327,83 @@ export default function Tasks() {
     }
   };
 
-  const handleBulkExport = async () => {
+  const writeTasksToExcel = useCallback((items, filePrefix = 'Danh_sach_nhiem_vu') => {
+    const exportRows = buildTaskExportRows(items);
+    const worksheet = XLSX.utils.json_to_sheet(exportRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh_sach_nhiem_vu');
+
+    const columnWidths = [
+      { wch: 6 }, { wch: 20 }, { wch: 48 }, { wch: 22 }, { wch: 22 },
+      { wch: 32 }, { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 14 },
+      { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 26 }, { wch: 26 },
+      { wch: 18 }, { wch: 14 }, { wch: 14 }, { wch: 55 }, { wch: 55 }
+    ];
+    worksheet['!cols'] = columnWidths;
+
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8'
+    });
+    saveAs(blob, `${filePrefix}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }, []);
+
+  const handleFilterExport = useCallback(async (filtersToExport = activeFilters) => {
+    setIsExporting(true);
+    try {
+      const exportFilters = { ...EMPTY_FILTERS, ...filtersToExport };
+      const { tasks: exportTasks } = await fetchTasksFromDB({
+        filters: exportFilters,
+        sortConfig,
+        currentPage: 1,
+        pathname: location.pathname,
+        filterParam,
+        searchStr: urlSearchStr || exportFilters.keyword,
+        profileId: profile?.id,
+        role: profile?.role,
+        skipPagination: true
+      });
+
+      if (!exportTasks.length) {
+        toast.error('Không có nhiệm vụ phù hợp để xuất Excel.');
+        return;
+      }
+
+      writeTasksToExcel(exportTasks, 'Danh_sach_nhiem_vu_theo_bo_loc');
+      toast.success(`Đã xuất ${exportTasks.length} nhiệm vụ ra Excel.`);
+    } catch (err) {
+      console.error('Export tasks error:', err);
+      toast.error('Không thể xuất Excel: ' + (err.message || 'Vui lòng thử lại'));
+    } finally {
+      setIsExporting(false);
+    }
+  }, [activeFilters, sortConfig, location.pathname, filterParam, urlSearchStr, profile?.id, profile?.role, writeTasksToExcel]);
+
+  const handleBulkExport = useCallback(async () => {
     if (selectedTaskIds.length === 0) return;
-    toast.success('Đang chuẩn bị dữ liệu xuất...');
-  };
+    setIsExporting(true);
+    try {
+      const { data: selectedTasks, error: selectedError } = await supabase
+        .from('tasks')
+        .select('*, assignee:profiles!tasks_assignee_id_fkey(id, full_name), assigner:profiles!tasks_assigned_by_fkey(id, full_name), task_collaborators(user_id, profiles(id, full_name))')
+        .in('id', selectedTaskIds)
+        .order('assigned_date', { ascending: false });
+
+      if (selectedError) throw selectedError;
+      if (!selectedTasks?.length) {
+        toast.error('Không có nhiệm vụ đã chọn để xuất Excel.');
+        return;
+      }
+
+      writeTasksToExcel(selectedTasks, 'Danh_sach_nhiem_vu_da_chon');
+      toast.success(`Đã xuất ${selectedTasks.length} nhiệm vụ đã chọn ra Excel.`);
+    } catch (err) {
+      console.error('Bulk export tasks error:', err);
+      toast.error('Không thể xuất Excel: ' + (err.message || 'Vui lòng thử lại'));
+    } finally {
+      setIsExporting(false);
+    }
+  }, [selectedTaskIds, writeTasksToExcel]);
 
   // ── Pagination Logic ────────────────────────────────────────────────────────
   
@@ -338,7 +461,7 @@ export default function Tasks() {
 
   // ── Render Helpers ──────────────────────────────────────────────────────────
 
-  const activeFilterCount = Object.values(activeFilters).filter(v => v !== '').length;
+  const activeFilterCount = Object.values(activeFilters).filter(v => typeof v === 'boolean' ? v : v !== '').length;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#020617] pb-20">
@@ -573,6 +696,8 @@ export default function Tasks() {
         filters={activeFilters}
         onApply={(f) => { setActiveFilters(f); setCurrentPage(1); setIsFilterOpen(false); }}
         onReset={handleResetFilters}
+        onExport={handleFilterExport}
+        isExporting={isExporting}
       />
 
       <EvaluationModal

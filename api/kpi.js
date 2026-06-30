@@ -73,7 +73,7 @@ export default async function handler(req, res) {
 
   const { user, profile, adminClient } = auth;
   const canEdit = profile?.role === 'admin' || profile?.role === 'manager';
-  const { module: apiModule, action, batchId, staffId } = req.query;
+  const { module: apiModule, action, batchId, staffId, planId, year, quarter } = req.query;
 
   try {
     // ══════════════════════════════════════════════════════
@@ -196,6 +196,115 @@ Tối đa 5 minh chứng KPI. KHÔNG tự xếp loại cán bộ.
       await adminClient.from('activity_logs').insert({ actor_id: user.id, action: 'kpi_ai_analysis', metadata: { batch_id: bid, staff_name: staffName, model_used: modelUsed } }).then(null, () => {});
 
       return ok(res, { result: resultPayload, modelUsed });
+    }
+
+    // ══════════════════════════════════════════════════════
+    // MODULE: plan  (Kế hoạch KPI quý — import từ .docx)
+    // ══════════════════════════════════════════════════════
+    if (apiModule === 'plan') {
+      // GET: danh sách kế hoạch của 1 cán bộ
+      if (req.method === 'GET' && action === 'get-plans') {
+        if (!staffId) return err(res, 400, 'Thiếu staffId');
+        const { data, error: e } = await adminClient
+          .from('kpi_quarter_plans')
+          .select('*, kpi_plan_tasks(count)')
+          .eq('staff_id', staffId)
+          .order('year', { ascending: false })
+          .order('quarter', { ascending: false });
+        if (e) return err(res, 500, e.message);
+        return ok(res, { plans: data || [] });
+      }
+
+      // GET: 1 kế hoạch kèm nhiệm vụ
+      if (req.method === 'GET' && action === 'get-plan') {
+        let pid = planId;
+        if (!pid && staffId && year && quarter) {
+          const { data: p } = await adminClient.from('kpi_quarter_plans')
+            .select('id').eq('staff_id', staffId).eq('year', year).eq('quarter', quarter).maybeSingle();
+          pid = p?.id;
+        }
+        if (!pid) return ok(res, { plan: null, tasks: [] });
+        const { data: plan } = await adminClient.from('kpi_quarter_plans').select('*').eq('id', pid).single();
+        const { data: tasks } = await adminClient.from('kpi_plan_tasks').select('*').eq('plan_id', pid).order('row_index', { ascending: true });
+        return ok(res, { plan, tasks: tasks || [] });
+      }
+
+      // POST: lưu kế hoạch đã parse từ .docx (upsert theo staff+year+quarter)
+      if (req.method === 'POST' && action === 'save-plan') {
+        if (!canEdit) return err(res, 403, 'Chỉ admin/quản lý được nhập Kế hoạch KPI');
+        const body = req.body || {};
+        const { staffId: sId, staffName: sName, plan } = body;
+        if (!sId || !plan) return err(res, 400, 'Thiếu staffId hoặc dữ liệu kế hoạch');
+        if (!plan.year || !plan.quarter) return err(res, 400, 'Không xác định được Quý/Năm từ file. Vui lòng kiểm tra tiêu đề file.');
+        // [TẠM THỜI] Mở cho mọi quý để test luồng nhập. Khi chạy thật, bật lại chặn < Quý III/2026:
+        // if (plan.year < 2026 || (plan.year === 2026 && plan.quarter < 3)) {
+        //   return err(res, 400, 'Hệ thống chỉ áp dụng Kế hoạch KPI từ Quý III/2026 trở đi.');
+        // }
+
+        const planRow = {
+          staff_id: sId,
+          staff_name: sName || plan.full_name || '',
+          full_name: plan.full_name || null,
+          ngay_sinh: plan.ngay_sinh || null,
+          chuc_vu_dang: plan.chuc_vu_dang || null,
+          chuc_vu_chinh_quyen: plan.chuc_vu_chinh_quyen || null,
+          chuc_vu_doan_the: plan.chuc_vu_doan_the || null,
+          don_vi: plan.don_vi || null,
+          year: plan.year,
+          quarter: plan.quarter,
+          period_label: plan.period_label || null,
+          truc_config: plan.truc_config || [],
+          approver_name: plan.approver_name || null,
+          source_file: plan.fileName || null,
+          created_by: user.id,
+          status: 'draft',
+        };
+
+        const { data: existing } = await adminClient.from('kpi_quarter_plans')
+          .select('id').eq('staff_id', sId).eq('year', plan.year).eq('quarter', plan.quarter).maybeSingle();
+
+        let pid;
+        if (existing) {
+          await adminClient.from('kpi_quarter_plans').update(planRow).eq('id', existing.id);
+          pid = existing.id;
+          await adminClient.from('kpi_plan_tasks').delete().eq('plan_id', pid);
+        } else {
+          const { data: ins, error: e } = await adminClient.from('kpi_quarter_plans').insert(planRow).select('id').single();
+          if (e) return err(res, 500, 'Không thể tạo kế hoạch: ' + e.message);
+          pid = ins.id;
+        }
+
+        const rows = (plan.tasks || []).map(t => ({
+          plan_id: pid, section: t.section || 'main', truc_no: t.truc_no ?? null, stt: t.stt ?? null,
+          nhiem_vu: t.nhiem_vu || '', cap_trinh: t.cap_trinh || null, do_kho: t.do_kho || null,
+          san_pham: t.san_pham || null, so_luong_kh: t.so_luong_kh || null, so_luong_so: t.so_luong_so ?? null,
+          diem_cham_cong_viec: t.diem_cham_cong_viec ?? null, he_so_quy_doi: t.he_so_quy_doi ?? null,
+          thoi_gian: t.thoi_gian || null, ghi_chu: t.ghi_chu || null, row_index: t.row_index ?? null,
+        }));
+        if (rows.length) {
+          const { error: te } = await adminClient.from('kpi_plan_tasks').insert(rows);
+          if (te) return err(res, 500, 'Lưu nhiệm vụ thất bại: ' + te.message);
+        }
+
+        await adminClient.from('activity_logs').insert({
+          actor_id: user.id, action: 'kpi_plan_import',
+          metadata: { plan_id: pid, staff_id: sId, period: plan.period_label, tasks: rows.length },
+        }).then(null, () => {});
+
+        return ok(res, { planId: pid, savedTasks: rows.length, periodLabel: plan.period_label });
+      }
+
+      // DELETE: xóa kế hoạch
+      if (req.method === 'DELETE' && action === 'delete-plan') {
+        if (!canEdit) return err(res, 403, 'Không có quyền xóa kế hoạch');
+        if (!planId) return err(res, 400, 'Thiếu planId');
+        const { error: e } = await adminClient.from('kpi_quarter_plans').delete().eq('id', planId);
+        if (e) return err(res, 500, 'Xóa thất bại: ' + e.message);
+        await adminClient.from('activity_logs').insert({ actor_id: user.id, action: 'kpi_plan_delete', metadata: { plan_id: planId } }).then(null, () => {});
+        return ok(res, { message: 'Đã xóa kế hoạch KPI' });
+      }
+
+      return err(res, 404, 'Plan endpoint không tồn tại');
     }
 
     // ══════════════════════════════════════════════════════

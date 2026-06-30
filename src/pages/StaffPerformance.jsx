@@ -20,6 +20,7 @@ import { analyzeStaffPerformance } from '../services/performanceAIService';
 import ReactMarkdown from 'react-markdown';
 import KpiImportModal from '../components/KPI/KpiImportModal';
 import KpiAnalysisResult from '../components/KPI/KpiAnalysisResult';
+import KpiPlanModal from '../components/KPI/KpiPlanModal';
 import { useKpiImport } from '../hooks/useKpiImport';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
@@ -530,6 +531,7 @@ function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
   // AI Analysis State
   const [aiReport, setAiReport] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showPlan, setShowPlan] = useState(false);
 
   const handleAIAnalyze = async () => {
     setIsAnalyzing(true);
@@ -670,6 +672,25 @@ function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
                    </div>
                 </div>
              )}
+
+             {/* Kế hoạch KPI quý */}
+             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-[24px] shadow-sm flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                   <div className="w-10 h-10 shrink-0 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl flex items-center justify-center text-indigo-600">
+                      <Calendar size={18} />
+                   </div>
+                   <div className="min-w-0">
+                      <h3 className="text-[13px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">Kế hoạch KPI quý</h3>
+                      <p className="text-[12px] text-slate-400 font-bold">Nhập khung 6 trục (70đ) từ file .docx — áp dụng từ Quý III/2026</p>
+                   </div>
+                </div>
+                <button
+                   onClick={() => setShowPlan(true)}
+                   className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[12px] font-black transition-all shadow-lg shadow-indigo-600/20 shrink-0"
+                >
+                   <Calendar size={14} /> Quản lý Kế hoạch
+                </button>
+             </div>
 
              {/* AI Analysis Section */}
              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-[24px] shadow-sm">
@@ -879,6 +900,8 @@ function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
              </div>
           </div>
        </div>
+
+       {showPlan && <KpiPlanModal staff={staff} onClose={() => setShowPlan(false)} />}
     </div>
   );
 }

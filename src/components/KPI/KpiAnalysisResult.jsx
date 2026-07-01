@@ -85,8 +85,10 @@ export default function KpiAnalysisResult({
         confidence_score: d.kpi_document_staff_roles?.[0]?.confidence_score || 0,
       };
 
-      // Reclassify role cũ (unrelated/signer) bằng logic mới nếu có staffConfig
-      if (['unrelated', 'signer'].includes(fromDB.role_type) && staffConfig?.full_name) {
+      // Luôn phân loại lại theo quy tắc hiện hành (người trình||người ký == cán bộ
+      // → trực tiếp tham mưu; còn lại → thẩm định) để áp dụng cho cả đợt nhập cũ
+      // mà không cần nhập lại. DB role chỉ là cache.
+      if (staffConfig?.full_name && (d.presenter_name || d.signer_name)) {
         const reclassified = detectStaffRoleInDocument(d, staffConfig);
         return { ...fromDB, ...reclassified };
       }

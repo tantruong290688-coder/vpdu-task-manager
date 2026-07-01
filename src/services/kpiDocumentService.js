@@ -474,11 +474,13 @@ export const normalizeDocumentRows = (rows) => {
 /**
  * Xác định vai trò của cán bộ trong một văn bản thuộc batch upload của họ.
  *
- * Logic kinh doanh đơn giản:
- *   – Người trình/soạn thảo = cán bộ đang xét → direct_advisor
- *   – Tên khớp gần đúng (0.4–0.69) → needs_review (cần kiểm tra thủ công)
- *   – Mọi văn bản còn lại trong batch → reviewer
- *     (cán bộ đã thẩm định nội dung trước khi trình người ký)
+ * Quy tắc nghiệp vụ (chuẩn theo yêu cầu VPĐU):
+ *   – TRỰC TIẾP THAM MƯU (direct_advisor) khi cán bộ là:
+ *       (a) NGƯỜI TRÌNH văn bản (tham mưu trình TTĐU/lãnh đạo ký), HOẶC
+ *       (b) NGƯỜI KÝ ban hành trực tiếp (người ký == cán bộ), HOẶC
+ *       (c) người soạn thảo.
+ *   – THẨM ĐỊNH (reviewer) khi người trình KHÔNG đúng tên cán bộ
+ *     (và cán bộ cũng không phải người ký ban hành) → cán bộ chỉ thẩm định.
  *
  * Áp dụng cho tất cả role: admin, manager, staff — không cần flag đặc biệt.
  *
@@ -496,17 +498,28 @@ export const detectStaffRoleInDocument = (doc, staffConfig) => {
   };
 
   const presenterScore = checkField(doc.presenter_name);
+  const signerScore = checkField(doc.signer_name);
   const drafterScore = checkField(doc.drafter_name);
 
-  // 1. direct_advisor: cán bộ chính là người trình hoặc người soạn thảo
+  // 1a. direct_advisor: cán bộ là NGƯỜI TRÌNH
   if (presenterScore >= 0.7) {
     return {
       role_type: 'direct_advisor',
       confidence_score: presenterScore,
       matched_field: 'presenter_name',
-      reason: `Cán bộ trực tiếp trình: "${doc.presenter_name}"`,
+      reason: `Cán bộ trực tiếp trình văn bản: "${doc.presenter_name}"`,
     };
   }
+  // 1b. direct_advisor: cán bộ TRỰC TIẾP KÝ ban hành
+  if (signerScore >= 0.7) {
+    return {
+      role_type: 'direct_advisor',
+      confidence_score: signerScore,
+      matched_field: 'signer_name',
+      reason: `Cán bộ trực tiếp ký ban hành: "${doc.signer_name}"`,
+    };
+  }
+  // 1c. direct_advisor: cán bộ soạn thảo
   if (drafterScore >= 0.7) {
     return {
       role_type: 'direct_advisor',
@@ -516,28 +529,14 @@ export const detectStaffRoleInDocument = (doc, staffConfig) => {
     };
   }
 
-  // 2. needs_review: tên khớp một phần — có thể cùng người nhưng viết khác
-  const maxScore = Math.max(presenterScore, drafterScore);
-  if (maxScore >= 0.4) {
-    const bestField = presenterScore >= drafterScore ? 'presenter_name' : 'drafter_name';
-    const bestValue = presenterScore >= drafterScore ? doc.presenter_name : doc.drafter_name;
-    return {
-      role_type: 'needs_review',
-      confidence_score: maxScore,
-      matched_field: bestField,
-      reason: `Tên "${bestValue}" khớp gần đúng (${Math.round(maxScore * 100)}%) — cần kiểm tra thủ công`,
-    };
-  }
-
-  // 3. reviewer: mọi văn bản trong batch do người khác trình
-  //    → cán bộ này đã thẩm định nội dung trước khi trình người ký
+  // 2. reviewer (Thẩm định): người trình không phải cán bộ, cán bộ không ký ban hành
   return {
     role_type: 'reviewer',
     confidence_score: doc.presenter_name ? 0.9 : 0.75,
     matched_field: 'role_config',
     reason: doc.presenter_name
-      ? `Cán bộ thẩm định văn bản do "${doc.presenter_name}" trình trước khi trình người ký.`
-      : 'Cán bộ thẩm định văn bản (không rõ người trình).',
+      ? `Người trình là "${doc.presenter_name}" (không phải cán bộ) → cán bộ thẩm định.`
+      : 'Không xác định được người trình → tính Thẩm định.',
   };
 };
 

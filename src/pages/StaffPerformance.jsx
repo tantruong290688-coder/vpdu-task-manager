@@ -21,6 +21,7 @@ import ReactMarkdown from 'react-markdown';
 import KpiImportModal from '../components/KPI/KpiImportModal';
 import KpiAnalysisResult from '../components/KPI/KpiAnalysisResult';
 import KpiPlanModal from '../components/KPI/KpiPlanModal';
+import KpiScoringModal from '../components/KPI/KpiScoringModal';
 import { useKpiImport } from '../hooks/useKpiImport';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
@@ -532,6 +533,7 @@ function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
   const [aiReport, setAiReport] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showPlan, setShowPlan] = useState(false);
+  const [showScoring, setShowScoring] = useState(false);
 
   const handleAIAnalyze = async () => {
     setIsAnalyzing(true);
@@ -684,12 +686,20 @@ function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
                       <p className="text-[12px] text-slate-400 font-bold">Nhập khung 6 trục (70đ) từ file .docx — áp dụng từ Quý III/2026</p>
                    </div>
                 </div>
-                <button
-                   onClick={() => setShowPlan(true)}
-                   className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[12px] font-black transition-all shadow-lg shadow-indigo-600/20 shrink-0"
-                >
-                   <Calendar size={14} /> Quản lý Kế hoạch
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                   <button
+                      onClick={() => setShowScoring(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[12px] font-black transition-all shadow-lg shadow-emerald-600/20"
+                   >
+                      <BarChart3 size={14} /> Chấm điểm KPI
+                   </button>
+                   <button
+                      onClick={() => setShowPlan(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[12px] font-black transition-all shadow-lg shadow-indigo-600/20"
+                   >
+                      <Calendar size={14} /> Quản lý Kế hoạch
+                   </button>
+                </div>
              </div>
 
              {/* AI Analysis Section */}
@@ -902,6 +912,7 @@ function StaffDetailView({ staff, onClose, periodKey, canReview, onRefresh }) {
        </div>
 
        {showPlan && <KpiPlanModal staff={staff} onClose={() => setShowPlan(false)} />}
+       {showScoring && <KpiScoringModal staff={staff} onClose={() => setShowScoring(false)} />}
     </div>
   );
 }

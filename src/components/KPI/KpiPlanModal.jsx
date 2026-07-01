@@ -1,15 +1,23 @@
 import { useRef } from 'react';
 import {
   X, FileUp, Loader2, CheckCircle2, Trash2, Calendar, Target,
-  ListChecks, AlertTriangle, Save, FileText,
+  ListChecks, AlertTriangle, Save, FileText, FileDown,
 } from 'lucide-react';
 import { useKpiPlan } from '../../hooks/useKpiPlan';
+import { exportPlanDocx } from '../../utils/exportKpiDocx';
 
 const QUARTER_ROMAN = { 1: 'I', 2: 'II', 3: 'III', 4: 'IV' };
 
 export default function KpiPlanModal({ staff, onClose }) {
   const fileRef = useRef(null);
-  const { plans, isLoading, isImporting, preview, setPreview, parseFile, savePlan, deletePlan } = useKpiPlan(staff.id);
+  const { plans, isLoading, isImporting, preview, setPreview, parseFile, savePlan, deletePlan, loadPlanTasks } = useKpiPlan(staff.id);
+
+  const exportSaved = async (planId) => {
+    try {
+      const { plan, tasks } = await loadPlanTasks(planId);
+      exportPlanDocx(plan, tasks);
+    } catch (e) { alert('Lỗi xuất file: ' + e.message); }
+  };
 
   const onPick = async (e) => {
     const file = e.target.files?.[0];
@@ -131,6 +139,13 @@ export default function KpiPlanModal({ staff, onClose }) {
                   Chọn file khác
                 </button>
                 <button
+                  onClick={() => exportPlanDocx(preview, preview.tasks)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-800 text-white rounded-xl text-[13px] font-bold transition-colors"
+                  title="Xuất Word từ dữ liệu xem trước"
+                >
+                  <FileDown size={15} /> Xuất Word
+                </button>
+                <button
                   onClick={() => savePlan(preview, staff.full_name)}
                   disabled={!canSave || isImporting}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[13px] font-black transition-colors shadow-lg shadow-indigo-600/20 disabled:opacity-50"
@@ -164,6 +179,13 @@ export default function KpiPlanModal({ staff, onClose }) {
                           <p className="text-[13px] font-black text-slate-800 dark:text-white">{p.period_label}</p>
                           <p className="text-[11px] text-slate-400 font-bold">{taskCount} nhiệm vụ • {totalPts}đ • {p.source_file || '—'}</p>
                         </div>
+                        <button
+                          onClick={() => exportSaved(p.id)}
+                          className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl transition-colors"
+                          title="Xuất Word"
+                        >
+                          <FileDown size={15} />
+                        </button>
                         <button
                           onClick={() => { if (confirm(`Xóa kế hoạch ${p.period_label}?`)) deletePlan(p.id); }}
                           className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-colors"

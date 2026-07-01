@@ -81,6 +81,17 @@ export function useKpiPlan(staffId) {
     }
   }, [staffId, queryClient]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Tải 1 kế hoạch kèm danh mục nhiệm vụ (để xuất Word)
+  const loadPlanTasks = useCallback(async (planId) => {
+    const token = await getToken();
+    const res = await fetch(`/api/kpi?module=plan&action=get-plan&planId=${planId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    return data; // { plan, tasks }
+  }, []);
+
   const deletePlan = useCallback(async (planId) => {
     const token = await getToken();
     const res = await fetch(`/api/kpi?module=plan&action=delete-plan&planId=${planId}`, {
@@ -101,5 +112,6 @@ export function useKpiPlan(staffId) {
     parseFile,
     savePlan,
     deletePlan,
+    loadPlanTasks,
   };
 }

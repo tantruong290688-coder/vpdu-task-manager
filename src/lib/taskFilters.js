@@ -152,50 +152,44 @@ export function filterTasksByPeriod(tasks, period) {
   const isQuarter = /^\d{4}-Q[1-4]$/.test(period);
   const isMonth = /^\d{4}-\d{2}$/.test(period);
 
+  // Suy ra {year, month} từ chuỗi evaluation_period nếu parse được.
+  // Hỗ trợ: "2026-M05", "2026-05", "2026-5", "2026". Nhãn chung ("Tháng","Quý","Năm") -> null.
+  const parseEval = (ep) => {
+    if (!ep) return null;
+    let m;
+    if ((m = ep.match(/^(\d{4})-M(\d{1,2})$/))) return { year: +m[1], month: +m[2] };
+    if ((m = ep.match(/^(\d{4})-(\d{1,2})$/)))  return { year: +m[1], month: +m[2] };
+    if ((m = ep.match(/^(\d{4})$/)))            return { year: +m[1], month: null };
+    return null;
+  };
+
   return tasks.filter(t => {
-    // 1. Khớp trực tiếp hoặc khớp theo cấu trúc (Tháng -> Quý/Năm)
+    // 1. Khớp trực tiếp nhãn kỳ
     if (t.evaluation_period === period) return true;
-    
-    // Nếu t.evaluation_period có dạng YYYY-MXX
-    if (t.evaluation_period?.includes('-M')) {
-      const [taskYear, taskMonthStr] = t.evaluation_period.split('-M');
-      const taskMonth = parseInt(taskMonthStr);
-      
-      if (isYear && taskYear === period) return true;
-      
-      if (isQuarter) {
-        const [pYear, pQ] = period.split('-Q');
-        const taskQuarter = Math.ceil(taskMonth / 3);
-        if (taskYear === pYear && taskQuarter === parseInt(pQ)) return true;
-      }
-      
-      if (isMonth) {
-        const [pYear, pMonth] = period.split('-');
-        if (taskYear === pYear && taskMonth === parseInt(pMonth)) return true;
+
+    // 2. Suy {year, month}: ưu tiên evaluation_period parse được;
+    //    nếu không (nhãn chung như "Quý"/"Tháng" hoặc rỗng) -> dùng ngày hoàn thành/đến hạn.
+    let ym = parseEval(t.evaluation_period);
+    if (!ym) {
+      const raw = t.completed_at || t.due_date;
+      if (raw) {
+        const d = new Date(raw);
+        if (!isNaN(d)) ym = { year: d.getFullYear(), month: d.getMonth() + 1 };
       }
     }
+    if (!ym) return false;
 
-    // Ưu tiên: 1. Nhãn kỳ đánh giá (Chính xác nhất), 2. Ngày hoàn thành, 3. Ngày đến hạn (Chỉ dùng nếu chưa hoàn thành)
-    const taskDate = t.evaluation_period ? null : (t.completed_at || t.due_date);
-    if (!t.evaluation_period && !taskDate) return false;
-
-    const d = new Date(taskDate);
-    const tYear = d.getFullYear();
-    const tMonth = d.getMonth() + 1;
-
-    if (isYear) {
-      return tYear === parseInt(period);
-    }
+    if (isYear) return ym.year === parseInt(period, 10);
 
     if (isQuarter) {
       const [pYear, pQ] = period.split('-Q');
-      const quarter = Math.ceil(tMonth / 3);
-      return tYear === parseInt(pYear) && quarter === parseInt(pQ);
+      if (ym.year !== parseInt(pYear, 10) || ym.month == null) return false;
+      return Math.ceil(ym.month / 3) === parseInt(pQ, 10);
     }
 
     if (isMonth) {
       const [pYear, pMonth] = period.split('-').map(Number);
-      return tYear === pYear && tMonth === pMonth;
+      return ym.year === pYear && ym.month === pMonth;
     }
 
     return false;

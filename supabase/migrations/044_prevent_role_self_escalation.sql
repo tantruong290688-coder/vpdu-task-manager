@@ -1,6 +1,6 @@
 -- ============================================================
 -- Migration 044: Chặn user tự nâng quyền (privilege escalation)
--- Mục đích: Ngăn user thường tự đổi cột role / status / is_locked
+-- Mục đích: Ngăn user thường tự đổi cột role / status
 --           trên chính profile của mình (RLS profiles_update_own
 --           hiện cho phép UPDATE mọi cột).
 -- Chỉ admin (hoặc lời gọi service_role không có phiên JWT) mới
@@ -22,13 +22,13 @@ BEGIN
   END IF;
 
   -- 2. Các cột nhạy cảm không thay đổi => cho qua bình thường.
-  IF NEW.role      IS NOT DISTINCT FROM OLD.role
-     AND NEW.status    IS NOT DISTINCT FROM OLD.status
-     AND NEW.is_locked IS NOT DISTINCT FROM OLD.is_locked THEN
+  --    (Chỉ guard role + status; profiles KHÔNG có cột is_locked.)
+  IF NEW.role   IS NOT DISTINCT FROM OLD.role
+     AND NEW.status IS NOT DISTINCT FROM OLD.status THEN
     RETURN NEW;
   END IF;
 
-  -- 3. Có thay đổi role/status/is_locked: chỉ admin mới được phép.
+  -- 3. Có thay đổi role/status: chỉ admin mới được phép.
   IF EXISTS (
     SELECT 1 FROM public.profiles
     WHERE id = auth.uid() AND role = 'admin'
@@ -37,7 +37,7 @@ BEGIN
   END IF;
 
   -- 4. Mọi trường hợp còn lại => chặn.
-  RAISE EXCEPTION 'Không có quyền thay đổi role/status/is_locked (yêu cầu quyền admin)'
+  RAISE EXCEPTION 'Không có quyền thay đổi role/status (yêu cầu quyền admin)'
     USING ERRCODE = '42501'; -- insufficient_privilege
 END;
 $$;

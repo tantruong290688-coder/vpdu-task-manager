@@ -171,7 +171,7 @@ export default function StaffPerformance() {
               {periodType === 'quarter' && (
                 <div className="flex items-center gap-1">
                   <select
-                    value={selectedPeriod.split('-')[1]}
+                    value={['03', '06', '09', '12'][Math.max(0, Math.ceil((parseInt(selectedPeriod.split('-')[1], 10) || 1) / 3) - 1)]}
                     onChange={(e) => {
                       const year = selectedPeriod.split('-')[0];
                       const month = e.target.value;

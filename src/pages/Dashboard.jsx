@@ -7,6 +7,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import { useAuth } from '../context/AuthContext';
 import MyDayWidget from '../components/Dashboard/MyDayWidget';
 import RiskTasksWidget from '../components/Dashboard/RiskTasksWidget';
+import WeatherWidget from '../components/Dashboard/WeatherWidget';
 import leaderAvatar from '../assets/avatar_leader.jpg';
 import adminAvatar from '../assets/avatar_admin.jpg';
 import manager1Avatar from '../assets/avatar_manager1.jpg';
@@ -118,12 +119,15 @@ export default function Dashboard() {
               </p>
             )}
             <p className="text-blue-100 text-[11px] md:text-[13px] font-medium opacity-80 leading-tight">
-              {profile?.role === 'viewer' 
+              {profile?.role === 'viewer'
                 ? 'Báo cáo tổng hợp tiến độ mới nhất.'
                 : 'Hệ thống quản trị nhiệm vụ đã sẵn sàng.'}
             </p>
           </div>
         </div>
+
+        {/* Widget thời tiết xã Trà Bồng - góc phải */}
+        <WeatherWidget />
       </div>
 
       {/* Cảnh báo Rủi ro */}

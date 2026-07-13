@@ -369,7 +369,7 @@ export default function UserManualModal({ onClose }) {
         {/* Footer */}
         <div className="px-6 md:px-10 py-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0">
           <p className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-widest text-center sm:text-left">
-            Hệ thống Quản trị Nhiệm vụ v6.1 — VPĐU xã Trà Bồng
+            Hệ thống Quản trị Nhiệm vụ v6.2 — VPĐU xã Trà Bồng
           </p>
           <button 
             onClick={onClose}

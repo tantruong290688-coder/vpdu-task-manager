@@ -23,8 +23,8 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f4f7fa] p-4 font-sans transition-colors duration-300">
-      
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f4f7fa] p-4 font-sans transition-colors duration-300">
+
       <div className="bg-white p-8 md:p-12 rounded-[40px] shadow-[0_20px_50px_rgba(0,0,0,0.05)] w-full max-w-[460px] animate-in fade-in zoom-in duration-500">
         
         {/* Header Section */}
@@ -99,6 +99,12 @@ export default function Login() {
         <div className="mt-10 text-center">
           <span className="text-[12px] font-bold text-[#cbd5e1] uppercase tracking-[0.2em]">Hệ thống bảo mật nội bộ</span>
         </div>
+      </div>
+
+      {/* Footer đơn vị & phiên bản */}
+      <div className="mt-6 text-center">
+        <p className="text-[13px] font-bold text-[#94a3b8]">Phát triển bởi Văn phòng Đảng ủy © 2026</p>
+        <p className="text-[12px] font-semibold text-[#cbd5e1] mt-0.5">Phiên bản 6.2</p>
       </div>
     </div>
   );

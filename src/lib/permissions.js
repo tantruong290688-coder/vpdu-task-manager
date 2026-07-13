@@ -174,7 +174,7 @@ export function canManageSchedules(profile) {
   return (
     profile.role === ROLES.ADMIN ||
     profile.role === ROLES.MANAGER ||
-    profile.email === 'phthuyet@gmail.com'
+    !!profile.can_manage_schedules
   );
 }
 

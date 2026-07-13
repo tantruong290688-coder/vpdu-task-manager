@@ -214,7 +214,7 @@ export default function ChatPopup() {
     setLoading(true);
     try {
       const [{ data: profs }, { data: rms }, { data: msgs }] = await Promise.all([
-        supabase.from('profiles').select('id, full_name, email, role, is_online, last_seen_at, avatar_url'),
+        supabase.from('profiles').select('id, full_name, email, role, is_online, last_seen_at, avatar_url, avatar_key'),
         supabase.from('chat_rooms').select('*'),
         supabase.from('messages').select('*').or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`).order('created_at', { ascending: true })
       ]);

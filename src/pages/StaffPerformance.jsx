@@ -926,7 +926,7 @@ function KpiImportWrapper({ staff, periodKey, onClose }) {
     full_name: staff.full_name,
     aliases: staff.job_description?.aliases || [],
     is_reviewer: staff.job_description?.is_reviewer || false,
-    can_review_documents: staff.job_description?.can_review_documents || staff.job_description?.is_reviewer || ['admin', 'manager'].includes(staff.role),
+    can_review_documents: staff.can_review_documents ?? ['admin', 'manager'].includes(staff.role),
     review_scope: Array.isArray(staff.job_description?.review_scope) ? staff.job_description.review_scope : [],
     role: staff.role,
   };
@@ -959,7 +959,7 @@ function KpiResultWrapper({ staff, periodKey, onClose }) {
     full_name: staff.full_name,
     aliases: staff.job_description?.aliases || [],
     is_reviewer: staff.job_description?.is_reviewer || false,
-    can_review_documents: staff.job_description?.can_review_documents || staff.job_description?.is_reviewer || ['admin', 'manager'].includes(staff.role),
+    can_review_documents: staff.can_review_documents ?? ['admin', 'manager'].includes(staff.role),
     review_scope: Array.isArray(staff.job_description?.review_scope) ? staff.job_description.review_scope : [],
     role: staff.role,
   };

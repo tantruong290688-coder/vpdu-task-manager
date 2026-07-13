@@ -8,14 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import MyDayWidget from '../components/Dashboard/MyDayWidget';
 import RiskTasksWidget from '../components/Dashboard/RiskTasksWidget';
 import WeatherWidget from '../components/Dashboard/WeatherWidget';
-import leaderAvatar from '../assets/avatar_leader.jpg';
-import adminAvatar from '../assets/avatar_admin.jpg';
-import manager1Avatar from '../assets/avatar_manager1.jpg';
-import manager2Avatar from '../assets/avatar_manager2.jpg';
-import staff1Avatar from '../assets/avatar_staff1.jpg';
-import staff2Avatar from '../assets/avatar_staff2.jpg';
-import staff3Avatar from '../assets/avatar_staff3.jpg';
-import staff4Avatar from '../assets/avatar_staff4.jpg';
+import { getUserAvatar } from '../utils/avatarHelper';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -79,27 +72,13 @@ export default function Dashboard() {
         {/* Profile Avatar in Header (Smaller) */}
         <div className="relative shrink-0">
           <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-white/20 p-1 bg-white/10 backdrop-blur-md overflow-hidden shadow-xl">
-              <img 
-                src={
-                  profile?.avatar_url ? profile.avatar_url : (
-                    profile?.full_name === 'Nguyễn Đức Lợi' ? manager1Avatar :
-                    profile?.full_name === 'Lê Công Hào' ? manager2Avatar :
-                    profile?.full_name === 'Phạm Học Thuyết' ? staff1Avatar :
-                    profile?.full_name === 'Nguyễn Thị Hoài Thu' ? staff2Avatar :
-                    profile?.full_name === 'Nguyễn Thị Thanh Pháp' ? staff3Avatar :
-                    profile?.full_name === 'Phan Thị Linh' ? staff4Avatar :
-                    profile?.role === 'viewer' ? leaderAvatar : 
-                    (profile?.role === 'admin' ? adminAvatar : `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.full_name || 'User')}&background=fff&color=1d4ed8&size=256`)
-                  )
-                } 
+              <img
+                src={getUserAvatar(profile)}
                 alt="Avatar"
                 className="w-full h-full object-cover rounded-full"
-                onError={(e) => { 
-                  // Nếu avatar_url lỗi, hiển thị lại avatar mặc định hoặc UI Avatars
-                  const specialUsers = ['Nguyễn Đức Lợi', 'Lê Công Hào', 'Phạm Học Thuyết', 'Nguyễn Thị Hoài Thu', 'Nguyễn Thị Thanh Pháp', 'Phan Thị Linh'];
-                  if (profile?.role !== 'viewer' && profile?.role !== 'admin' && !specialUsers.includes(profile?.full_name)) {
-                    e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile?.full_name || 'User') + '&background=fff&color=1d4ed8&size=256'; 
-                  }
+                onError={(e) => {
+                  // Nếu ảnh lỗi, rơi về ui-avatars sinh từ tên
+                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.full_name || 'User')}&background=fff&color=1d4ed8&size=256`;
                 }}
               />
           </div>

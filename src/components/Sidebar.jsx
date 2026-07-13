@@ -7,14 +7,7 @@ import { useNotification } from '../context/NotificationContext';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import partyLogo from '../assets/bieu-tuong-vp-cap-uy.png';
-import leaderAvatar from '../assets/avatar_leader.jpg';
-import adminAvatar from '../assets/avatar_admin.jpg';
-import manager1Avatar from '../assets/avatar_manager1.jpg';
-import manager2Avatar from '../assets/avatar_manager2.jpg';
-import staff1Avatar from '../assets/avatar_staff1.jpg';
-import staff2Avatar from '../assets/avatar_staff2.jpg';
-import staff3Avatar from '../assets/avatar_staff3.jpg';
-import staff4Avatar from '../assets/avatar_staff4.jpg';
+import { getUserAvatar } from '../utils/avatarHelper';
 
 export default function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
@@ -85,27 +78,13 @@ export default function Sidebar({ isOpen, onClose }) {
           {/* Avatar Container */}
           <div className="relative mb-3 group-hover:scale-105 transition-transform duration-300">
             <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-4 border-slate-100 dark:border-slate-800 p-1 bg-white dark:bg-[#0f172a] overflow-hidden shadow-inner">
-              <img 
-                src={
-                  profile?.avatar_url ? profile.avatar_url : (
-                    profile?.full_name === 'Nguyễn Đức Lợi' ? manager1Avatar :
-                    profile?.full_name === 'Lê Công Hào' ? manager2Avatar :
-                    profile?.full_name === 'Phạm Học Thuyết' ? staff1Avatar :
-                    profile?.full_name === 'Nguyễn Thị Hoài Thu' ? staff2Avatar :
-                    profile?.full_name === 'Nguyễn Thị Thanh Pháp' ? staff3Avatar :
-                    profile?.full_name === 'Phan Thị Linh' ? staff4Avatar :
-                    profile?.role === 'viewer' ? leaderAvatar : 
-                    (profile?.role === 'admin' ? adminAvatar : `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.full_name || 'User')}&background=b91c1c&color=fff&size=128`)
-                  )
-                } 
+              <img
+                src={getUserAvatar(profile)}
                 alt="Avatar"
                 className="w-full h-full object-cover rounded-full"
-                onError={(e) => { 
-                  // Nếu avatar_url lỗi, hiển thị lại avatar mặc định hoặc UI Avatars
-                  const specialUsers = ['Nguyễn Đức Lợi', 'Lê Công Hào', 'Phạm Học Thuyết', 'Nguyễn Thị Hoài Thu', 'Nguyễn Thị Thanh Pháp', 'Phan Thị Linh'];
-                  if (profile?.role !== 'viewer' && profile?.role !== 'admin' && !specialUsers.includes(profile?.full_name)) {
-                    e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile?.full_name || 'User') + '&background=b91c1c&color=fff&size=128'; 
-                  }
+                onError={(e) => {
+                  // Nếu ảnh lỗi, rơi về ui-avatars sinh từ tên
+                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.full_name || 'User')}&background=b91c1c&color=fff&size=128`;
                 }}
               />
             </div>
@@ -165,7 +144,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
         {/* Footer info */}
         <div className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-4 border border-amber-100/50 dark:border-amber-900/30 text-[11px] text-amber-900/60 dark:text-amber-400/60 font-semibold mt-auto leading-relaxed transition-colors">
-          <p>Phiên bản: 6.1</p>
+          <p>Phiên bản: 6.2</p>
           <p>Creator: Bùi Tấn Trưởng</p>
           <p>Giao diện: {themeLabel}</p>
         </div>

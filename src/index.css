@@ -72,6 +72,131 @@ body {
   animation: bounce-subtle 2s infinite ease-in-out;
 }
 
+/* ===== WEATHER WIDGET FX ===== */
+@keyframes weather-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+@keyframes weather-icon-sway {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50%      { transform: translateY(-4px) rotate(3deg); }
+}
+@keyframes weather-glow {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50%      { opacity: 0.9;  transform: scale(1.12); }
+}
+@keyframes weather-sheen {
+  0%   { transform: translateX(-120%) skewX(-18deg); }
+  60%, 100% { transform: translateX(220%) skewX(-18deg); }
+}
+.animate-weather-float     { animation: weather-float 5.5s ease-in-out infinite; }
+.animate-weather-icon-sway { animation: weather-icon-sway 4s ease-in-out infinite; }
+.animate-weather-glow      { animation: weather-glow 4.5s ease-in-out infinite; }
+.animate-weather-sheen     { animation: weather-sheen 6s ease-in-out infinite; }
+
+/* --- Hiệu cảnh thời tiết 3D --- */
+/* Khung nghiêng 3D + đổ bóng theo chiều sâu */
+.weather-3d { perspective: 700px; }
+.weather-3d-card {
+  transform: rotateX(6deg) rotateY(-6deg);
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(.2,.8,.2,1);
+}
+.weather-3d:hover .weather-3d-card { transform: rotateX(0deg) rotateY(0deg) scale(1.02); }
+
+/* MƯA: hạt mưa rơi chéo */
+@keyframes wx-rain {
+  0%   { transform: translateY(-120%) translateX(0);   opacity: 0; }
+  10%  { opacity: 0.7; }
+  100% { transform: translateY(320%) translateX(-14px); opacity: 0; }
+}
+.wx-raindrop {
+  position: absolute; top: 0; width: 1.5px; height: 16px;
+  background: linear-gradient(to bottom, transparent, rgba(186,230,253,0.9));
+  border-radius: 2px;
+  animation: wx-rain 0.9s linear infinite;
+}
+
+/* TUYẾT: bông tuyết rơi lượn */
+@keyframes wx-snow {
+  0%   { transform: translateY(-120%) translateX(0);   opacity: 0; }
+  10%  { opacity: 0.9; }
+  50%  { transform: translateY(120%) translateX(8px); }
+  100% { transform: translateY(320%) translateX(-6px); opacity: 0; }
+}
+.wx-snowflake {
+  position: absolute; top: 0; border-radius: 50%;
+  background: rgba(255,255,255,0.95);
+  box-shadow: 0 0 4px rgba(255,255,255,0.8);
+  animation: wx-snow 3.2s linear infinite;
+}
+
+/* NẮNG: tia nắng xoay + quầng ấm */
+@keyframes wx-sun-rotate { to { transform: rotate(360deg); } }
+.wx-sunrays {
+  position: absolute; width: 150px; height: 150px; border-radius: 50%;
+  background: repeating-conic-gradient(
+    rgba(253,224,71,0.35) 0deg 8deg, transparent 8deg 24deg);
+  filter: blur(1px);
+  animation: wx-sun-rotate 22s linear infinite;
+}
+
+/* MÂY: mảng mây trôi ngang */
+@keyframes wx-cloud-drift {
+  0%   { transform: translateX(-40%); }
+  100% { transform: translateX(140%); }
+}
+.wx-cloud {
+  position: absolute; border-radius: 999px;
+  background: rgba(255,255,255,0.18);
+  filter: blur(6px);
+  animation: wx-cloud-drift linear infinite;
+}
+
+/* SƯƠNG MÙ: dải sương trôi */
+@keyframes wx-fog-drift {
+  0%   { transform: translateX(-30%); opacity: 0.15; }
+  50%  { opacity: 0.35; }
+  100% { transform: translateX(60%);  opacity: 0.15; }
+}
+.wx-fog {
+  position: absolute; height: 14px; width: 160%; left: -30%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+  filter: blur(4px);
+  animation: wx-fog-drift ease-in-out infinite;
+}
+
+/* GIÔNG LỐC: chớp loé toàn thẻ */
+@keyframes wx-flash {
+  0%, 92%, 100% { opacity: 0; }
+  93%  { opacity: 0.85; }
+  94%  { opacity: 0.15; }
+  95%  { opacity: 0.9; }
+  97%  { opacity: 0; }
+}
+.wx-lightning {
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 60% 20%, rgba(255,255,255,0.9), rgba(196,181,253,0.3) 40%, transparent 70%);
+  animation: wx-flash 5s infinite;
+}
+/* Tia sét zigzag */
+@keyframes wx-bolt {
+  0%, 92%, 100% { opacity: 0; }
+  93%, 96% { opacity: 1; }
+  97% { opacity: 0; }
+}
+.wx-bolt { animation: wx-bolt 5s infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-weather-float,
+  .animate-weather-icon-sway,
+  .animate-weather-glow,
+  .animate-weather-sheen,
+  .weather-3d-card,
+  .wx-raindrop, .wx-snowflake, .wx-sunrays,
+  .wx-cloud, .wx-fog, .wx-lightning, .wx-bolt { animation: none; transform: none; }
+}
+
 /* ===== SCROLLBAR UTILITIES ===== */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;

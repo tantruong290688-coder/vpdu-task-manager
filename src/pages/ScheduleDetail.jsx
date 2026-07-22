@@ -252,31 +252,46 @@ export default function ScheduleDetail() {
       }
 
       // Tự động chèn ngày nghỉ Thứ 7, Chủ Nhật nếu chưa có
-      let currentItems = ensureWeekendHolidays(items, schedule.week, schedule.year);
-      setItems(currentItems);
+      const currentItems = ensureWeekendHolidays(items, schedule.week, schedule.year);
 
-      // Tiền xử lý dữ liệu: Loại bỏ các dòng mà người dùng chưa nhập BẤT KỲ ký tự nào
-      const validItems = currentItems.filter(item => item.date || item.time || item.content || item.host || item.location || item.attendees || item.prepare_by);
+      // Tiền xử lý dữ liệu: dòng chỉ có Ngày/Buổi (do bấm "+" hoặc "Thêm dòng mới" rồi bỏ trống)
+      // được xem là dòng rỗng -> tự động loại bỏ thay vì chặn không cho lưu.
+      const hasAnyData = (item) => Boolean(
+        item.time || item.content || item.host || item.attendees ||
+        item.location || item.prepare_by ||
+        (item.pendingAttachments && item.pendingAttachments.length > 0)
+      );
+      const validItems = currentItems.filter(hasAnyData);
+      const blankCount = currentItems.length - validItems.length;
 
-      if (validItems.length === 0 && items.length > 0) {
-        setSaving(false);
-        toast.error('Vui lòng nhập nội dung cho dòng lịch bạn vừa thêm.');
-        return false;
-      }
+      // Cập nhật lại danh sách hiển thị (đã dọn dòng rỗng, đã thêm ngày nghỉ cuối tuần)
+      setItems(validItems);
 
-      // Validate bắt buộc
+      // Mô tả ngắn gọn một dòng để người dùng biết cần sửa ở đâu
+      const describeItem = (item) => {
+        const [y, m, d] = String(item.date || '').split('-');
+        const dayLabel = d ? `${d}/${m}/${y}` : 'chưa chọn ngày';
+        const timeLabel = item.time ? ` ${item.time}` : '';
+        return `${dayLabel}${timeLabel}`;
+      };
+
+      // Validate bắt buộc: chỉ chặn các dòng đã có dữ liệu nhưng thiếu Ngày hoặc Nội dung
       const missingDate = validItems.find(item => !item.date);
       if (missingDate) {
         setSaving(false);
-        toast.error('Vui lòng chọn Ngày cho tất cả các nội dung công việc.');
+        toast.error(`Vui lòng chọn Ngày cho lịch: "${missingDate.content || missingDate.time || 'dòng mới thêm'}".`);
         return false;
       }
-      
+
       const missingContent = validItems.find(item => !item.content);
       if (missingContent) {
         setSaving(false);
-        toast.error('Vui lòng nhập Nội dung cho tất cả các lịch công tác.');
+        toast.error(`Vui lòng nhập Nội dung cho lịch ngày ${describeItem(missingContent)} (hoặc xóa dòng này).`);
         return false;
+      }
+
+      if (blankCount > 0) {
+        toast(`Đã tự động bỏ ${blankCount} dòng trống chưa nhập nội dung.`, { icon: '🧹' });
       }
 
       // Save Items

@@ -118,9 +118,10 @@ export default async function handler(req, res) {
   }
 
   // Permission Check
-  const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
+  const { data: profile } = await supabaseAdmin.from('profiles').select('role, can_manage_schedules').eq('id', user.id).single();
   const role = profile?.role;
-  const canEdit = role === 'admin' || role === 'manager';
+  // Đồng bộ với canManageSchedules() ở frontend: admin/manager HOẶC được cấp quyền quản lý lịch qua cột can_manage_schedules
+  const canEdit = role === 'admin' || role === 'manager' || !!profile?.can_manage_schedules;
   const canView = true; // Any authenticated user can view
 
   try {

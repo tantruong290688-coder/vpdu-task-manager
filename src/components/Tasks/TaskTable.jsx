@@ -66,6 +66,23 @@ const COLUMN_LABELS = {
   evaluation: 'O. Đánh giá',
 };
 
+const ALL_KEYS = Object.keys(DEFAULT_WIDTHS);
+
+// Bộ cột hiển thị chuẩn (áp dụng cho mọi tài khoản: admin/manager/staff/viewer)
+// Thứ tự đúng như giao diện: Ngày giao → Hạn HT → Người TH → Phối hợp → Tên NV → Nội dung → Trạng thái
+const DEFAULT_VISIBLE_ORDER = ['assigned_date', 'due_date', 'assignee', 'collaborators', 'title', 'description', 'status'];
+
+// Thứ tự đầy đủ mặc định: 7 cột chuẩn trước, các cột ẩn (vẫn bật lại được qua bánh răng) xếp sau
+const DEFAULT_ORDER = [...DEFAULT_VISIBLE_ORDER, ...ALL_KEYS.filter(k => !DEFAULT_VISIBLE_ORDER.includes(k))];
+
+// Mặc định: chỉ 7 cột chuẩn bật, phần còn lại tắt
+const DEFAULT_VISIBILITY = ALL_KEYS.reduce((acc, k) => ({ ...acc, [k]: DEFAULT_VISIBLE_ORDER.includes(k) }), {});
+
+// Nâng phiên bản để reset cấu hình cột cũ của mọi tài khoản về bộ cột chuẩn này
+const LS_WIDTHS = 'task_table_widths';
+const LS_VISIBILITY = 'task_table_visibility_v2';
+const LS_ORDER = 'task_table_order_v2';
+
 export default function TaskTable({
   tasks,
   paginatedTasks,
@@ -82,7 +99,7 @@ export default function TaskTable({
   const { openDrawer, handleStatusChange, setEvalModalTask, openEditModal, handleDelete } = actions;
   
   const [widths, setWidths] = useState(() => {
-    const saved = localStorage.getItem('task_table_widths');
+    const saved = localStorage.getItem(LS_WIDTHS);
     if (saved) {
       try {
         return { ...DEFAULT_WIDTHS, ...JSON.parse(saved) };
@@ -92,28 +109,27 @@ export default function TaskTable({
   });
 
   const [visibleColumns, setVisibleColumns] = useState(() => {
-    const saved = localStorage.getItem('task_table_visibility');
+    const saved = localStorage.getItem(LS_VISIBILITY);
     if (saved) {
       try {
-        return { ...Object.keys(DEFAULT_WIDTHS).reduce((acc, k) => ({ ...acc, [k]: true }), {}), ...JSON.parse(saved) };
-      } catch (e) { return Object.keys(DEFAULT_WIDTHS).reduce((acc, k) => ({ ...acc, [k]: true }), {}); }
+        return { ...DEFAULT_VISIBILITY, ...JSON.parse(saved) };
+      } catch (e) { return DEFAULT_VISIBILITY; }
     }
-    return Object.keys(DEFAULT_WIDTHS).reduce((acc, k) => ({ ...acc, [k]: true }), {});
+    return DEFAULT_VISIBILITY;
   });
 
   const [columnOrder, setColumnOrder] = useState(() => {
-    const saved = localStorage.getItem('task_table_order');
+    const saved = localStorage.getItem(LS_ORDER);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Ensure all default columns are present in the order
-        const allKeys = Object.keys(DEFAULT_WIDTHS);
-        const filtered = parsed.filter(k => allKeys.includes(k));
-        const missing = allKeys.filter(k => !filtered.includes(k));
+        // Đảm bảo mọi cột đều có mặt trong thứ tự
+        const filtered = parsed.filter(k => ALL_KEYS.includes(k));
+        const missing = DEFAULT_ORDER.filter(k => !filtered.includes(k));
         return [...filtered, ...missing];
-      } catch (e) { return Object.keys(DEFAULT_WIDTHS); }
+      } catch (e) { return DEFAULT_ORDER; }
     }
-    return Object.keys(DEFAULT_WIDTHS);
+    return DEFAULT_ORDER;
   });
 
   const [showColumnSettings, setShowColumnSettings] = useState(false);
@@ -121,15 +137,15 @@ export default function TaskTable({
   const settingsRef = useRef(null);
 
   useEffect(() => {
-    localStorage.setItem('task_table_widths', JSON.stringify(widths));
+    localStorage.setItem(LS_WIDTHS, JSON.stringify(widths));
   }, [widths]);
 
   useEffect(() => {
-    localStorage.setItem('task_table_visibility', JSON.stringify(visibleColumns));
+    localStorage.setItem(LS_VISIBILITY, JSON.stringify(visibleColumns));
   }, [visibleColumns]);
 
   useEffect(() => {
-    localStorage.setItem('task_table_order', JSON.stringify(columnOrder));
+    localStorage.setItem(LS_ORDER, JSON.stringify(columnOrder));
   }, [columnOrder]);
 
   // Close settings and file dropdowns when clicking outside
@@ -238,8 +254,8 @@ export default function TaskTable({
 
   const resetTable = () => {
     setWidths(DEFAULT_WIDTHS);
-    setVisibleColumns(Object.keys(DEFAULT_WIDTHS).reduce((acc, k) => ({ ...acc, [k]: true }), {}));
-    setColumnOrder(Object.keys(DEFAULT_WIDTHS));
+    setVisibleColumns(DEFAULT_VISIBILITY);
+    setColumnOrder(DEFAULT_ORDER);
     toast.success('Đã khôi phục cài đặt bảng mặc định');
   };
 

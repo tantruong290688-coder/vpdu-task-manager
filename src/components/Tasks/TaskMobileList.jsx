@@ -111,8 +111,12 @@ const TaskCard = memo(function TaskCard({ task, profile, actions, activeFileTask
   return (
     <div
       onClick={handleOpen}
-      className={`relative bg-white dark:bg-[#0f172a] px-4 py-4 cursor-pointer transition-all active:bg-slate-50 dark:active:bg-slate-800 border-b border-slate-100 dark:border-slate-800/80 ${
-        isOverdue ? 'bg-red-50/10 dark:bg-red-900/10' : ''
+      className={`relative bg-white dark:bg-[#0f172a] px-4 py-4 pl-5 cursor-pointer transition-all active:bg-slate-50 dark:active:bg-slate-800 border-b border-slate-100 dark:border-slate-800/80 border-l-[3px] ${
+        isOverdue
+          ? 'bg-red-50/40 dark:bg-red-900/15 border-l-red-500'
+          : task.priority === 'high'
+          ? 'border-l-red-400/70'
+          : 'border-l-transparent'
       }`}
     >
       {/* Row 1: Mã + Priority + Status + Score */}

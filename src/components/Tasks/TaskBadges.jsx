@@ -15,9 +15,9 @@ const STATUS_MAP = {
 };
 
 const PRIORITY_MAP = {
-  high:   { label: 'Cao',  cls: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
-  normal: { label: 'TB',   cls: 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400' },
-  low:    { label: 'Thấp', cls: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' },
+  high:   { label: 'Cao',  dot: 'bg-red-500',   cls: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/25 dark:text-red-300 dark:border-red-800/50 ring-1 ring-red-200/70 dark:ring-red-800/40' },
+  normal: { label: 'TB',   dot: 'bg-amber-500', cls: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/40' },
+  low:    { label: 'Thấp', dot: 'bg-slate-400', cls: 'bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700' },
 };
 
 const RANK_COLOR = {
@@ -51,7 +51,8 @@ export const StatusBadge = memo(function StatusBadge({ status, dueDate, evaluati
 export const PriorityBadge = memo(function PriorityBadge({ priority }) {
   const info = PRIORITY_MAP[priority] || PRIORITY_MAP.normal;
   return (
-    <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md whitespace-nowrap ${info.cls}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-md border whitespace-nowrap ${info.cls}`}>
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${info.dot} ${priority === 'high' ? 'animate-pulse' : ''}`} />
       {info.label}
     </span>
   );

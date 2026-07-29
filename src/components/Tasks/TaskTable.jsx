@@ -251,8 +251,8 @@ export default function TaskTable({
           style={{ width: 'max-content' }}
         >
           <thead className="sticky top-0 z-10">
-            <tr className="border-b-2 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 text-[10px] uppercase tracking-wider font-extrabold select-none">
-              <th className="sticky left-0 z-20 bg-slate-50 dark:bg-slate-900 p-3 w-[45px] border-r border-slate-100 dark:border-slate-800">
+            <tr className="border-b-2 border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900 text-slate-600 dark:text-slate-400 text-[11px] uppercase tracking-wider font-extrabold select-none">
+              <th className="sticky left-0 z-20 bg-slate-100 dark:bg-slate-900 p-3 w-[45px] border-r border-slate-100 dark:border-slate-800">
                 <div className="flex items-center justify-center">
                   <input 
                     type="checkbox" 
@@ -279,7 +279,7 @@ export default function TaskTable({
                           key={colKey}
                           className={`
                             p-0 group relative border-r border-slate-100 dark:border-slate-800
-                            ${isFirstVisible ? 'sticky left-[45px] z-20 bg-slate-50 dark:bg-slate-900 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.1)]' : ''}
+                            ${isFirstVisible ? 'sticky left-[45px] z-20 bg-slate-100 dark:bg-slate-900 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.1)]' : ''}
                           `}
                           style={{ width: widths[colKey] }}
                         >
@@ -298,7 +298,7 @@ export default function TaskTable({
                 });
               })()}
               
-              <th className="p-3 w-[115px] text-center whitespace-nowrap sticky right-0 z-20 bg-slate-50 dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.1)]">
+              <th className="p-3 w-[115px] text-center whitespace-nowrap sticky right-0 z-20 bg-slate-100 dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.1)]">
                 <div className="flex items-center justify-center gap-2">
                   <span className="text-slate-400">P. Thao tác</span>
                   <div className="relative" ref={settingsRef}>
@@ -419,7 +419,7 @@ export default function TaskTable({
                           case 'code':
                             return (
                               <div className="flex items-center gap-2">
-                                <span className="font-mono font-black">{task.code || 'NV-000'}</span>
+                                <span className="font-mono font-bold text-[11px] tracking-tight text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md border border-slate-200/70 dark:border-slate-700">{task.code || 'NV-000'}</span>
                                 {(() => {
                                   const risk = getTaskRisk(task);
                                   if (risk.isRisk) {
@@ -454,7 +454,7 @@ export default function TaskTable({
                             const names = (task.task_collaborators || []).map(c => c.profiles?.full_name).filter(Boolean);
                             if (names.length === 0) return <span className="text-slate-300 dark:text-slate-700">—</span>;
                             return (
-                              <span className="block whitespace-normal break-words leading-relaxed" title={names.join(', ')}>
+                              <span className="block whitespace-normal break-words leading-relaxed line-clamp-3" title={names.join(', ')}>
                                 {names.join(', ')}
                               </span>
                             );
@@ -464,19 +464,19 @@ export default function TaskTable({
                             return <span className="block whitespace-normal break-words" title={task.work_area}>{task.work_area || '—'}</span>;
                           case 'title':
                             return (
-                              <span className="block whitespace-normal break-words font-bold text-slate-800 dark:text-white leading-snug" title={task.title}>
+                              <span className="block whitespace-normal break-words font-bold text-[12.5px] text-slate-900 dark:text-white leading-snug line-clamp-3" title={task.title}>
                                 {task.title}
                               </span>
                             );
                           case 'description':
                             return (
-                              <span className="block whitespace-normal break-words leading-relaxed text-slate-500" title={task.description}>
+                              <span className="block whitespace-normal break-words leading-relaxed text-slate-500 line-clamp-4" title={task.description}>
                                 {task.description || <span className="text-slate-300 dark:text-slate-700 italic">—</span>}
                               </span>
                             );
                           case 'expected_output':
                             return (
-                              <span className="block whitespace-normal break-words text-slate-500" title={task.expected_output}>
+                              <span className="block whitespace-normal break-words text-slate-500 line-clamp-4" title={task.expected_output}>
                                 {task.expected_output || <span className="text-slate-300 dark:text-slate-700 italic">—</span>}
                               </span>
                             );

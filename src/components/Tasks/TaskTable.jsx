@@ -264,7 +264,7 @@ export default function TaskTable({
       <div className="overflow-x-auto scrollbar-thin">
         <table
           className="w-full text-left border-collapse table-fixed"
-          style={{ width: 'max-content' }}
+          style={{ width: '100%', minWidth: 'max-content' }}
         >
           <thead className="sticky top-0 z-10">
             <tr className="border-b-2 border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900 text-slate-600 dark:text-slate-400 text-[11px] uppercase tracking-wider font-extrabold select-none">
@@ -314,6 +314,9 @@ export default function TaskTable({
                 });
               })()}
               
+              {/* Cột đệm co giãn: lấp đầy khoảng trống bên phải khi bảng hẹp hơn khung */}
+              <th aria-hidden="true" className="p-0" />
+
               <th className="p-3 w-[115px] text-center whitespace-nowrap sticky right-0 z-20 bg-slate-100 dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.1)]">
                 <div className="flex items-center justify-center gap-2">
                   <span className="text-slate-400">Thao tác</span>
@@ -544,6 +547,9 @@ export default function TaskTable({
                     });
                   })()}
                   
+                  {/* Ô đệm co giãn tương ứng cột đệm ở tiêu đề */}
+                  <td aria-hidden="true" className="p-0" onClick={(e) => e.stopPropagation()} />
+
                   <td className={`sticky right-0 z-[5] p-3 border-l border-slate-100 dark:border-slate-800 shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.1)] transition-colors ${
                     isSelected ? 'bg-blue-50 dark:bg-[#111c33]' :
                     isOverdue ? 'bg-red-100 dark:bg-red-900/30 group-hover:bg-red-200 dark:group-hover:bg-red-900/50' :
@@ -671,7 +677,7 @@ export default function TaskTable({
 
             {tasks.length === 0 && (
               <tr>
-                <td colSpan={16} className="py-20 text-center">
+                <td colSpan={18} className="py-20 text-center">
                   <div className="flex flex-col items-center gap-3 text-slate-400">
                     <SlidersHorizontal size={40} className="opacity-20" />
                     <p className="font-semibold text-[15px] text-slate-500 dark:text-slate-400">

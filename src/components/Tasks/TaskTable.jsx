@@ -49,21 +49,21 @@ const DEFAULT_WIDTHS = {
 };
 
 const COLUMN_LABELS = {
-  code: 'A. Mã NV',
-  assigned_date: 'B. Ngày giao',
-  assigner: 'C. Người giao',
-  assignee: 'D. Người TH',
-  collaborators: 'E. Phối hợp',
-  task_group: 'F. Nhóm NV',
-  work_area: 'G. Lĩnh vực',
-  title: 'H. Tên nhiệm vụ',
-  description: 'I. Nội dung',
-  expected_output: 'J. Sản phẩm',
-  priority: 'K. UT',
-  start_date: 'L. Bắt đầu',
-  due_date: 'M. Hạn HT',
-  status: 'N. Trạng thái',
-  evaluation: 'O. Đánh giá',
+  code: 'Mã NV',
+  assigned_date: 'Ngày giao',
+  assigner: 'Người giao',
+  assignee: 'Người TH',
+  collaborators: 'Phối hợp',
+  task_group: 'Nhóm NV',
+  work_area: 'Lĩnh vực',
+  title: 'Tên nhiệm vụ',
+  description: 'Nội dung',
+  expected_output: 'Sản phẩm',
+  priority: 'UT',
+  start_date: 'Bắt đầu',
+  due_date: 'Hạn HT',
+  status: 'Trạng thái',
+  evaluation: 'Đánh giá',
 };
 
 const ALL_KEYS = Object.keys(DEFAULT_WIDTHS);
@@ -303,7 +303,7 @@ export default function TaskTable({
                             className={`flex items-center justify-between gap-1 p-3 transition-colors h-full ${isSortable ? 'cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/80' : 'cursor-default'}`} 
                             onClick={() => isSortable && requestSort(sortKey)}
                           >
-                            <span className="truncate">{label}</span>
+                            <span className="whitespace-normal break-words leading-tight">{label}</span>
                             {isSortable && (
                               <SortIcon columnKey={sortKey} sortConfig={sortConfig} />
                             )}
@@ -316,7 +316,7 @@ export default function TaskTable({
               
               <th className="p-3 w-[115px] text-center whitespace-nowrap sticky right-0 z-20 bg-slate-100 dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.1)]">
                 <div className="flex items-center justify-center gap-2">
-                  <span className="text-slate-400">P. Thao tác</span>
+                  <span className="text-slate-400">Thao tác</span>
                   <div className="relative" ref={settingsRef}>
                     <button 
                       onClick={(e) => { e.stopPropagation(); setShowColumnSettings(!showColumnSettings); }}
@@ -470,7 +470,7 @@ export default function TaskTable({
                             const names = (task.task_collaborators || []).map(c => c.profiles?.full_name).filter(Boolean);
                             if (names.length === 0) return <span className="text-slate-300 dark:text-slate-700">—</span>;
                             return (
-                              <span className="block whitespace-normal break-words leading-relaxed line-clamp-3" title={names.join(', ')}>
+                              <span className="block whitespace-normal break-words leading-relaxed" title={names.join(', ')}>
                                 {names.join(', ')}
                               </span>
                             );
@@ -480,19 +480,19 @@ export default function TaskTable({
                             return <span className="block whitespace-normal break-words" title={task.work_area}>{task.work_area || '—'}</span>;
                           case 'title':
                             return (
-                              <span className="block whitespace-normal break-words font-bold text-[12.5px] text-slate-900 dark:text-white leading-snug line-clamp-3" title={task.title}>
+                              <span className="block whitespace-normal break-words font-bold text-[12.5px] text-slate-900 dark:text-white leading-snug" title={task.title}>
                                 {task.title}
                               </span>
                             );
                           case 'description':
                             return (
-                              <span className="block whitespace-normal break-words leading-relaxed text-slate-500 line-clamp-4" title={task.description}>
+                              <span className="block whitespace-normal break-words leading-relaxed text-slate-500" title={task.description}>
                                 {task.description || <span className="text-slate-300 dark:text-slate-700 italic">—</span>}
                               </span>
                             );
                           case 'expected_output':
                             return (
-                              <span className="block whitespace-normal break-words text-slate-500 line-clamp-4" title={task.expected_output}>
+                              <span className="block whitespace-normal break-words text-slate-500" title={task.expected_output}>
                                 {task.expected_output || <span className="text-slate-300 dark:text-slate-700 italic">—</span>}
                               </span>
                             );
@@ -502,14 +502,16 @@ export default function TaskTable({
                             return fmtDate(task.start_date);
                           case 'due_date':
                             const lateDays = getLateDays(task);
+                            const isDueOverdue = lateDays > 0 && task.status !== 'completed';
                             return (
                               <div className="flex flex-col">
-                                <span className={`text-[12px] font-semibold ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                                <span className={`text-[13px] font-extrabold tracking-tight ${isDueOverdue ? 'text-red-600 dark:text-red-400' : 'text-slate-800 dark:text-slate-100'}`}>
                                   {fmtDate(task.due_date)}
                                 </span>
                                 {lateDays > 0 && (
-                                  <span className={`flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded mt-1 font-black uppercase tracking-tighter w-fit ${task.status === 'completed' ? 'bg-amber-50 text-amber-600' : 'bg-red-600 text-white shadow-sm'}`}>
-                                    Trễ {lateDays}n
+                                  <span className={`flex items-center gap-1 text-[10px] px-1.5 py-1 rounded-md mt-1.5 font-black uppercase tracking-tight w-fit ${task.status === 'completed' ? 'bg-amber-100 !text-amber-700 dark:bg-amber-900/30 dark:!text-amber-300' : 'bg-red-600 !text-white shadow-md shadow-red-500/30 animate-pulse'}`}>
+                                    <AlertTriangle size={11} strokeWidth={2.5} />
+                                    Trễ {lateDays} ngày
                                   </span>
                                 )}
                               </div>

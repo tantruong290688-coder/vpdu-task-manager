@@ -317,7 +317,7 @@ export default function TaskTable({
               {/* Cột đệm co giãn: lấp đầy khoảng trống bên phải khi bảng hẹp hơn khung */}
               <th aria-hidden="true" className="p-0" />
 
-              <th className="p-3 w-[115px] text-center whitespace-nowrap sticky right-0 z-20 bg-slate-100 dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.1)]">
+              <th className="py-3 px-2 w-[220px] text-center whitespace-nowrap sticky right-0 z-20 bg-slate-100 dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.1)]">
                 <div className="flex items-center justify-center gap-2">
                   <span className="text-slate-400">Thao tác</span>
                   <div className="relative" ref={settingsRef}>
@@ -550,7 +550,7 @@ export default function TaskTable({
                   {/* Ô đệm co giãn tương ứng cột đệm ở tiêu đề */}
                   <td aria-hidden="true" className="p-0" onClick={(e) => e.stopPropagation()} />
 
-                  <td className={`sticky right-0 z-[5] p-3 border-l border-slate-100 dark:border-slate-800 shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.1)] transition-colors ${
+                  <td className={`sticky right-0 z-[5] py-3 px-2 border-l border-slate-100 dark:border-slate-800 shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.1)] transition-colors ${
                     isSelected ? 'bg-blue-50 dark:bg-[#111c33]' :
                     isOverdue ? 'bg-red-100 dark:bg-red-900/30 group-hover:bg-red-200 dark:group-hover:bg-red-900/50' :
                     actions.selectedIds?.includes(task.id) ? 'bg-blue-50 dark:bg-[#111c33]' :

@@ -199,11 +199,11 @@ export default function ScheduleItemModal({ isOpen, onClose, onSave, onDelete, i
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden">
-        
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-sm">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-2xl flex flex-col max-h-[92vh] sm:max-h-[90vh] overflow-hidden">
+
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/30">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/30">
           <h2 className="text-lg font-bold text-slate-800 dark:text-white">
             {initialData?.id ? (canEdit ? 'Chỉnh sửa sự kiện' : 'Chi tiết sự kiện') : 'Thêm sự kiện'}
           </h2>
@@ -213,36 +213,36 @@ export default function ScheduleItemModal({ isOpen, onClose, onSave, onDelete, i
         </div>
 
         {/* Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
-          
-          <div className="grid grid-cols-2 gap-5">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5 custom-scrollbar">
+
+          <div className="grid grid-cols-2 gap-3 sm:gap-5">
             {/* Ngày */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-blue-500" /> Ngày <span className="text-rose-500">*</span>
+                <Calendar className="w-4 h-4 text-blue-500 shrink-0" /> Ngày <span className="text-rose-500">*</span>
               </label>
               <input 
                 type="date" 
                 name="date"
                 required
                 disabled={!canEdit}
-                value={formData.date || ''} 
+                value={formData.date || ''}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full px-3 sm:px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white transition-all disabled:opacity-70 disabled:cursor-not-allowed"
               />
             </div>
 
             {/* Buổi */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-blue-500" /> Buổi <span className="text-rose-500">*</span>
+                <Clock className="w-4 h-4 text-blue-500 shrink-0" /> Buổi <span className="text-rose-500">*</span>
               </label>
-              <select 
+              <select
                 name="session"
                 disabled={!canEdit}
-                value={formData.session || 'Sáng'} 
+                value={formData.session || 'Sáng'}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white transition-all appearance-none disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full px-3 sm:px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white transition-all appearance-none disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 <option value="Sáng">Sáng</option>
                 <option value="Chiều">Chiều</option>
@@ -252,34 +252,34 @@ export default function ScheduleItemModal({ isOpen, onClose, onSave, onDelete, i
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-5">
+          <div className="grid grid-cols-2 gap-3 sm:gap-5">
             {/* Giờ bắt đầu */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-slate-400" /> Giờ bắt đầu (vd: 08h00)
+                <Clock className="w-4 h-4 text-slate-400 shrink-0" /> <span className="truncate">Giờ bắt đầu <span className="font-normal text-slate-400">(vd: 08h00)</span></span>
               </label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 name="time"
                 disabled={!canEdit}
                 placeholder="Bỏ trống khi cả ngày..."
-                value={formData.time || ''} 
+                value={formData.time || ''}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full px-3 sm:px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white transition-all disabled:opacity-70 disabled:cursor-not-allowed"
               />
             </div>
-            
+
             {/* Loại hình */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <Type className="w-4 h-4 text-slate-400" /> Loại hình
+                <Type className="w-4 h-4 text-slate-400 shrink-0" /> Loại hình
               </label>
-              <select 
+              <select
                 name="type"
                 disabled={!canEdit}
-                value={formData.type || 'meeting'} 
+                value={formData.type || 'meeting'}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white transition-all appearance-none disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full px-3 sm:px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white transition-all appearance-none disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 <option value="meeting">Hội nghị / Cuộc họp</option>
                 <option value="office_work">Làm việc CQ</option>
@@ -300,9 +300,9 @@ export default function ScheduleItemModal({ isOpen, onClose, onSave, onDelete, i
               disabled={!canEdit}
               rows={3}
               placeholder="Nhập nội dung sự kiện..."
-              value={formData.content || ''} 
+              value={formData.content || ''}
               onChange={handleChange}
-              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white transition-all resize-none font-admin text-[14.5px] sm:text-[15.5px] leading-relaxed disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full px-3 sm:px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white transition-all resize-none font-admin text-[14.5px] sm:text-[15.5px] leading-relaxed disabled:opacity-70 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -316,10 +316,10 @@ export default function ScheduleItemModal({ isOpen, onClose, onSave, onDelete, i
               name="host"
               disabled={!canEdit}
               placeholder="Đ/c, tên nhóm, chức danh..."
-              value={formData.host || ''} 
+              value={formData.host || ''}
               onChange={handleChange}
               list="host-suggestions"
-              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full px-3 sm:px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white transition-all disabled:opacity-70 disabled:cursor-not-allowed"
             />
             <datalist id="host-suggestions">
               <option value="Bí thư" />
@@ -339,40 +339,40 @@ export default function ScheduleItemModal({ isOpen, onClose, onSave, onDelete, i
               name="location"
               disabled={!canEdit}
               placeholder="Hội trường, phòng họp..."
-              value={formData.location || ''} 
+              value={formData.location || ''}
               onChange={handleChange}
-              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full px-3 sm:px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white transition-all disabled:opacity-70 disabled:cursor-not-allowed"
             />
           </div>
 
           {/* Thành phần & Chuẩn bị */}
-          <div className="grid grid-cols-2 gap-5">
-            <div className="space-y-1.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+            <div className="space-y-1.5 min-w-0">
               <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-slate-400" /> Thành phần tham dự
+                <Users className="w-4 h-4 text-slate-400 shrink-0" /> Thành phần tham dự
               </label>
-              <textarea 
+              <textarea
                 name="attendees"
                 disabled={!canEdit}
                 rows={2}
                 placeholder="Các thành phần tham dự..."
-                value={formData.attendees || ''} 
+                value={formData.attendees || ''}
                 onChange={handleChange}
-                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white transition-all resize-none text-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full px-3 sm:px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white transition-all resize-none text-sm disabled:opacity-70 disabled:cursor-not-allowed"
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-slate-400" /> Đơn vị chuẩn bị
+                <Users className="w-4 h-4 text-slate-400 shrink-0" /> Đơn vị chuẩn bị
               </label>
-              <textarea 
+              <textarea
                 name="prepare_by"
                 disabled={!canEdit}
                 rows={2}
                 placeholder="Văn phòng, Ban Tổ chức..."
-                value={formData.prepare_by || ''} 
+                value={formData.prepare_by || ''}
                 onChange={handleChange}
-                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white transition-all resize-none text-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full px-3 sm:px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white transition-all resize-none text-sm disabled:opacity-70 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -500,31 +500,31 @@ export default function ScheduleItemModal({ isOpen, onClose, onSave, onDelete, i
         </form>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-5 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/30">
-          <div>
+        <div className="flex items-center justify-between gap-2 p-4 sm:p-5 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/30">
+          <div className="shrink-0">
             {canEdit && initialData?.id && !initialData.id.toString().startsWith('temp_auto_') && onDelete && (
-              <button 
+              <button
                 type="button"
                 onClick={() => onDelete(initialData.id)}
-                className="px-4 py-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 font-medium rounded-xl transition-colors"
+                className="px-3 sm:px-4 py-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 font-medium rounded-xl transition-colors whitespace-nowrap"
               >
                 Xóa sự kiện
               </button>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            <button 
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <button
               type="button"
-              onClick={onClose} 
-              className="px-5 py-2 text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors"
+              onClick={onClose}
+              className="px-4 sm:px-5 py-2 text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors whitespace-nowrap"
             >
               {canEdit ? 'Hủy' : 'Đóng'}
             </button>
             {canEdit && (
-              <button 
+              <button
                 type="button"
-                onClick={handleSubmit} 
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-md shadow-blue-500/20 active:scale-95"
+                onClick={handleSubmit}
+                className="px-5 sm:px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-md shadow-blue-500/20 active:scale-95 whitespace-nowrap"
               >
                 Lưu sự kiện
               </button>

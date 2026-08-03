@@ -317,9 +317,9 @@ export default function TaskTable({
               {/* Cột đệm co giãn: lấp đầy khoảng trống bên phải khi bảng hẹp hơn khung */}
               <th aria-hidden="true" className="p-0" />
 
-              <th className="py-3 px-2 w-[220px] text-center whitespace-nowrap sticky right-0 z-20 bg-slate-100 dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.1)]">
+              <th className="py-3 px-2 w-[220px] text-center whitespace-nowrap sticky right-0 z-20 bg-indigo-100/80 dark:bg-indigo-950/50 border-l-2 border-indigo-200 dark:border-indigo-900/60 shadow-[-4px_0_10px_-3px_rgba(79,70,229,0.18)]">
                 <div className="flex items-center justify-center gap-2">
-                  <span className="text-slate-400">Thao tác</span>
+                  <span className="text-indigo-500 dark:text-indigo-300 font-black">Thao tác</span>
                   <div className="relative" ref={settingsRef}>
                     <button 
                       onClick={(e) => { e.stopPropagation(); setShowColumnSettings(!showColumnSettings); }}
@@ -538,7 +538,7 @@ export default function TaskTable({
                               isOverdue ? 'bg-red-100 dark:bg-red-900/30 group-hover:bg-red-200 dark:group-hover:bg-red-900/50' :
                               actions.selectedIds?.includes(task.id) ? 'bg-blue-50 dark:bg-[#111c33]' :
                               'bg-white dark:bg-[#0f172a] group-hover:bg-slate-50 dark:group-hover:bg-slate-800'
-                            }` : ''}
+                            }` : 'hover:bg-emerald-50/70 dark:hover:bg-emerald-900/20'}
                           `}
                         >
                           {renderCell()}
@@ -550,11 +550,11 @@ export default function TaskTable({
                   {/* Ô đệm co giãn tương ứng cột đệm ở tiêu đề */}
                   <td aria-hidden="true" className="p-0" onClick={(e) => e.stopPropagation()} />
 
-                  <td className={`sticky right-0 z-[5] py-3 px-2 border-l border-slate-100 dark:border-slate-800 shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.1)] transition-colors ${
+                  <td className={`sticky right-0 z-[5] py-3 px-2 border-l-2 border-indigo-200/70 dark:border-indigo-900/50 shadow-[-4px_0_10px_-3px_rgba(79,70,229,0.15)] transition-colors ${
                     isSelected ? 'bg-blue-50 dark:bg-[#111c33]' :
                     isOverdue ? 'bg-red-100 dark:bg-red-900/30 group-hover:bg-red-200 dark:group-hover:bg-red-900/50' :
                     actions.selectedIds?.includes(task.id) ? 'bg-blue-50 dark:bg-[#111c33]' :
-                    'bg-white dark:bg-[#0f172a] group-hover:bg-slate-50 dark:group-hover:bg-slate-800'
+                    'bg-indigo-50/60 dark:bg-indigo-950/25 group-hover:bg-indigo-100/80 dark:group-hover:bg-indigo-900/35'
                   }`} onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-center gap-1.5">
                       {/* Nút kẹp giấy đính kèm */}

@@ -69,8 +69,8 @@ const COLUMN_LABELS = {
 const ALL_KEYS = Object.keys(DEFAULT_WIDTHS);
 
 // Bộ cột hiển thị chuẩn (áp dụng cho mọi tài khoản: admin/manager/staff/viewer)
-// Thứ tự đúng như giao diện: Ngày giao → Hạn HT → Người TH → Phối hợp → Tên NV → Nội dung → Trạng thái
-const DEFAULT_VISIBLE_ORDER = ['assigned_date', 'due_date', 'assignee', 'collaborators', 'title', 'description', 'status'];
+// Thứ tự đúng như giao diện: Ngày giao → Hạn HT → Người TH → Phối hợp → Tên NV → Nội dung → Trạng thái → Đánh giá
+const DEFAULT_VISIBLE_ORDER = ['assigned_date', 'due_date', 'assignee', 'collaborators', 'title', 'description', 'status', 'evaluation'];
 
 // Thứ tự đầy đủ mặc định: 7 cột chuẩn trước, các cột ẩn (vẫn bật lại được qua bánh răng) xếp sau
 const DEFAULT_ORDER = [...DEFAULT_VISIBLE_ORDER, ...ALL_KEYS.filter(k => !DEFAULT_VISIBLE_ORDER.includes(k))];
@@ -80,8 +80,8 @@ const DEFAULT_VISIBILITY = ALL_KEYS.reduce((acc, k) => ({ ...acc, [k]: DEFAULT_V
 
 // Nâng phiên bản để reset cấu hình cột cũ của mọi tài khoản về bộ cột chuẩn này
 const LS_WIDTHS = 'task_table_widths';
-const LS_VISIBILITY = 'task_table_visibility_v2';
-const LS_ORDER = 'task_table_order_v2';
+const LS_VISIBILITY = 'task_table_visibility_v3';
+const LS_ORDER = 'task_table_order_v3';
 
 export default function TaskTable({
   tasks,
@@ -464,10 +464,15 @@ export default function TaskTable({
                               </span>
                             );
                           case 'assignee':
-                            return (
-                              <span className="block whitespace-normal break-words font-semibold text-slate-700 dark:text-slate-200" title={task.assignee?.full_name}>
-                                {task.assignee?.full_name || '—'}
+                            return task.assignee?.full_name ? (
+                              <span
+                                className="inline-block whitespace-normal break-words font-bold text-[13px] leading-snug text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/25 px-2 py-1 rounded-lg border border-blue-100 dark:border-blue-800/40"
+                                title={task.assignee.full_name}
+                              >
+                                {task.assignee.full_name}
                               </span>
+                            ) : (
+                              <span className="text-slate-400">—</span>
                             );
                           case 'collaborators':
                             const names = (task.task_collaborators || []).map(c => c.profiles?.full_name).filter(Boolean);

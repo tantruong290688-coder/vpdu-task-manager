@@ -317,8 +317,8 @@ export default function TaskTable({
               {/* Cột đệm co giãn: lấp đầy khoảng trống bên phải khi bảng hẹp hơn khung */}
               <th aria-hidden="true" className="p-0" />
 
-              <th className="py-3 px-2 w-[220px] text-center whitespace-nowrap sticky right-0 z-20 bg-indigo-100/80 dark:bg-indigo-950/50 border-l-2 border-indigo-200 dark:border-indigo-900/60 shadow-[-4px_0_10px_-3px_rgba(79,70,229,0.18)]">
-                <div className="flex items-center justify-center gap-2">
+              <th className="py-3 px-2 w-[124px] text-center whitespace-nowrap sticky right-0 z-20 bg-indigo-100/80 dark:bg-indigo-950/50 border-l-2 border-indigo-200 dark:border-indigo-900/60 shadow-[-4px_0_10px_-3px_rgba(79,70,229,0.18)]">
+                <div className="flex items-center justify-center gap-1.5">
                   <span className="text-indigo-500 dark:text-indigo-300 font-black">Thao tác</span>
                   <div className="relative" ref={settingsRef}>
                     <button 
@@ -623,8 +623,8 @@ export default function TaskTable({
 
                       <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-700/80 self-center mx-0.5" />
 
-                      {/* Các nút thao tác */}
-                      <div className="flex items-center gap-0.5">
+                      {/* Các nút thao tác: lưới 2 cột -> 2 hàng cho gọn cột */}
+                      <div className="grid grid-cols-2 gap-0.5">
                         <button
                           onClick={() => openDrawer(task)}
                           title="Xem chi tiết"

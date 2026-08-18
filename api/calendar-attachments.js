@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import formidable from 'formidable';
 import fs from 'fs';
@@ -27,7 +27,7 @@ const s3Client = new S3Client({
   forcePathStyle: true,
 });
 
-const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_MIME_TYPES = [
   'application/pdf',
   'application/msword',
@@ -36,6 +36,37 @@ const ALLOWED_MIME_TYPES = [
   'image/png',
   'image/webp'
 ];
+
+const FORBIDDEN_EXTS = ['.exe', '.bat', '.cmd', '.js', '.html', '.php', '.zip', '.rar', '.7z', '.sh', '.msi'];
+
+// Đọc body JSON thủ công vì bodyParser đã bị tắt (dùng cho luồng presigned URL)
+const readJsonBody = (req) => new Promise((resolve, reject) => {
+  let data = '';
+  req.on('data', (chunk) => {
+    data += chunk;
+    if (data.length > 1024 * 1024) { // Chặn body JSON quá lớn (metadata thôi, không phải file)
+      reject(new Error('Body quá lớn'));
+      req.destroy();
+    }
+  });
+  req.on('end', () => {
+    try { resolve(data ? JSON.parse(data) : {}); }
+    catch (e) { reject(e); }
+  });
+  req.on('error', reject);
+});
+
+// Kiểm tra metadata tệp (tên, kích thước, mime) — trả về chuỗi lỗi hoặc null nếu hợp lệ
+const validateFileMeta = ({ fileName, fileSize, mimeType }) => {
+  if (!fileName) return 'Thiếu tên tệp';
+  if (!mimeType || !ALLOWED_MIME_TYPES.includes(mimeType)) {
+    return 'Định dạng tệp không được hỗ trợ (Chỉ hỗ trợ Word, PDF, Ảnh)';
+  }
+  const ext = path.extname(fileName).toLowerCase();
+  if (FORBIDDEN_EXTS.includes(ext)) return 'Định dạng tệp không được phép tải lên';
+  if (typeof fileSize === 'number' && fileSize > MAX_FILE_SIZE) return 'Kích thước tệp vượt quá 5MB';
+  return null;
+};
 
 export default async function handler(req, res) {
   // CORS Headers
@@ -154,7 +185,104 @@ export default async function handler(req, res) {
       return ok(res, { downloadUrl, fileName: attachment.file_name, mimeType: attachment.mime_type });
 
     // ----------------------------------------------------------------------
-    // POST: UPLOAD
+    // POST: PRESIGN UPLOAD (cấp URL để client PUT thẳng lên R2, vượt trần 4.5MB của Vercel)
+    // ----------------------------------------------------------------------
+    } else if (req.method === 'POST' && action === 'presign-upload') {
+      if (!canEdit) return err(res, 403, 'Bạn không có quyền tải lên tệp đính kèm.');
+      if (!eventId) return err(res, 400, 'Thiếu eventId');
+
+      let body;
+      try { body = await readJsonBody(req); }
+      catch (e) { return err(res, 400, 'Dữ liệu yêu cầu không hợp lệ'); }
+
+      const { fileName, fileSize, mimeType } = body;
+      const metaErr = validateFileMeta({ fileName, fileSize, mimeType });
+      if (metaErr) return err(res, 400, metaErr);
+
+      // Xác minh sự kiện tồn tại
+      const { data: event, error: eventErr } = await supabaseAdmin
+        .from('schedule_items')
+        .select('id')
+        .eq('id', eventId)
+        .single();
+      if (eventErr || !event) return err(res, 404, 'Không tìm thấy sự kiện tương ứng');
+
+      const safeFileName = String(fileName).replace(/[^a-zA-Z0-9.-]/g, '_').toLowerCase();
+      const objectKey = `events/${eventId}/${Date.now()}_${safeFileName}`;
+
+      try {
+        const putCommand = new PutObjectCommand({
+          Bucket: targetBucket,
+          Key: objectKey,
+          ContentType: mimeType,
+        });
+        // URL có hiệu lực 5 phút, đủ để client tải lên
+        const uploadUrl = await getSignedUrl(s3Client, putCommand, { expiresIn: 300 });
+        return ok(res, { uploadUrl, objectKey });
+      } catch (e) {
+        return err(res, 500, 'Không tạo được link tải lên: ' + e.message);
+      }
+
+    // ----------------------------------------------------------------------
+    // POST: CONFIRM UPLOAD (sau khi PUT thành công, xác minh & ghi metadata vào DB)
+    // ----------------------------------------------------------------------
+    } else if (req.method === 'POST' && action === 'confirm-upload') {
+      if (!canEdit) return err(res, 403, 'Bạn không có quyền tải lên tệp đính kèm.');
+      if (!eventId) return err(res, 400, 'Thiếu eventId');
+
+      let body;
+      try { body = await readJsonBody(req); }
+      catch (e) { return err(res, 400, 'Dữ liệu yêu cầu không hợp lệ'); }
+
+      const { objectKey, fileName, mimeType } = body;
+      // objectKey bắt buộc phải thuộc đúng sự kiện này (chống ghi đè key tùy ý)
+      if (!objectKey || !String(objectKey).startsWith(`events/${eventId}/`)) {
+        return err(res, 400, 'Thông tin tệp không hợp lệ');
+      }
+      const metaErr = validateFileMeta({ fileName, mimeType });
+      if (metaErr) return err(res, 400, metaErr);
+
+      // Xác minh tệp đã thực sự tồn tại trên R2 và kiểm tra kích thước thật
+      let head;
+      try {
+        head = await s3Client.send(new HeadObjectCommand({ Bucket: targetBucket, Key: objectKey }));
+      } catch (e) {
+        return err(res, 400, 'Không tìm thấy tệp đã tải lên trên R2');
+      }
+
+      const actualSize = head.ContentLength || 0;
+      if (actualSize > MAX_FILE_SIZE) {
+        // Client PUT vượt trần → xóa object và từ chối
+        try { await s3Client.send(new DeleteObjectCommand({ Bucket: targetBucket, Key: objectKey })); } catch (_) {}
+        return err(res, 400, 'Kích thước tệp vượt quá 5MB');
+      }
+
+      const ext = path.extname(fileName).toLowerCase();
+      const { data: newAttachment, error: insertErr } = await supabaseAdmin
+        .from('calendar_event_attachments')
+        .insert([{
+          event_id: eventId,
+          file_name: fileName,
+          file_path: objectKey,
+          file_type: ext.substring(1) || 'unknown',
+          mime_type: mimeType,
+          file_size: actualSize,
+          r2_bucket: targetBucket,
+          uploaded_by: user.id
+        }])
+        .select()
+        .single();
+
+      if (insertErr) {
+        // Rollback: xóa object khỏi R2
+        try { await s3Client.send(new DeleteObjectCommand({ Bucket: targetBucket, Key: objectKey })); } catch (_) {}
+        return err(res, 500, 'Lưu dữ liệu tệp thất bại, đã hủy tải lên');
+      }
+
+      return ok(res, { attachment: newAttachment });
+
+    // ----------------------------------------------------------------------
+    // POST: UPLOAD (luồng cũ qua formidable — giữ làm dự phòng, giới hạn ~4.5MB)
     // ----------------------------------------------------------------------
     } else if (req.method === 'POST' && action === 'upload') {
       if (!canEdit) return err(res, 403, 'Bạn không có quyền tải lên tệp đính kèm.');
@@ -180,7 +308,7 @@ export default async function handler(req, res) {
         form.parse(req, async (errForm, fields, files) => {
           if (errForm) {
             if (errForm.code === '1009') { // Formidable limits
-              return resolve(err(res, 400, 'Kích thước tệp vượt quá 3MB'));
+              return resolve(err(res, 400, 'Kích thước tệp vượt quá 5MB'));
             }
             return resolve(err(res, 500, 'Lỗi xử lý file upload'));
           }

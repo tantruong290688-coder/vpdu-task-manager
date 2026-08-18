@@ -94,8 +94,8 @@ export default function ScheduleItemModal({ isOpen, onClose, onSave, onDelete, i
     // Validate
     const validFiles = [];
     for (const file of files) {
-      if (file.size > 3 * 1024 * 1024) {
-        toast.error(`Tệp "${file.name}" vượt quá 3MB`);
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`Tệp "${file.name}" vượt quá 5MB`);
         continue;
       }
       const ext = file.name.split('.').pop().toLowerCase();
@@ -384,7 +384,7 @@ export default function ScheduleItemModal({ isOpen, onClose, onSave, onDelete, i
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                   <Paperclip className="w-4 h-4 text-blue-500" /> Tệp đính kèm
                 </label>
-                <p className="text-[11px] text-slate-500 mt-0.5">Hỗ trợ Word, PDF, hình ảnh. Tối đa 3MB/tệp.</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Hỗ trợ Word, PDF, hình ảnh. Tối đa 5MB/tệp.</p>
               </div>
               
               {canEdit && (

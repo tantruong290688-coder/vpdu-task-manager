@@ -14,29 +14,72 @@ const getAuthHeaders = async () => {
 // Cấu hình URL endpoint
 const API_BASE = '/api/calendar-attachments';
 
+// Suy ra mime type từ phần mở rộng khi trình duyệt không cung cấp (một số máy báo file.type rỗng)
+const EXT_MIME = {
+  pdf: 'application/pdf',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp'
+};
+
+const ALLOWED_MIME_TYPES = Object.values(EXT_MIME);
+
+const resolveMimeType = (file) => {
+  if (file.type && ALLOWED_MIME_TYPES.includes(file.type)) return file.type;
+  const ext = file.name.split('.').pop().toLowerCase();
+  return EXT_MIME[ext] || file.type || 'application/octet-stream';
+};
+
 /**
- * Upload file đính kèm cho sự kiện
- * POST /api/calendar-events/:eventId/attachments
+ * Upload file đính kèm cho sự kiện — luồng presigned URL (PUT thẳng lên R2).
+ * Bỏ qua trần ~4.5MB của Vercel Serverless Function, hỗ trợ tối đa 5MB.
+ * Gồm 3 bước: xin link (presign) → PUT lên R2 → xác nhận (confirm) ghi DB.
  */
 export const uploadCalendarAttachment = async (eventId, file) => {
   try {
     const headers = await getAuthHeaders();
-    const formData = new FormData();
-    formData.append('file', file);
+    const mimeType = resolveMimeType(file);
 
-    const response = await fetch(`${API_BASE}?action=upload&eventId=${eventId}`, {
+    // 1. Xin presigned URL
+    const presignRes = await fetch(`${API_BASE}?action=presign-upload&eventId=${eventId}`, {
       method: 'POST',
-      headers,
-      body: formData
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileName: file.name, fileSize: file.size, mimeType })
     });
-
-    const responseText = await response.text();
-    if (!response.ok) {
-      let errorData = {};
-      try { errorData = JSON.parse(responseText); } catch (e) {}
-      throw new Error(errorData.error || `Lấy link tải thất bại ${response.status}`);
+    const presignText = await presignRes.text();
+    if (!presignRes.ok) {
+      let e = {};
+      try { e = JSON.parse(presignText); } catch (_) {}
+      throw new Error(e.error || `Lấy link tải thất bại (${presignRes.status})`);
     }
-    const result = JSON.parse(responseText);
+    const { uploadUrl, objectKey } = JSON.parse(presignText);
+
+    // 2. PUT thẳng file lên R2. Content-Type phải khớp lúc ký để chữ ký hợp lệ.
+    const putRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': mimeType },
+      body: file
+    });
+    if (!putRes.ok) {
+      throw new Error(`Tải tệp lên R2 thất bại (${putRes.status})`);
+    }
+
+    // 3. Xác nhận để server kiểm tra & ghi metadata vào DB
+    const confirmRes = await fetch(`${API_BASE}?action=confirm-upload&eventId=${eventId}`, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ objectKey, fileName: file.name, fileSize: file.size, mimeType })
+    });
+    const confirmText = await confirmRes.text();
+    if (!confirmRes.ok) {
+      let e = {};
+      try { e = JSON.parse(confirmText); } catch (_) {}
+      throw new Error(e.error || `Xác nhận tải lên thất bại (${confirmRes.status})`);
+    }
+    const result = JSON.parse(confirmText);
     return result.attachment;
   } catch (error) {
     console.error('[CalendarAttachmentService] upload error:', error);

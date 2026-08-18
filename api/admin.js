@@ -137,7 +137,6 @@ export default async function handler(req, res) {
     return err(res, 401, 'Unauthorized');
   }
   const token = authHeader.split(' ')[1];
-  console.log("Admin API received token:", token.substring(0, 20) + "...");
 
   const { action, userData = {} } = req.body || {};
   if (!action) return err(res, 400, 'Thiếu action');

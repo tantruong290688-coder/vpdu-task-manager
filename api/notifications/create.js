@@ -75,12 +75,14 @@ export default async function handler(req, res) {
   const isInternalCall = serviceKey && serviceKey === process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   let callerRole = null;
+  let callerUserId = null;
   if (!isInternalCall) {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) return err(res, 401, 'Unauthorized');
     const token = authHeader.split(' ')[1];
     try {
       const user = await verifyUser(token);
+      callerUserId = user.id;
       // Role lấy từ bảng profiles (nguồn tin cậy), KHÔNG dùng user_metadata
       // vì user tự ghi được -> tránh leo thang đặc quyền.
       const svc = getServiceClient();
@@ -118,6 +120,10 @@ export default async function handler(req, res) {
   }
   if (recipients.length === 0) return err(res, 400, 'Thiếu userId hoặc userIds');
 
+  // Chống giả mạo người gửi: với lời gọi từ user (không phải internal service),
+  // actor LUÔN là chính người gọi — bỏ qua actorId gửi kèm trong body.
+  const effectiveActorId = isInternalCall ? (actorId || null) : callerUserId;
+
   try {
     setupWebPush();
     const db = getServiceClient();
@@ -132,7 +138,7 @@ export default async function handler(req, res) {
         .insert({
           recipient_id:       uid,
           user_id:            uid, // backward compat
-          actor_id:           actorId || null,
+          actor_id:           effectiveActorId,
           title,
           body,
           message:            body || title, // backward compat

@@ -148,7 +148,7 @@ Trả về JSON thuần (không markdown fence):
 Tối đa 5 minh chứng KPI. KHÔNG tự xếp loại cán bộ.
       `.trim();
 
-      const models   = ['gemini-3.1-flash-lite', 'gemini-3.1-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
+      const models   = ['gemini-3.5-flash-lite', 'gemini-3.1-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
       const genAI    = new GoogleGenerativeAI(geminiApiKey);
       let aiText     = null;
       let modelUsed  = null;

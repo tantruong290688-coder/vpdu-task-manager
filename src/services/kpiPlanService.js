@@ -238,8 +238,102 @@ export function extractDocx(arrayBuffer) {
 }
 
 // Tiện ích đầu-cuối: File/Blob → đối tượng Kế hoạch
-export async function parseKpiPlanDocx(file) {
+import * as XLSX from 'xlsx';
+
+export async function extractXlsx(arrayBuffer) {
+  const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+  const firstSheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[firstSheetName];
+  const allRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+  
+  const strRows = allRows.map(r => r.map(c => String(c).trim()));
+  const paragraphs = strRows.map(r => r.join(' '));
+  
+  let headerRowIdx = -1;
+  for (let i = 0; i < strRows.length; i++) {
+    const rowStr = strRows[i].join(' | ');
+    if (/STT/i.test(rowStr) && /Hệ số quy đổi/i.test(rowStr)) {
+      headerRowIdx = i;
+      break;
+    }
+  }
+  
+  let tables = [];
+  if (headerRowIdx !== -1) {
+    tables.push(strRows.slice(headerRowIdx));
+  } else {
+    tables.push(strRows); 
+  }
+
+  return { paragraphs, tables };
+}
+
+export async function extractPdf(arrayBuffer) {
+  const pdfjsLib = await import('pdfjs-dist');
+  if (pdfjsLib.GlobalWorkerOptions && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+  }
+  
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const numPages = pdf.numPages;
+  const allRows = [];
+  
+  for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+    const page = await pdf.getPage(pageNum);
+    const content = await page.getTextContent();
+    
+    const rowMap = new Map();
+    for (const item of content.items) {
+      if (!item.str || !item.str.trim()) continue;
+      const x = item.transform[4];
+      const y = item.transform[5];
+      const bucketY = Math.round(y / 4) * 4;
+      if (!rowMap.has(bucketY)) {
+        rowMap.set(bucketY, []);
+      }
+      rowMap.get(bucketY).push({ str: item.str, x });
+    }
+    
+    const sortedY = Array.from(rowMap.keys()).sort((a, b) => b - a);
+    for (const y of sortedY) {
+      const rowItems = rowMap.get(y);
+      rowItems.sort((a, b) => a.x - b.x);
+      
+      let cells = [];
+      let currentCell = [];
+      let lastX = -1000;
+      for (const item of rowItems) {
+        if (item.x - lastX > 30) {
+          if (currentCell.length > 0) cells.push(currentCell.join(' '));
+          currentCell = [item.str];
+        } else {
+          currentCell.push(item.str);
+        }
+        lastX = item.x + (item.str.length * 6);
+      }
+      if (currentCell.length > 0) cells.push(currentCell.join(' '));
+      allRows.push(cells);
+    }
+  }
+
+  const tables = [allRows];
+  const paragraphs = allRows.map(r => r.join(' '));
+  
+  return { paragraphs, tables };
+}
+
+export async function parseKpiPlanFile(file) {
   const arrayBuffer = await file.arrayBuffer();
-  const extract = extractDocx(arrayBuffer);
+  const name = (file.name || '').toLowerCase();
+  
+  let extract;
+  if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+    extract = await extractXlsx(arrayBuffer);
+  } else if (name.endsWith('.pdf')) {
+    extract = await extractPdf(arrayBuffer);
+  } else {
+    extract = extractDocx(arrayBuffer);
+  }
+  
   return buildPlanFromExtract(extract, file.name || '');
 }

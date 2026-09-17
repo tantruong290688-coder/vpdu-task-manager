@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import { parseKpiPlanDocx } from '../services/kpiPlanService';
+import { parseKpiPlanFile } from '../services/kpiPlanService';
 import toast from 'react-hot-toast';
 
 const getToken = async () => {
@@ -38,11 +38,11 @@ export function useKpiPlan(staffId) {
     staleTime: 30_000,
   });
 
-  // Parse file .docx (chưa lưu) → trả về preview
+  // Parse file (chưa lưu) → trả về preview
   const parseFile = useCallback(async (file) => {
     setIsImporting(true);
     try {
-      const plan = await parseKpiPlanDocx(file);
+      const plan = await parseKpiPlanFile(file);
       if (!plan.year || !plan.quarter) {
         toast.error('Không nhận diện được Quý/Năm trong file. Kiểm tra tiêu đề "QUÝ .../...".');
       }

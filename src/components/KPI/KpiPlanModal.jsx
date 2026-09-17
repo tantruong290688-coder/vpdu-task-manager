@@ -23,7 +23,7 @@ export default function KpiPlanModal({ staff, onClose }) {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    if (!/\.docx$/i.test(file.name)) { alert('Vui lòng chọn file Word (.docx)'); return; }
+    if (!/\.(docx|xlsx|xls|pdf)$/i.test(file.name)) { alert('Vui lòng chọn file Word, Excel hoặc PDF'); return; }
     try { await parseFile(file); } catch { /* toast đã báo */ }
   };
 
@@ -62,12 +62,12 @@ export default function KpiPlanModal({ staff, onClose }) {
             >
               {isImporting ? <Loader2 size={28} className="text-indigo-600 animate-spin" /> : <FileUp size={28} className="text-indigo-500" />}
               <div className="text-center">
-                <p className="text-[14px] font-black text-slate-700 dark:text-slate-200">Nhập file Kế hoạch (.docx)</p>
+                <p className="text-[14px] font-black text-slate-700 dark:text-slate-200">Nhập file Kế hoạch (.docx, .xlsx, .pdf)</p>
                 <p className="text-[12px] text-slate-400 font-bold mt-1">"Kế hoạch thực hiện nhiệm vụ công tác quý + Danh mục SP/CV"</p>
               </div>
             </button>
           )}
-          <input ref={fileRef} type="file" accept=".docx" className="hidden" onChange={onPick} />
+          <input ref={fileRef} type="file" accept=".docx,.xlsx,.xls,.pdf" className="hidden" onChange={onPick} />
 
           {/* Preview */}
           {preview && (
@@ -165,7 +165,7 @@ export default function KpiPlanModal({ staff, onClose }) {
                 <div className="py-8 flex justify-center"><Loader2 size={22} className="animate-spin text-indigo-600" /></div>
               ) : plans.length === 0 ? (
                 <p className="text-[13px] text-slate-400 font-bold py-6 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl">
-                  Chưa có kế hoạch nào. Nhập file .docx để bắt đầu.
+                  Chưa có kế hoạch nào. Nhập file (.docx, .xlsx, .pdf) để bắt đầu.
                 </p>
               ) : (
                 <div className="space-y-2">

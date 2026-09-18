@@ -43,8 +43,10 @@ export const analyzeEventRuleBased = (event) => {
   let needsReview = false;
 
   // 1. Kiểm tra loại cuộc họp đặc biệt (Mặc định tính Bí thư và Phó Bí thư tham dự)
-  if (MEETING_TYPES.THUONG_TRUC.some(kw => fullText.includes(kw))) {
-    meetingType = 'Thường trực';
+  // Ưu tiên kiểm tra Ban Chấp hành, sau đó đến Ban Thường vụ, cuối cùng là Thường trực
+  // Vì các cuộc họp của cấp cao hơn có thể do cấp dưới chuẩn bị/chủ trì (VD: Hội nghị BTV do TTĐU chủ trì)
+  if (MEETING_TYPES.BAN_CHAP_HANH.some(kw => fullText.includes(kw))) {
+    meetingType = 'Ban Chấp hành';
     isBiThu = true;
     isPBT_TT = true;
     isPBT_CT = true;
@@ -55,8 +57,8 @@ export const analyzeEventRuleBased = (event) => {
     isPBT_TT = true;
     isPBT_CT = true;
     determineSource = 'Tự động theo loại họp';
-  } else if (MEETING_TYPES.BAN_CHAP_HANH.some(kw => fullText.includes(kw))) {
-    meetingType = 'Ban Chấp hành';
+  } else if (MEETING_TYPES.THUONG_TRUC.some(kw => fullText.includes(kw))) {
+    meetingType = 'Thường trực';
     isBiThu = true;
     isPBT_TT = true;
     isPBT_CT = true;

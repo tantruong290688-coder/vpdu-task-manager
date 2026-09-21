@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 export default function AiAnalysisModal({ isOpen, onClose }) {
   const { profile } = useAuth();
   const [filterYear, setFilterYear] = useState(new Date().getFullYear());
+  const [filterQuarter, setFilterQuarter] = useState('');
   const [filterMonth, setFilterMonth] = useState('');
   const [filterWeek, setFilterWeek] = useState('');
   
@@ -58,10 +59,19 @@ export default function AiAnalysisModal({ isOpen, onClose }) {
       schedulesData.forEach(schedule => {
         const items = schedule.schedule_items || [];
         items.forEach(item => {
-          if (filterMonth) {
+          if (filterQuarter || filterMonth) {
             if (!item.date) return;
             const itemDate = new Date(normalizeDateVNToISO(item.date));
-            if (isNaN(itemDate.getTime()) || (itemDate.getMonth() + 1) !== parseInt(filterMonth)) return;
+            if (isNaN(itemDate.getTime())) return;
+            
+            if (filterQuarter) {
+              const quarter = Math.ceil((itemDate.getMonth() + 1) / 3);
+              if (quarter !== parseInt(filterQuarter)) return;
+            }
+            
+            if (filterMonth) {
+              if ((itemDate.getMonth() + 1) !== parseInt(filterMonth)) return;
+            }
           }
           allItems.push({ ...item, schedule });
         });
@@ -95,8 +105,12 @@ export default function AiAnalysisModal({ isOpen, onClose }) {
     if (!results || !summary) return;
     try {
       toast.loading('Đang xuất file Excel...', { id: 'export_ai' });
-      const fromDateText = `T${filterMonth || 'all'}-${filterYear}`;
-      const toDateText = `T${filterMonth || 'all'}-${filterYear}`;
+      let periodText = filterYear;
+      if (filterMonth) periodText = `T${filterMonth}-${filterYear}`;
+      else if (filterQuarter) periodText = `Q${filterQuarter}-${filterYear}`;
+      
+      const fromDateText = periodText;
+      const toDateText = periodText;
       await exportAiAnalysisExcel(results, summary, fromDateText, toDateText, profile);
       toast.success('Xuất file thành công!', { id: 'export_ai' });
     } catch (error) {
@@ -144,9 +158,25 @@ export default function AiAnalysisModal({ isOpen, onClose }) {
             </select>
           </div>
           <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-black uppercase text-slate-500">Quý</label>
+            <select 
+              value={filterQuarter} onChange={e => {
+                setFilterQuarter(e.target.value);
+                if (e.target.value) setFilterMonth('');
+              }}
+              className="bg-slate-100 dark:bg-slate-800 border-none rounded-xl px-4 py-2 text-sm font-bold focus:ring-2 focus:ring-indigo-500 min-w-[120px]"
+            >
+              <option value="">Tất cả</option>
+              {[...Array(4)].map((_, i) => <option key={i+1} value={i+1}>Quý {i+1}</option>)}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1.5">
             <label className="text-[11px] font-black uppercase text-slate-500">Tháng</label>
             <select 
-              value={filterMonth} onChange={e => setFilterMonth(e.target.value)}
+              value={filterMonth} onChange={e => {
+                setFilterMonth(e.target.value);
+                if (e.target.value) setFilterQuarter('');
+              }}
               className="bg-slate-100 dark:bg-slate-800 border-none rounded-xl px-4 py-2 text-sm font-bold focus:ring-2 focus:ring-indigo-500 min-w-[120px]"
             >
               <option value="">Tất cả</option>

@@ -29,19 +29,22 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized: vui lòng đăng nhập để sử dụng AI' });
   }
 
-  const { prompt, fileData, mimeType, temperature = 0.4, maxOutputTokens } = req.body;
+  const { prompt, fileData, mimeType, temperature = 0.4, maxOutputTokens, preferredModel, modelPriority = 'fast' } = req.body;
   const apiKey = process.env.VITE_GEMINI_API_KEY;
 
   if (!apiKey) {
     return res.status(500).json({ error: 'Gemini API Key is not configured on Vercel' });
   }
 
-  const candidateModels = [
-    "gemini-3.5-flash-lite",
-    "gemini-3.1-flash",
-    "gemini-2.5-flash",
-    "gemini-flash-latest"
-  ];
+  // Danh sách các mô hình chuẩn hóa, ổn định và có hạn mức tốt
+  const baseModels = modelPriority === 'smart'
+    ? ["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash"]
+    : ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-2.5-flash"];
+
+  // Nếu người dùng/client chỉ định preferredModel hợp lệ thì đưa lên đầu
+  const candidateModels = preferredModel && baseModels.includes(preferredModel)
+    ? [preferredModel, ...baseModels.filter(m => m !== preferredModel)]
+    : baseModels;
 
   let filePart = null;
   if (fileData) {
@@ -88,8 +91,9 @@ export default async function handler(req, res) {
     } catch (error) {
       console.error(`Attempt with ${modelName} failed:`, error.message);
       lastError = error;
-      // Nếu không phải lỗi 404 (ví dụ lỗi xác thực 401), thì không thử model khác
-      if (error.status && error.status !== 404) {
+      // Chỉ dừng fallback khi lỗi là sai API Key hoặc cấm quyền (401, 403).
+      // Khi gặp 429 (hết quota), 503 (quá tải), 500, 404 (chưa mở model) thì tự động chuyển sang model kế tiếp.
+      if (error.status === 401 || error.status === 403) {
         break;
       }
     }

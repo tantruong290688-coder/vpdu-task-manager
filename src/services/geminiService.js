@@ -69,7 +69,7 @@ Ví dụ: ["Bước 1", "Bước 2", "Bước 3"]
         const response = await fetch('/api/ai-assistant', {
             method: 'POST',
             headers: await aiHeaders(),
-            body: JSON.stringify({ prompt, fileData, mimeType })
+            body: JSON.stringify({ prompt, fileData, mimeType, modelPriority: 'fast' })
         });
 
         if (!response.ok) {
@@ -146,7 +146,7 @@ Trả về CHỈ một đối tượng JSON với định dạng chính xác sau
         const response = await fetch('/api/ai-assistant', {
             method: 'POST',
             headers: await aiHeaders(),
-            body: JSON.stringify({ prompt, temperature: 0.2, fileData, mimeType })
+            body: JSON.stringify({ prompt, temperature: 0.2, fileData, mimeType, modelPriority: 'fast' })
         });
 
         if (!response.ok) throw new Error('Lỗi kết nối AI gợi ý cán bộ');
@@ -188,7 +188,13 @@ Trả về CHỈ một đối tượng JSON với các khóa (keys) chính xác 
         const response = await fetch('/api/ai-assistant', {
             method: 'POST',
             headers: await aiHeaders(),
-            body: JSON.stringify({ prompt, temperature: 0.2, fileData, mimeType }) // Temp thấp để output JSON chính xác
+            body: JSON.stringify({ 
+                prompt, 
+                temperature: 0.2, 
+                fileData, 
+                mimeType, 
+                modelPriority: fileData ? 'smart' : 'fast' 
+            }) // Temp thấp để output JSON chính xác, dùng smart nếu có file đính kèm
         });
 
         if (!response.ok) throw new Error('Lỗi kết nối AI Autofill');
@@ -267,7 +273,7 @@ Trả về CHỈ một đối tượng JSON với các khóa sau, không có vă
         const response = await fetch('/api/ai-assistant', {
             method: 'POST',
             headers: await aiHeaders(),
-            body: JSON.stringify({ prompt, temperature: 0.7 })
+            body: JSON.stringify({ prompt, temperature: 0.7, modelPriority: 'fast' })
         });
 
         if (!response.ok) throw new Error('Lỗi kết nối AI Risk Prediction');
@@ -334,7 +340,7 @@ Trả về CHỈ một đối tượng JSON, không kèm markdown, theo đúng c
         const response = await fetch('/api/ai-assistant', {
             method: 'POST',
             headers: await aiHeaders(),
-            body: JSON.stringify({ prompt, temperature: 0.3 })
+            body: JSON.stringify({ prompt, temperature: 0.3, modelPriority: 'smart' })
         });
 
         if (!response.ok) {

@@ -39,12 +39,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Vui lòng cung cấp nội dung chữ hoặc tệp đính kèm (PDF/Ảnh) để AI phân tích.' });
   }
 
-  // Danh sách models để dự phòng
+  // Danh sách models chuẩn hóa để dự phòng (ưu tiên gemini-3.5-flash cho tác vụ bóc tách lịch phức tạp)
   const candidateModels = [
+    "gemini-3.5-flash",
     "gemini-3.5-flash-lite",
-    "gemini-3.1-flash",
-    "gemini-2.5-flash",
-    "gemini-flash-latest"
+    "gemini-2.5-flash"
   ];
 
   let filePart = null;
@@ -155,14 +154,10 @@ CHỈ TRẢ VỀ JSON, KHÔNG CÓ BẤT KỲ VĂN BẢN NÀO KHÁC.`;
       console.error(`[AI-Parse] Attempt with ${modelName} failed:`, error.message);
       lastError = error;
       
-      // Lỗi syntax parsing JSON
-      if (error instanceof SyntaxError) {
-        // AI không trả về chuẩn JSON, thử model khác
-        continue;
-      }
-      
-      if (error.status && error.status !== 404 && error.status !== 503) {
-        break; // Lỗi 401 hoặc lỗi nghiêm trọng không cần thử model khác
+      // Chỉ dừng fallback khi lỗi là sai API Key hoặc bị cấm quyền (401, 403).
+      // Tiếp tục thử model dự phòng nếu gặp 429 (hết quota), 503 (quá tải), 500 hoặc 404.
+      if (error.status === 401 || error.status === 403) {
+        break; // Lỗi 401/403 không cần thử model khác
       }
     }
   }

@@ -1,4 +1,12 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { supabase } from '../lib/supabase';
+
+// Header kèm Supabase access token để proxy AI xác thực (chống lạm dụng quota).
+const aiHeaders = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  const headers = { 'Content-Type': 'application/json' };
+  if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+  return headers;
+};
 
 // Cấu hình danh sách lãnh đạo (Có thể chuyển sang env hoặc DB sau này)
 export const LEADERSHIP_CONFIG = {
@@ -116,16 +124,13 @@ export const analyzeEventRuleBased = (event) => {
 };
 
 /**
- * Lớp 2: AI Parser (Sử dụng Google Gemini AI qua @google/generative-ai)
+ * Lớp 2: AI Parser (Sử dụng Google Gemini AI qua Proxy Vercel /api/ai-assistant)
  * Chỉ chạy với những trường hợp Rule-based đánh giá là độ tin cậy "Thấp" hoặc "Trung bình" (Cần rà soát)
  */
-export const analyzeEventsAI = async (eventsToReview, apiKey) => {
-  if (!apiKey || eventsToReview.length === 0) return eventsToReview;
+export const analyzeEventsAI = async (eventsToReview) => {
+  if (!eventsToReview || eventsToReview.length === 0) return eventsToReview;
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash-lite' });
-
     const prompt = `Bạn là một trợ lý phân tích lịch công tác.
 Tôi có một danh sách các sự kiện cần rà soát lại thành phần tham dự.
 Hãy phân tích và cho tôi biết trong mỗi sự kiện, các đồng chí lãnh đạo sau có tham dự hay không:
@@ -147,9 +152,22 @@ ${JSON.stringify(eventsToReview.map(e => ({
   type: e.type
 })))}`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const response = await fetch('/api/ai-assistant', {
+      method: 'POST',
+      headers: await aiHeaders(),
+      body: JSON.stringify({
+        prompt,
+        temperature: 0.1,
+        modelPriority: 'fast'
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Lỗi kết nối AI phân tích lịch');
+    }
+
+    const data = await response.json();
+    const text = data.text;
     
     // Parse JSON safely
     const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -157,15 +175,15 @@ ${JSON.stringify(eventsToReview.map(e => ({
 
     // Merge AI results back to events
     return eventsToReview.map(event => {
-      const aiMatch = aiResults.find(r => r.id === event.id);
+      const aiMatch = Array.isArray(aiResults) ? aiResults.find(r => r.id === event.id) : null;
       if (aiMatch) {
         return {
           ...event,
           analysis: {
             ...event.analysis,
-            isBiThu: aiMatch.isBiThu,
-            isPBT_TT: aiMatch.isPBT_TT,
-            isPBT_CT: aiMatch.isPBT_CT,
+            isBiThu: Boolean(aiMatch.isBiThu),
+            isPBT_TT: Boolean(aiMatch.isPBT_TT),
+            isPBT_CT: Boolean(aiMatch.isPBT_CT),
             reliability: 'Cao (AI xác nhận)',
             determineSource: 'AI NLP',
             needsReview: false,
@@ -190,18 +208,23 @@ export const analyzeCalendarData = async (publishedEvents) => {
   let results = publishedEvents.map(analyzeEventRuleBased);
 
   // B2: Lọc ra các events cần review bằng AI
-  const apiKey = import.meta.env.VITE_AI_API_KEY || import.meta.env.AI_API_KEY;
   const eventsToReview = results.filter(e => e.analysis.needsReview);
+  let usedAI = false;
 
-  // Nếu có API Key và có events cần review thì gọi AI
-  if (apiKey && eventsToReview.length > 0) {
-    const aiAnalyzedEvents = await analyzeEventsAI(eventsToReview, apiKey);
-    
-    // Gộp kết quả AI vào danh sách gốc
-    results = results.map(r => {
-      const aiUpdate = aiAnalyzedEvents.find(ai => ai.id === r.id);
-      return aiUpdate || r;
-    });
+  // Nếu có events cần review thì gọi AI qua proxy bảo mật
+  if (eventsToReview.length > 0) {
+    try {
+      const aiAnalyzedEvents = await analyzeEventsAI(eventsToReview);
+      
+      // Gộp kết quả AI vào danh sách gốc
+      results = results.map(r => {
+        const aiUpdate = aiAnalyzedEvents.find(ai => ai.id === r.id);
+        return aiUpdate || r;
+      });
+      usedAI = true;
+    } catch (err) {
+      console.warn("AI Reviewing events failed, using rule-based results only:", err);
+    }
   }
 
   // Tính toán tổng hợp (Summary)
@@ -220,6 +243,6 @@ export const analyzeCalendarData = async (publishedEvents) => {
     success: true,
     data: results,
     summary,
-    usedAI: !!apiKey && eventsToReview.length > 0
+    usedAI
   };
 };

@@ -65,7 +65,7 @@ Lưu ý: Văn phong trang trọng, chuẩn mực công sở Việt Nam. Nếu d�
         const response = await fetch('/api/ai-assistant', {
             method: 'POST',
             headers: await aiHeaders(),
-            body: JSON.stringify({ prompt })
+            body: JSON.stringify({ prompt, modelPriority: 'smart' })
         });
 
         if (!response.ok) {

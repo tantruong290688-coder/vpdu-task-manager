@@ -148,7 +148,7 @@ Trả về JSON thuần (không markdown fence):
 Tối đa 5 minh chứng KPI. KHÔNG tự xếp loại cán bộ.
       `.trim();
 
-      const models   = ['gemini-3.5-flash-lite', 'gemini-3.1-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
+      const models   = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'];
       const genAI    = new GoogleGenerativeAI(geminiApiKey);
       let aiText     = null;
       let modelUsed  = null;
@@ -161,7 +161,11 @@ Tối đa 5 minh chứng KPI. KHÔNG tự xếp loại cán bộ.
           aiText    = result.response.text();
           modelUsed = m;
           break;
-        } catch (e) { lastErr = e; if (e.status && e.status !== 404) break; }
+        } catch (e) {
+          console.error(`[KPI-AI] Attempt with ${m} failed:`, e.message);
+          lastErr = e;
+          if (e.status === 401 || e.status === 403) break;
+        }
       }
 
       if (!aiText) return err(res, 500, 'AI phân tích thất bại: ' + (lastErr?.message || 'Unknown'));

@@ -172,7 +172,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
   };
 
   // 2. Người thực hiện chính đánh giá cho người phối hợp
-  const handleMainAssigneeReview = async (evalId, collabSelfScore) => {
+  const handleMainAssigneeReview = async (evalId, collabSelfScore, targetUserId) => {
     const scoreVal = parseInt(mainRevScore);
     if (isNaN(scoreVal)) {
       toast.error('Vui lòng nhập điểm đánh giá');
@@ -184,6 +184,8 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
     setLoading(true);
     try {
       await taskEvaluationService.submitMainAssigneeReview({
+        taskId: task.id,
+        evaluatedUserId: targetUserId,
         evaluationId: evalId,
         score: scoreVal,
         comment: mainRevComment + (mainRevDiffReason ? `\n(Lý do chênh lệch: ${mainRevDiffReason})` : ''),
@@ -788,7 +790,7 @@ export default function EvaluationModal({ isOpen, onClose, task, onEvaluated }) 
                                           </div>
 
                                           <button 
-                                            onClick={() => handleMainAssigneeReview(selEval?.id, selEval?.self_score)}
+                                            onClick={() => handleMainAssigneeReview(selEval?.id, selEval?.self_score, selectedCollabId)}
                                             disabled={loading || !mainRevScore}
                                             className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[28px] text-[15px] font-black shadow-xl shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                                           >

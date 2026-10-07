@@ -62,7 +62,7 @@ export const taskEvaluationService = {
    * 2. Người thực hiện chính đánh giá/đề xuất cho người phối hợp hoặc bản thân
    */
   async submitMainAssigneeReview({ 
-    evaluationId, score, comment, participationLevel, progressLevel, reviewedBy,
+    taskId, evaluatedUserId, evaluationId, score, comment, participationLevel, progressLevel, reviewedBy,
     qualityScore = 0, progressScore = 0, difficultyScore = 0, bonusPoint = 0, penaltyPoint = 0, note = ''
   }) {
     const payload = {
@@ -82,15 +82,30 @@ export const taskEvaluationService = {
       updated_at: new Date().toISOString()
     };
 
-    const { data, error } = await supabase
-      .from('task_evaluations')
-      .update(payload)
-      .eq('id', evaluationId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    if (evaluationId) {
+      const { data, error } = await supabase
+        .from('task_evaluations')
+        .update(payload)
+        .eq('id', evaluationId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } else {
+      const fullPayload = {
+        ...payload,
+        task_id: taskId,
+        evaluated_user_id: evaluatedUserId,
+        evaluated_role: 'collaborator'
+      };
+      const { data, error } = await supabase
+        .from('task_evaluations')
+        .upsert(fullPayload, { onConflict: 'task_id,evaluated_user_id' })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
   },
 
   /**

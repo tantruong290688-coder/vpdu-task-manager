@@ -91,30 +91,7 @@ export default async function handler(req, res) {
 
   // Handle Public Endpoints (No Auth Required)
   if (req.method === 'GET' && action === 'public-get-signed-url') {
-    if (!attachmentId) return err(res, 400, 'Thiếu attachmentId');
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
-    
-    try {
-      const { data: attachment, error: fetchErr } = await supabaseAdmin
-        .from('calendar_event_attachments')
-        .select('*')
-        .eq('id', attachmentId)
-        .single();
-
-      if (fetchErr || !attachment) return err(res, 404, 'Không tìm thấy tệp đính kèm');
-
-      const command = new GetObjectCommand({
-        Bucket: targetBucket,
-        Key: attachment.file_path,
-        ResponseContentDisposition: `inline; filename="${encodeURIComponent(attachment.file_name)}"`,
-        ResponseContentType: attachment.mime_type || 'application/octet-stream'
-      });
-
-      const downloadUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-      return ok(res, { downloadUrl, fileName: attachment.file_name, mimeType: attachment.mime_type });
-    } catch (e) {
-      return err(res, 500, 'Lỗi public get signed url: ' + e.message);
-    }
+    return err(res, 403, 'Vì lý do bảo mật, tính năng tải tệp đính kèm công khai đã bị khóa. Vui lòng đăng nhập để tải tệp.');
   }
 
   // Authenticate User for other endpoints

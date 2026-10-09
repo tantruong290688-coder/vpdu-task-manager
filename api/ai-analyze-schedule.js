@@ -3,6 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 
 /* global process */
 
+// Bộ nhớ đệm cho Rate Limiting
+const rateLimit = new Map();
+
 // Xác thực user qua Supabase access token (Bearer). Trả về user hoặc null.
 async function verifyUser(req) {
   const authHeader = req.headers.authorization || '';
@@ -28,8 +31,18 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized: vui lòng đăng nhập để sử dụng AI' });
   }
 
+  // BẢO MẬT: Rate limiting đơn giản (Chống lạm dụng AI quota)
+  const now = Date.now();
+  const userHits = rateLimit.get(user.id) || [];
+  const recentHits = userHits.filter(time => now - time < 60000); // 1 phút
+  if (recentHits.length >= 10) { // Tối đa 10 request / phút / user
+    return res.status(429).json({ error: 'Quá nhiều yêu cầu AI. Vui lòng thử lại sau 1 phút.' });
+  }
+  recentHits.push(now);
+  rateLimit.set(user.id, recentHits);
+
   const { rawText, fileData, mimeType, currentWeek, currentYear, userRole } = req.body;
-  const apiKey = process.env.VITE_GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 
   if (!apiKey) {
     return res.status(500).json({ error: 'Gemini API Key is not configured.' });
@@ -37,6 +50,14 @@ export default async function handler(req, res) {
 
   if (!rawText && !fileData) {
     return res.status(400).json({ error: 'Vui lòng cung cấp nội dung chữ hoặc tệp đính kèm (PDF/Ảnh) để AI phân tích.' });
+  }
+
+  // BẢO MẬT & AN TOÀN: Giới hạn đầu vào để tránh lạm dụng
+  if (rawText && rawText.length > 20000) {
+    return res.status(400).json({ error: 'Nội dung văn bản quá dài, vượt quá giới hạn an toàn.' });
+  }
+  if (fileData && fileData.length > 10 * 1024 * 1024) { // Max ~7.5MB base64
+    return res.status(400).json({ error: 'Kích thước tệp đính kèm vượt mức cho phép phân tích.' });
   }
 
   // Danh sách models chuẩn hóa để dự phòng (ưu tiên gemini-3.5-flash cho tác vụ bóc tách lịch phức tạp)

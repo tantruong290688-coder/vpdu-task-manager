@@ -83,7 +83,7 @@ export default async function handler(req, res) {
       if (req.method !== 'POST') return err(res, 405, 'Method Not Allowed');
       if (!canEdit) return err(res, 403, 'Chỉ admin/quản lý được chạy phân tích KPI');
 
-      const geminiApiKey = process.env.VITE_GEMINI_API_KEY;
+      const geminiApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
       if (!geminiApiKey) return err(res, 500, 'Chưa cấu hình Gemini API Key');
 
       const body = req.body || {};
